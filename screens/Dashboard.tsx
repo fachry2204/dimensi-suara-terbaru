@@ -223,12 +223,12 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-12">No</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Judul</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Artist</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tanggal</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider w-12">No</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Judul</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Artist</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Tanggal</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -241,7 +241,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                     <tr key={String(r.id)} className="hover:bg-slate-50 border-b border-slate-100 last:border-0">
                                         <td className="px-4 py-3 text-xs text-slate-500">{(pendingPage - 1) * pageSize + idx + 1}</td>
                                         <td className="px-4 py-3">
-                                            <div className="text-sm font-semibold text-slate-800">{r.title}</div>
+                                            <div className="text-xs font-normal text-slate-800">{r.title}</div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="text-xs text-slate-600">
@@ -257,7 +257,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                         <td className="px-4 py-3 text-right">
                                             <Link
                                                 to={`/releases/${r.id}/view`}
-                                                className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-block font-bold"
+                                                className="px-3 py-1.5 text-[11px] bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-block font-normal"
                                             >
                                                 Lihat
                                             </Link>
@@ -321,12 +321,12 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-12">No</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Judul Lagu</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Performer</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tanggal</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider w-12">No</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Judul Lagu</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Performer</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Tanggal</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -343,7 +343,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                     <tr key={String(s.id)} className="hover:bg-slate-50">
                                         <td className="px-4 py-3 text-xs text-slate-500">{(publishingPage - 1) * pageSize + idx + 1}</td>
                                         <td className="px-4 py-3">
-                                            <div className="text-sm font-semibold text-slate-800">{s.title}</div>
+                                            <div className="text-xs font-normal text-slate-800">{s.title}</div>
                                         </td>
                                         <td className="px-4 py-3 text-xs text-slate-600">{s.performer || '-'}</td>
                                         <td className="px-4 py-3 text-xs text-slate-600">{s.created_at ? new Date(s.created_at).toLocaleDateString('id-ID') : '-'}</td>
@@ -355,7 +355,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                         <td className="px-4 py-3 text-right">
                                             <Link
                                                 to="/publishing/songs"
-                                                className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-block font-bold"
+                                                className="px-3 py-1.5 text-[11px] bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-block font-normal"
                                             >
                                                 Kelola
                                             </Link>

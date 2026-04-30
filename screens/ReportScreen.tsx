@@ -38,9 +38,11 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
 
+  const [previewData, setPreviewData] = useState<ReportData[] | null>(null);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedFile]);
+  }, [selectedFile, previewData]);
 
   const Pagination = ({ totalItems, currentPage, onPageChange }: { totalItems: number, currentPage: number, onPageChange: (p: number) => void }) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -225,25 +227,9 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
             return;
         }
 
-        // SAVE TO DATABASE
-        if (!token) throw new Error('Token Sesi Tidak Ditemukan. Silakan Login Ulang.');
-        
-        // Chunking to avoid "Request Entity Too Large" errors from Nginx/Server limits
-        const chunkSize = 100;
-        const totalChunks = Math.ceil(processedData.length / chunkSize);
-        
-        for (let i = 0; i < processedData.length; i += chunkSize) {
-            const chunk = processedData.slice(i, i + chunkSize);
-            const currentChunkNum = Math.floor(i / chunkSize) + 1;
-            console.log(`Uploading chunk ${currentChunkNum}/${totalChunks}...`);
-            await api.importReports(token, chunk);
-        }
-        
-        // REFRESH DATA FROM BACKEND
-        const refreshedData = await api.getReports(token);
-        onImport(refreshedData);
-        
-        setSuccessMsg(`Berhasil Mengimpor ${processedData.length} Baris Data Ke Database.`);
+        setPreviewData(processedData);
+        setSelectedFile(file.name);
+        setSuccessMsg(`Berhasil Membaca ${processedData.length} Baris Data. Silakan Validasi dan klik Simpan Report.`);
       } catch (err: any) {
         console.error("Import Error:", err);
         setError(err.message || 'Gagal Memproses File. Pastikan Format Excel Valid.');
@@ -262,18 +248,54 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
     const validUPCs = new Set(releases.map(r => r.upc));
     const validISRCs = new Set(releases.flatMap(r => r.tracks.map(t => t.isrc)));
 
-    const updatedData = data.map(item => {
-        if (item.originalFileName === selectedFile) {
+    if (previewData) {
+        const updatedData = previewData.map(item => {
             const hasMatch = validUPCs.has(item.upc) || validISRCs.has(item.isrc);
             return {
                 ...item,
                 verificationStatus: hasMatch ? 'Valid' : 'No User'
             } as ReportData;
-        }
-        return item;
-    });
+        });
+        setPreviewData(updatedData);
+    } else {
+        const updatedData = data.map(item => {
+            if (item.originalFileName === selectedFile) {
+                const hasMatch = validUPCs.has(item.upc) || validISRCs.has(item.isrc);
+                return {
+                    ...item,
+                    verificationStatus: hasMatch ? 'Valid' : 'No User'
+                } as ReportData;
+            }
+            return item;
+        });
+        onImport(updatedData);
+    }
+  };
 
-    onImport(updatedData);
+  const handleSaveReport = async () => {
+      if (!previewData || !token) return;
+      setIsProcessing(true);
+      setError(null);
+      try {
+          const chunkSize = 100;
+          const totalChunks = Math.ceil(previewData.length / chunkSize);
+          
+          for (let i = 0; i < previewData.length; i += chunkSize) {
+              const chunk = previewData.slice(i, i + chunkSize);
+              await api.importReports(token, chunk);
+          }
+          
+          const refreshedData = await api.getReports(token);
+          onImport(refreshedData);
+          
+          setSuccessMsg(`Berhasil Menyimpan ${previewData.length} Baris Data Ke Database.`);
+          setPreviewData(null);
+          setSelectedFile(null);
+      } catch (err: any) {
+          setError(err.message || 'Gagal menyimpan report.');
+      } finally {
+          setIsProcessing(false);
+      }
   };
 
   const downloadTemplate = () => {
@@ -347,13 +369,14 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
   }, [data]);
 
   const selectedFileData = useMemo(() => {
+    if (previewData) return previewData;
     if (!selectedFile) return [];
     return data.filter(d => {
         const record = d as any;
         const fn = record.originalFileName || record.original_file_name;
         return fn === selectedFile;
     });
-  }, [data, selectedFile]);
+  }, [data, selectedFile, previewData]);
 
   const totalRevenue = useMemo(() => {
     try {
@@ -624,21 +647,33 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
                     <div className="space-y-4">
                         <div className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
                             <button 
-                                onClick={() => setSelectedFile(null)}
+                                onClick={() => { setSelectedFile(null); setPreviewData(null); }}
                                 className="flex items-center gap-2 text-white/70 hover:text-white transition-colors text-xs font-bold uppercase"
                             >
                                 <ChevronLeft size={18} />
                                 Kembali
                             </button>
-                            <h2 className="text-sm font-bold text-white truncate max-w-md px-4 border-l border-white/20">{selectedFile}</h2>
-                            <button 
-                                onClick={handleCheckMatches}
-                                className="flex items-center gap-2 px-5 py-2 text-white rounded-xl shadow-lg transition-all font-bold text-xs hover:opacity-90 active:scale-95 border border-white/10"
-                                style={{ backgroundColor: getButtonColor() }}
-                            >
-                                <Search size={16} />
-                                VALIDASI DATA
-                            </button>
+                            <h2 className="text-sm font-bold text-white truncate max-w-md px-4 border-l border-white/20">{selectedFile} {previewData ? '(Preview)' : ''}</h2>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={handleCheckMatches}
+                                    className="flex items-center gap-2 px-5 py-2 bg-slate-700 text-white rounded-xl shadow-lg transition-all font-bold text-xs hover:opacity-90 active:scale-95 border border-white/10"
+                                >
+                                    <Search size={16} />
+                                    VALIDASI DATA
+                                </button>
+                                {previewData && (
+                                    <button 
+                                        onClick={handleSaveReport}
+                                        disabled={isProcessing}
+                                        className="flex items-center gap-2 px-5 py-2 text-white rounded-xl shadow-lg transition-all font-bold text-xs hover:opacity-90 active:scale-95 border border-white/10 disabled:opacity-50"
+                                        style={{ backgroundColor: getButtonColor() }}
+                                    >
+                                        {isProcessing ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></span> : <CheckCircle size={16} />}
+                                        SIMPAN REPORT
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
