@@ -228,7 +228,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                         { title: data.title, primaryArtists: normalizedArtists },
                         fieldName,
                         croppedFile,
-                        10 * 1024 * 1024 // 10MB chunk
+                        2 * 1024 * 1024 // 2MB chunk
                     );
                     const candidate =
                       (resp && resp.paths && resp.paths[fieldName]) ||
@@ -387,24 +387,15 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                 if (trackIndex >= 0) {
                     const fieldName = `track_${trackIndex}_audio`;
                     try {
-                        // Use chunked upload for files > 20MB
-                        const useChunk = (file?.size || 0) > (20 * 1024 * 1024);
                         const normalizedArtists = (data.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).filter(a => a && a.trim() !== '');
-                        const resp = useChunk
-                          ? await api.uploadTmpReleaseFileChunked(
-                              token,
-                              { title: data.title, primaryArtists: normalizedArtists },
-                              fieldName,
-                              file,
-                              10 * 1024 * 1024,
-                              (p: number) => setAudioProgress(trackId, p)
-                            )
-                          : await api.uploadTmpReleaseFile(
-                              token,
-                              { title: data.title, primaryArtists: normalizedArtists },
-                              fieldName,
-                              file
-                            );
+                        const resp = await api.uploadTmpReleaseFileChunked(
+                            token,
+                            { title: data.title, primaryArtists: normalizedArtists },
+                            fieldName,
+                            file,
+                            2 * 1024 * 1024, // 2MB chunk
+                            (p: number) => setAudioProgress(trackId, p)
+                        );
                     const candidate =
                       (resp && resp.paths && resp.paths[fieldName]) ||
                       (resp && resp.paths && resp.paths['file']) ||
@@ -456,24 +447,15 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                         try {
                             setProcessingState(prev => ({ ...prev, [`${trackId}-audioClip`]: true }));
                             updateTrack(trackId, { processingClip: true });
-                            // Same for clip, lower threshold to 1MB
-                            const useChunk = (file?.size || 0) > (1 * 1024 * 1024);
                             const normalizedArtists = (data.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).filter(a => a && a.trim() !== '');
-                            const resp = useChunk
-                              ? await api.uploadTmpReleaseFileChunked(
-                                  token,
-                                  { title: data.title, primaryArtists: normalizedArtists },
-                                  fieldName,
-                                  file,
-                                  10 * 1024 * 1024,
-                                  (p: number) => setClipProgress(trackId, p)
-                                )
-                              : await api.uploadTmpReleaseFile(
-                                  token,
-                                  { title: data.title, primaryArtists: normalizedArtists },
-                                  fieldName,
-                                  file
-                                );
+                            const resp = await api.uploadTmpReleaseFileChunked(
+                                token,
+                                { title: data.title, primaryArtists: normalizedArtists },
+                                fieldName,
+                                file,
+                                2 * 1024 * 1024, // 2MB chunk
+                                (p: number) => setClipProgress(trackId, p)
+                            );
                             const candidate =
                               (resp && resp.paths && resp.paths[fieldName]) ||
                               (resp && resp.paths && resp.paths['file']) ||
@@ -781,17 +763,25 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                                                 {track.audioFile && !track.audioClip && (
                                                     <button 
                                                         type="button"
-                                                        onClick={(e) => {
+                                                        onClick={async (e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
                                                             // Open trimmer with the FULL audio file
                                                             if (typeof track.audioFile !== 'string') {
                                                                 handleFileChange(track.id, 'audioClip', track.audioFile);
                                                             } else {
-                                                                // If already uploaded (string), we might need to fetch it or handle differently.
-                                                                // For now, only support local file trimming for simplicity as requested "after upload" usually implies during wizard.
-                                                                // But if it's already a string, we can try to fetch it or just alert.
-                                                                alert("Trim Online is available for local files or just uploaded files. If already on server, please re-upload to trim.");
+                                                                try {
+                                                                    setAlertState({ isOpen: true, title: 'Downloading', message: 'Mendownload file audio untuk di-trim...', type: 'info' });
+                                                                    const response = await fetch(track.audioFile);
+                                                                    if (!response.ok) throw new Error('Failed to fetch');
+                                                                    const blob = await response.blob();
+                                                                    const file = new File([blob], 'audio.wav', { type: blob.type || 'audio/wav' });
+                                                                    setAlertState(prev => ({ ...prev, isOpen: false }));
+                                                                    handleFileChange(track.id, 'audioClip', file);
+                                                                } catch (err) {
+                                                                    console.error('Fetch error:', err);
+                                                                    setAlertState({ isOpen: true, title: 'Error', message: 'Gagal mendownload file untuk di-trim. Silakan upload ulang.', type: 'error' });
+                                                                }
                                                             }
                                                         }}
                                                         className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-xs font-bold border border-blue-200 hover:bg-blue-100 transition-colors"
