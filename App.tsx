@@ -820,6 +820,7 @@ const App: React.FC = () => {
               coverArt: raw.cover_art || release.coverArt || null,
               type: (raw.release_type || release.type) as any,
               upc: raw.upc || release.upc || '',
+              isrc: tracks[0]?.isrc || '',
               title: raw.title || release.title || '',
               language: raw.language || release.language || '',
               primaryArtists,

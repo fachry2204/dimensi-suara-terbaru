@@ -287,7 +287,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                         key={tab.id}
                         onClick={() => setActiveStatusTab(tab.id)}
                         className={`
-                            whitespace-nowrap px-4 py-2 rounded-full font-semibold text-[10px] transition-all flex items-center gap-2 border
+                            whitespace-nowrap px-4 py-2 rounded-full font-normal text-[10px] transition-all flex items-center gap-2 border
                             ${baseColors}
                         `}
                     >
@@ -342,7 +342,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                 </div>
                 <button
                     onClick={() => navigate('/new-release')}
-                    className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-[14px] font-bold shadow-md shadow-blue-100"
+                    className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-xs font-normal shadow-md shadow-blue-100"
                     title="Create New Release"
                 >
                     <Plus size={14} />

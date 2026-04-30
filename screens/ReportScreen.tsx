@@ -38,6 +38,7 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
 
+  const [previewFiles, setPreviewFiles] = useState<{ fileName: string, timestamp: string, status: string, data: ReportData[] }[]>([]);
   const [previewData, setPreviewData] = useState<ReportData[] | null>(null);
 
   useEffect(() => {
@@ -227,9 +228,15 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
             return;
         }
 
-        setPreviewData(processedData);
-        setSelectedFile(file.name);
-        setSuccessMsg(`Berhasil Membaca ${processedData.length} Baris Data. Silakan Validasi dan klik Simpan Report.`);
+        const newPreviewFile = {
+            fileName: file.name,
+            timestamp: timestamp,
+            status: 'Preview',
+            data: processedData
+        };
+        setPreviewFiles(prev => [...prev, newPreviewFile]);
+        setSuccessMsg(`Berhasil Membaca ${processedData.length} Baris Data. Klik tombol "Lihat" di tabel bawah untuk memvalidasi.`);
+
       } catch (err: any) {
         console.error("Import Error:", err);
         setError(err.message || 'Gagal Memproses File. Pastikan Format Excel Valid.');
@@ -289,6 +296,7 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
           onImport(refreshedData);
           
           setSuccessMsg(`Berhasil Menyimpan ${previewData.length} Baris Data Ke Database.`);
+          setPreviewFiles(prev => prev.filter(p => p.fileName !== selectedFile));
           setPreviewData(null);
           setSelectedFile(null);
       } catch (err: any) {
@@ -341,8 +349,17 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
   };
 
   const uploadHistory = useMemo(() => {
-    const history = new Map<string, { fileName: string, timestamp: string, status: string }>();
+    const history = new Map<string, { fileName: string, timestamp: string, status: string, isPreview?: boolean }>();
     
+    previewFiles.forEach(pf => {
+        history.set(`${pf.fileName}-${pf.timestamp}`, {
+            fileName: pf.fileName,
+            timestamp: pf.timestamp,
+            status: pf.status,
+            isPreview: true
+        });
+    });
+
     data.forEach(item => {
         // Handle both camelCase from frontend and snake_case from backend
         const record = item as any;
@@ -356,7 +373,8 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
             history.set(key, { 
                 fileName: fn, 
                 timestamp: ts,
-                status: st
+                status: st,
+                isPreview: false
             });
         }
     });
@@ -366,7 +384,7 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
         if (!b.timestamp) return -1;
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     });
-  }, [data]);
+  }, [data, previewFiles]);
 
   const selectedFileData = useMemo(() => {
     if (previewData) return previewData;
@@ -589,8 +607,7 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
                                         uploadHistory.map((file, idx) => (
                                             <tr 
                                                 key={`${file.fileName}-${idx}`} 
-                                                onClick={() => setSelectedFile(file.fileName)}
-                                                className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                                                className="hover:bg-slate-50 transition-colors group"
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
@@ -598,8 +615,7 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
                                                             <FileSpreadsheet size={20} />
                                                         </div>
                                                         <div>
-                                                            <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{file.fileName}</div>
-                                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Click to view details</div>
+                                                            <div className="font-bold text-slate-800">{file.fileName}</div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -617,24 +633,49 @@ export const ReportScreen: React.FC<ReportScreenProps> = ({ onImport, data: prop
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${
-                                                        file.status === 'Pending' 
-                                                            ? 'bg-amber-50 text-amber-600 border-amber-100' 
-                                                            : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                        file.status === 'Preview'
+                                                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                                            : file.status === 'Pending' 
+                                                                ? 'bg-amber-50 text-amber-600 border-amber-100' 
+                                                                : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                     }`}>
                                                         {file.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setBatchToDelete({ fileName: file.fileName, timestamp: file.timestamp });
-                                                        }}
-                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                        title="Hapus Laporan"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (file.isPreview) {
+                                                                    const pf = previewFiles.find(p => p.fileName === file.fileName && p.timestamp === file.timestamp);
+                                                                    if (pf) {
+                                                                        setPreviewData(pf.data);
+                                                                        setSelectedFile(pf.fileName);
+                                                                    }
+                                                                } else {
+                                                                    setSelectedFile(file.fileName);
+                                                                    setPreviewData(null);
+                                                                }
+                                                            }}
+                                                            className="px-3 py-1.5 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all font-bold"
+                                                        >
+                                                            Lihat
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (file.isPreview) {
+                                                                    setPreviewFiles(prev => prev.filter(p => !(p.fileName === file.fileName && p.timestamp === file.timestamp)));
+                                                                } else {
+                                                                    setBatchToDelete({ fileName: file.fileName, timestamp: file.timestamp });
+                                                                }
+                                                            }}
+                                                            className="px-3 py-1.5 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-all font-bold flex items-center gap-1"
+                                                        >
+                                                            <Trash2 size={14} /> Delete
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
