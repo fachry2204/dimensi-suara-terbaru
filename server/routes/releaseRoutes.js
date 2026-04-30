@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import db from '../config/db.js';
 import { spawn } from 'child_process';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import { uploadToDrive } from '../utils/googleDrive.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -443,27 +444,23 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             }
         }
 
-        // Move uploaded files into targetDir and collect public paths
+        // Upload directly uploaded files to Google Drive and collect public paths
         const files = Array.isArray(req.files) ? req.files : [];
         const pathMap = {};
         for (const f of files) {
             const destName = f.filename;
-            const destPath = path.join(targetDir, destName);
-            if (f.path !== destPath) {
-                // Try rename, fallback to copy+unlink if cross-device
-                try {
-                   fs.renameSync(f.path, destPath);
-                } catch (renameErr) {
-                   if (renameErr.code === 'EXDEV') {
-                       fs.copyFileSync(f.path, destPath);
-                       fs.unlinkSync(f.path);
-                   } else {
-                       throw renameErr;
-                   }
-                }
+            const destPath = f.path; // multer saved it to RELEASES_DIR or TMP_DIR
+            const mimeType = f.mimetype;
+            
+            try {
+                const driveRes = await uploadToDrive(destPath, destName, mimeType);
+                pathMap[f.fieldname] = driveRes.webContentLink; // or webViewLink
+                // Delete local file after upload
+                try { fs.unlinkSync(destPath); } catch {}
+            } catch (err) {
+                console.error('Failed to upload directly attached file to Drive:', err);
+                throw new Error('Gagal upload file ke Google Drive');
             }
-            const publicPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${destName}`;
-            pathMap[f.fieldname] = publicPath;
         }
 
         // Helper: resolve absolute path from public tmp path (validates user scope)
@@ -512,21 +509,13 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
              if (absTmp && fs.existsSync(absTmp)) {
                  const ext = path.extname(absTmp) || path.extname(tmpCover) || '.jpg';
                  const outName = `${artistDirName} - ${releaseDirName}-cover${ext}`;
-                 const outAbs = path.join(targetDir, outName);
-                if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
-                
-                // Delete existing file if replacing
-                if (fs.existsSync(outAbs)) {
-                    try { fs.unlinkSync(outAbs); } catch (e) { console.warn('Failed to unlink existing file:', e); }
-                }
-
-                try {
-                    fs.copyFileSync(absTmp, outAbs);
-                    try { fs.unlinkSync(absTmp); } catch {}
-                    pathMap['coverArt'] = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
-                } catch (e) {
-                    console.warn('Cover art move failed:', e);
-                }
+                 try {
+                     const driveRes = await uploadToDrive(absTmp, outName, 'image/jpeg');
+                     pathMap['coverArt'] = driveRes.webContentLink;
+                     try { fs.unlinkSync(absTmp); } catch {}
+                 } catch (e) {
+                     console.warn('Cover art Drive upload failed:', e);
+                 }
              }
         }
         const checkAudioFormat24_48 = (inPath) => {
@@ -628,22 +617,14 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                                     `Track ${trackIdx}: format harus 24-bit 48kHz (sampleRate=${fmt.sampleRate || 'unknown'}, bitDepth=${fmt.bitDepth || 'unknown'})`
                                 );
                             } else {
-                                const ext = path.extname(absTmp) || '.wav';
+                            const ext = path.extname(absTmp) || '.wav';
                             const outName = `${baseName}-track${trackIdx}${ext}`;
-                            const outAbs = path.join(targetDir, outName);
-                            if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
-                            
-                            // Delete existing file if replacing
-                            if (fs.existsSync(outAbs)) {
-                                try { fs.unlinkSync(outAbs); } catch (e) { console.warn('Failed to unlink existing track:', e); }
-                            }
-
                             try {
-                                fs.copyFileSync(absTmp, outAbs);
+                                const driveRes = await uploadToDrive(absTmp, outName, 'audio/wav');
+                                audioPath = driveRes.webContentLink;
                                 try { fs.unlinkSync(absTmp); } catch {}
-                                audioPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
                             } catch (copyErr) {
-                                console.warn('Audio copy failed:', copyErr.message || copyErr);
+                                console.warn('Audio Drive upload failed:', copyErr.message || copyErr);
                             }
                             }
                         }
@@ -652,14 +633,8 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                         const absTmp = resolveTmpAbs(tmpClipSource);
                         if (absTmp && fs.existsSync(absTmp)) {
                             const outName = `${baseName}-track${trackIdx}-clip.wav`;
-                            const outAbs = path.join(targetDir, outName);
-                            if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+                            const outAbs = path.join(TMP_DIR, outName); // Temporarily store clip
                             
-                            // Delete existing file if replacing
-                            if (fs.existsSync(outAbs)) {
-                                try { fs.unlinkSync(outAbs); } catch (e) { console.warn('Failed to unlink existing clip:', e); }
-                            }
-
                             const startSec = Number(t.previewStart || 0);
                             let convertedClip = false;
                             try {
@@ -675,8 +650,14 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                                 }
                             }
                             if (convertedClip) {
-                                try { fs.unlinkSync(absTmp); } catch {}
-                                clipPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
+                                try {
+                                    const driveRes = await uploadToDrive(outAbs, outName, 'audio/wav');
+                                    clipPath = driveRes.webContentLink;
+                                    try { fs.unlinkSync(outAbs); } catch {}
+                                    try { fs.unlinkSync(absTmp); } catch {}
+                                } catch (e) {
+                                    console.warn('Clip Drive upload failed:', e);
+                                }
                             }
                         }
                     }

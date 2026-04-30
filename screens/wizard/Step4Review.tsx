@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ReleaseData } from '../../types';
 import { api } from '../../utils/api';
 import { assetUrl } from '../../utils/url';
-import { Disc, CheckCircle, Loader2, AlertCircle, FileAudio, User, Music2, FileText, Calendar, Globe, Tag, Mic2, Users, PlayCircle, ChevronLeft, X, Check, ExternalLink } from 'lucide-react';
+import { Disc, CheckCircle, Loader2, AlertCircle, FileAudio, User, Music2, FileText, Calendar, Globe, Tag, Mic2, Users, PlayCircle, ChevronLeft, X, Check, ExternalLink, Download } from 'lucide-react';
 import { AlertModal } from '../../components/AlertModal';
 
 interface Props {
@@ -11,9 +11,10 @@ interface Props {
   onSave: (data: ReleaseData) => void;
   onBack: () => void;
   userRole?: string;
+  userType?: 'Company' | 'Personal' | null;
 }
 
-export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole }) => {
+export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, userType }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -66,7 +67,14 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole })
         }
         if (!data.language) errors.push("Language / Territory is required.");
         if (!data.version) errors.push("Release Version is required.");
-        if (!data.label) errors.push("Record Label is required.");
+        
+        // Label is only required for Company/PT accounts. 
+        // For Personal, it defaults to 'Dimensi Suara' in the backend/Step 1, 
+        // but we double check here to satisfy validation.
+        if (userType === 'Company' && !data.label) {
+            errors.push("Record Label is required.");
+        }
+        
         if (!data.plannedReleaseDate) errors.push("Release Date is required.");
 
         // 2. Validate Track Level
@@ -110,6 +118,10 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole })
         
         const prepped: ReleaseData = {
           ...data,
+          // Ensure default labels for personal accounts
+          label: (userType !== 'Company' && !data.label) ? 'Dimensi Suara' : data.label,
+          pLine: (userType !== 'Company' && !data.pLine) ? 'Dimensi Suara' : data.pLine,
+          cLine: (userType !== 'Company' && !data.cLine) ? 'Dimensi Suara' : data.cLine,
           // Filter out empty artists and handle object structure
           primaryArtists: (data.primaryArtists || []).filter(a => {
              const name = typeof a === 'string' ? a : a?.name;
@@ -419,19 +431,34 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole })
                 <div className="w-full md:w-40 flex-shrink-0">
                     <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-200 shadow-sm">
                     {data.coverArt ? (
-                        <img
-                            src={
-                              typeof data.coverArt === 'string'
-                                ? assetUrl(data.coverArt)
-                                : (data.coverArt instanceof Blob ? URL.createObjectURL(data.coverArt) : '/assets/placeholder-cover.jpg')
-                            }
-                            alt="Cover"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/assets/placeholder-cover.jpg';
-                              (e.target as HTMLImageElement).onerror = null;
-                            }}
-                        />
+                        <div className="relative group w-full h-full">
+                            <img
+                                src={
+                                  typeof data.coverArt === 'string'
+                                    ? assetUrl(data.coverArt)
+                                    : (data.coverArt instanceof Blob ? URL.createObjectURL(data.coverArt) : '/assets/placeholder-cover.jpg')
+                                }
+                                alt="Cover"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/assets/placeholder-cover.jpg';
+                                  (e.target as HTMLImageElement).onerror = null;
+                                }}
+                            />
+                            {typeof data.coverArt === 'string' && data.coverArt.startsWith('http') && (
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <a 
+                                      href={data.coverArt} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="p-2.5 bg-white text-blue-600 rounded-full shadow-lg hover:bg-blue-50 transition-all transform hover:scale-110"
+                                      title="Download Cover Art"
+                                    >
+                                      <Download size={24} />
+                                    </a>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                             <Disc size={40} className="mb-2" />
@@ -514,6 +541,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole })
                             <th className="px-6 py-4 font-bold text-slate-900 w-24 text-center text-xs">Explicit</th>
                             <th className="px-6 py-4 font-bold text-slate-900 font-mono text-xs">ISRC</th>
                             <th className="px-6 py-4 font-bold text-slate-900 w-28 text-center text-xs">Clip</th>
+                            <th className="px-6 py-4 font-bold text-slate-900 w-24 text-center text-xs">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -569,6 +597,32 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole })
                                     ) : (
                                         <span className="text-xs text-orange-400 bg-orange-50 px-3 py-1 rounded border border-orange-100">Missing</span>
                                     )}
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        {typeof track.audioFile === 'string' && track.audioFile.startsWith('http') && (
+                                            <a 
+                                              href={track.audioFile} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              className="p-1.5 bg-blue-50 text-blue-600 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors"
+                                              title="Download Full Audio"
+                                            >
+                                              <Download size={16} />
+                                            </a>
+                                        )}
+                                        {typeof track.audioClip === 'string' && track.audioClip.startsWith('http') && (
+                                            <a 
+                                              href={track.audioClip} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              className="p-1.5 bg-orange-50 text-orange-600 rounded-lg border border-orange-100 hover:bg-orange-100 transition-colors"
+                                              title="Download Clip"
+                                            >
+                                              <Download size={16} />
+                                            </a>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                             );

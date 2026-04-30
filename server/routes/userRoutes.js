@@ -228,7 +228,8 @@ router.get('/', authenticateToken, async (req, res) => {
                     : `DATE_FORMAT(rejected_date, "%Y-%m-%d") as rejectedDate`)
                 : `NULL as rejectedDate`,
             colNames.includes('aggregator_percentage') ? 'aggregator_percentage' : 'NULL as aggregator_percentage',
-            colNames.includes('publishing_percentage') ? 'publishing_percentage' : 'NULL as publishing_percentage'
+            colNames.includes('publishing_percentage') ? 'publishing_percentage' : 'NULL as publishing_percentage',
+            colNames.includes('account_type') ? 'account_type' : 'NULL as account_type'
         ];
 
         const orderBy = hasRegisteredAt ? 'registered_at DESC' : 'id DESC';

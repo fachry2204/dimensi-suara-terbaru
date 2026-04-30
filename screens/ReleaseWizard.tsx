@@ -44,6 +44,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
   const [isProcessingCover, setIsProcessingCover] = useState(false);
   const [showAudioProcessingWarning, setShowAudioProcessingWarning] = useState(false);
   const [showAudioMissingWarning, setShowAudioMissingWarning] = useState<string[] | false>(false);
+  const [userType, setUserType] = useState<'Company' | 'Personal' | null>(null);
   
   const [data, setData] = useState<ReleaseData>(() => initialData ? initialData : INITIAL_DATA);
 
@@ -52,6 +53,21 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     if (initialData) {
         setData(initialData);
     }
+    
+    // Fetch user type for validation purposes
+    const fetchUserType = async () => {
+        const token = localStorage.getItem('cms_token');
+        if (token) {
+            try {
+                const profile = await api.getProfile(token);
+                const type = (profile.account_type === 'Company' || profile.account_type === 'COMPANY') ? 'Company' : 'Personal';
+                setUserType(type);
+            } catch (error) {
+                console.error("Failed to fetch user profile in Wizard", error);
+            }
+        }
+    };
+    fetchUserType();
   }, [initialData]);
 
   const updateData = (updates: Partial<ReleaseData> | ((prev: ReleaseData) => Partial<ReleaseData>)) => {
@@ -142,7 +158,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
         case Step.INFO: return <Step1ReleaseInfo data={data} updateData={updateData} releaseType={type} isProcessingCover={isProcessingCover} setIsProcessingCover={setIsProcessingCover} />;
         case Step.TRACKS: return <Step2TrackInfo data={data} updateData={updateData} releaseType={type} />;
         case Step.DETAILS: return <Step3ReleaseDetail data={data} updateData={updateData} releaseType={type} />;
-        case Step.REVIEW: return <Step4Review data={{...data, type}} onSave={onSave} onBack={handlePrev} userRole={userRole} />;
+        case Step.REVIEW: return <Step4Review data={{...data, type}} onSave={onSave} onBack={handlePrev} userRole={userRole} userType={userType} />;
         default: return null;
     }
   };

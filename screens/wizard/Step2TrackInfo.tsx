@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ReleaseData, Track, TrackArtist, TrackContributor, ReleaseType } from '../../types';
-import { Music, Trash2, PlusCircle, Info, ChevronDown, ChevronUp, FileAudio, Mic2, User, UserPlus, Loader2, Scissors, Play, Pause, X, Check, UploadCloud } from 'lucide-react';
+import { Music, Trash2, PlusCircle, Info, ChevronDown, ChevronUp, FileAudio, Mic2, User, UserPlus, Loader2, Scissors, Play, Pause, X, Check, UploadCloud, Download } from 'lucide-react';
 import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS, TRACK_GENRES, SUB_GENRES_MAP } from '../../constants';
 import { processFullAudio, cropAndConvertAudio, getAudioDuration } from '../../utils/audioProcessing';
 import { api } from '../../utils/api';
@@ -681,12 +681,28 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                                                 )}
                                             </div>
                                             
-                                            {track.audioFile && !isProcessingAudio && (
-                                                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg border border-green-200">
-                                                    <Check size={16} className="text-green-600" />
-                                                    <span className="text-[11px] font-bold uppercase tracking-wider">Upload Berhasil</span>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {track.audioFile && !isProcessingAudio && (
+                                                    <>
+                                                        {typeof track.audioFile === 'string' && track.audioFile.startsWith('http') && (
+                                                            <a 
+                                                              href={track.audioFile} 
+                                                              target="_blank" 
+                                                              rel="noopener noreferrer"
+                                                              className="p-2 bg-blue-100 text-blue-600 rounded-lg border border-blue-200 hover:bg-blue-200 transition-colors"
+                                                              title="Download Audio"
+                                                              onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                              <Download size={16} />
+                                                            </a>
+                                                        )}
+                                                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                                                            <Check size={16} className="text-green-600" />
+                                                            <span className="text-[11px] font-bold uppercase tracking-wider">Upload Berhasil</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
                                             
                                             {!track.audioFile && (
                                                 <div className="hidden sm:block">
@@ -755,9 +771,23 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
 
                                             <div className="flex items-center gap-2">
                                                 {track.audioClip && !isProcessingClip && (
-                                                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg border border-green-200">
-                                                        <Check size={16} className="text-green-600" />
-                                                        <span className="text-[11px] font-bold uppercase tracking-wider">Upload Berhasil</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {typeof track.audioClip === 'string' && track.audioClip.startsWith('http') && (
+                                                            <a 
+                                                              href={track.audioClip} 
+                                                              target="_blank" 
+                                                              rel="noopener noreferrer"
+                                                              className="p-2 bg-orange-100 text-orange-600 rounded-lg border border-orange-200 hover:bg-orange-200 transition-colors"
+                                                              title="Download Clip"
+                                                              onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                              <Download size={16} />
+                                                            </a>
+                                                        )}
+                                                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                                                            <Check size={16} className="text-green-600" />
+                                                            <span className="text-[11px] font-bold uppercase tracking-wider">Upload Berhasil</span>
+                                                        </div>
                                                     </div>
                                                 )}
                                                 {track.audioFile && !track.audioClip && (

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ReleaseData, ReleaseType } from '../../types';
 import { TextInput, SelectInput } from '../../components/Input';
 import { LANGUAGES, VERSIONS, TRACK_GENRES, SUB_GENRES_MAP } from '../../constants';
-import { ImagePlus, UserPlus, Trash2, Loader2 } from 'lucide-react';
+import { ImagePlus, UserPlus, Trash2, Loader2, Download } from 'lucide-react';
 import { api } from '../../utils/api';
 import { AlertModal } from '../../components/AlertModal';
 
@@ -18,7 +18,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userType, setUserType] = useState<'Company' | 'Personal' | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [users, setUsers] = useState<{ id: number; username: string }[]>([]);
+  const [users, setUsers] = useState<{ id: number; username: string; account_type?: string }[]>([]);
   const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' | 'info' | 'success' }>({
     isOpen: false,
     title: '',
@@ -42,7 +42,8 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                         const allUsers = await api.getUsers(token);
                         setUsers(allUsers.map((u: any) => ({ 
                             id: u.id, 
-                            username: u.full_name ? `${u.full_name} (${u.email})` : (u.name || u.username || u.email) 
+                            username: u.full_name ? `${u.full_name} (${u.email})` : (u.name || u.username || u.email),
+                            account_type: u.account_type
                         })));
                     } catch (error) {
                         console.error("Failed to fetch users list", error);
@@ -305,6 +306,8 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                             const selectedUser = users.find(u => u.username === e.target.value);
                             if (selectedUser) {
                                 updateData({ userId: selectedUser.id });
+                                const type = ((selectedUser as any).account_type === 'Company' || (selectedUser as any).account_type === 'COMPANY') ? 'Company' : 'Personal';
+                                setUserType(type);
                             }
                         }}
                     />
@@ -488,7 +491,19 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                             </div>
                           )}
                           {data.coverArt && !isProcessingCover && (
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                              {typeof data.coverArt === 'string' && data.coverArt.startsWith('http') && (
+                                <a 
+                                  href={data.coverArt} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="p-2 bg-white text-blue-600 rounded-full shadow hover:bg-blue-50 transition-colors"
+                                  title="Download Cover Art"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Download size={20} />
+                                </a>
+                              )}
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -525,7 +540,8 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
               
 
 
-              {(userType === 'Company' || userRole === 'Admin') && (
+              {/* Record Label Field: Shown for Companies (always) or Albums (always) or Admin */}
+              {(userType === 'Company' || userRole === 'Admin' || releaseType === 'ALBUM') && (
                 <>
                   <div className="mb-3">
                       <TextInput 

@@ -320,7 +320,7 @@ const App: React.FC = () => {
                  try {
                      const all = await api.getReleases(token);
                      const releases = Array.isArray(all)
-                        ? (userRole === 'Admin' || userRole === 'Operator' ? all : all.filter((r: any) => belongsToCurrentUser(r)))
+                         ? all.filter((r: any) => belongsToCurrentUser(r))
                         : [];
                      if (releases.length > 0) {
                          releases.forEach((r: any) => {
@@ -352,11 +352,12 @@ const App: React.FC = () => {
                  }
 
                  // 3. Check Status Changes (Songs)
-                 if (userRole === 'Admin' || userRole === 'Operator') {
-                   try {
-                       const songs = await api.publishing.getSongs(token);
-                       if (Array.isArray(songs)) {
-                           songs.forEach((s: any) => {
+                 if (true) {
+                    try {
+                        const songs = await api.publishing.getSongs(token);
+                        if (Array.isArray(songs)) {
+                            const mySongs = songs.filter((s: any) => belongsToCurrentUser(s));
+                            mySongs.forEach((s: any) => {
                                const id = String(s.id);
                                const newStatus = s.status;
                                const oldStatus = prevSongStatusRef.current[id];
@@ -388,9 +389,7 @@ const App: React.FC = () => {
                      localStorage.setItem('cms_local_notifs', JSON.stringify(localNotifs));
                  }
 
-                const userApiNotifs = (userRole === 'Admin' || userRole === 'Operator')
-                    ? filteredApiNotifs
-                    : filteredApiNotifs.filter((n: any) => {
+                const userApiNotifs = filteredApiNotifs.filter((n: any) => {
                         const curId = String((currentUserData as any)?.id || '');
                         return String(n.user_id || '') === curId;
                       });
