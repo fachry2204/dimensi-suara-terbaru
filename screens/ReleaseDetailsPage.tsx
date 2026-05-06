@@ -98,7 +98,9 @@ export const ReleaseDetailsPage: React.FC<Props> = ({ token, userRole, aggregato
           }),
           isNewRelease: raw.original_release_date ? false : true,
           originalReleaseDate: raw.original_release_date || '',
-          plannedReleaseDate: raw.planned_release_date || ''
+          plannedReleaseDate: raw.planned_release_date || '',
+          rejectionReason: raw.rejection_reason || '',
+          rejectionDescription: raw.rejection_description || ''
         };
         (mapped as any).ownerDisplayName = ownerDisplayName;
         setRelease(mapped);

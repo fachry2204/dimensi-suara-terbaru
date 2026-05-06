@@ -214,13 +214,13 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
 
         const data = await response.json();
         
-        if (data.cover_art_url) {
-           const newUrl = assetUrl(data.cover_art_url);
+        if (data.coverArt) {
+           const newUrl = assetUrl(data.coverArt);
            // Update local preview immediately
            setObjectUrls(prev => ({ ...prev, 'cover_art': newUrl }));
            
            if (onCoverArtUpdated) {
-               onCoverArtUpdated(data.cover_art_url);
+               onCoverArtUpdated(data.coverArt);
            }
            setAlertState({
                isOpen: true,
@@ -551,7 +551,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                     <div className="text-sm text-slate-600 mb-1 font-medium">
                         {(release as any).ownerDisplayName || 'Unknown User'}
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-1">{release.title}</h1>
+                    <h1 className="text-3xl font-bold text-black mb-1">{release.title}</h1>
                     <p className="text-slate-600 font-medium text-lg mb-3">
                         {release.primaryArtists.map(a => typeof a === 'string' ? a : a.name).join(", ")}
                     </p>
@@ -575,6 +575,19 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                             <Music2 size={14} /> {release.tracks.length > 1 ? 'Album' : 'Single'}
                         </span>
                     </div>
+
+                    {status === 'Rejected' && (release.rejectionReason || release.rejectionDescription) && (
+                        <div className="mb-6 bg-red-50 border border-red-100 rounded-xl p-4 animate-fade-in">
+                            <div className="flex items-center gap-2 text-red-700 font-bold text-sm mb-1">
+                                <AlertTriangle size={16} />
+                                Alasan Penolakan:
+                            </div>
+                            <div className="text-red-600 text-sm font-medium">
+                                {release.rejectionReason && <p className="font-bold">{release.rejectionReason}</p>}
+                                {release.rejectionDescription && <p className="mt-1 whitespace-pre-line text-xs opacity-90">{release.rejectionDescription}</p>}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
                         <div>

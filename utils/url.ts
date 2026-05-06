@@ -2,14 +2,21 @@ export const assetUrl = (p?: string | null): string => {
   if (!p) return '';
   if (/^https?:\/\//i.test(p)) return p;
   const normalized = p.startsWith('/') ? p : `/${p}`;
-  // Serve uploads from site origin rather than API base
+  
+  const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api$/, '');
+  
+  // Serve uploads from API base if available
   if (/^\/uploads\//.test(normalized)) {
+    if (apiBase && apiBase.startsWith('http')) {
+      return `${apiBase}${normalized}`;
+    }
     try {
       const origin = (globalThis as any)?.location?.origin || '';
       if (origin) return `${origin}${normalized}`;
     } catch {}
   }
-  const base = (import.meta.env.VITE_API_URL || (globalThis as any)?.location?.origin || '/api').replace(/\/api$/, '');
+
+  const base = (apiBase || (globalThis as any)?.location?.origin || '/api').replace(/\/api$/, '');
   return `${base}${normalized}`;
 };
 

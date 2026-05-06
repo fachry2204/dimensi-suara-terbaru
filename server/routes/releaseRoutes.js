@@ -412,17 +412,21 @@ router.post('/tmp/preview-clip', authenticateToken, async (req, res) => {
 // we assume files were uploaded in previous steps? 
 // WAIT: The frontend snippet showed `track.audioFile` as a File object?
 // If `Step4Review` sends JSON, it cannot send File objects.
-// Let's check `api.createRelease`. 
-
 router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res) => {
     try {
-        // Parse JSON payload from 'data' field when using multipart/form-data
+        // Let's check `api.createRelease`.
+ 
+
         const releaseData = typeof req.body.data === 'string' ? JSON.parse(req.body.data) : req.body;
-        let userId = req.user.id;
-        if (req.user.role === 'Admin' && releaseData.userId) {
-            userId = releaseData.userId;
+        const userId = req.user.id;
+        const isAdmin = req.user.role === 'Admin';
+        const isUpdate = !!(releaseData.id || releaseData.releaseId);
+
+        // Normalize cover art field naming
+        if (releaseData.cover_art && !releaseData.coverArt) {
+            releaseData.coverArt = releaseData.cover_art;
+            delete releaseData.cover_art;
         }
-        const isUpdate = !!releaseData.id;
 
         const p = (Array.isArray(releaseData.primaryArtists) && releaseData.primaryArtists[0]) ? releaseData.primaryArtists[0] : 'Unknown_Artist';
         const primaryArtist = (typeof p === 'object' && p !== null && p.name) ? p.name : p;
@@ -464,55 +468,25 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
         }
 
         // Helper: resolve absolute path from public tmp path (validates user scope)
-        const resolveTmpAbs = (pubPath) => {
+        const resolveAbsPath = (pubPath) => {
             if (!pubPath || typeof pubPath !== 'string') return null;
             const normalized = String(pubPath).replace(/^[\\/]+/, '');
-            let relPath = normalized;
-            // Handle various prefixes
-            if (relPath.startsWith('uploads/')) relPath = relPath.replace(/^uploads[\\/]/, '');
-            else if (relPath.startsWith('/uploads/')) relPath = relPath.replace(/^\/uploads[\\/]/, '');
-            
-            // Ensure path starts with tmp/
-            if (!relPath.startsWith('tmp/')) {
-                 // Check if it's just the part after tmp/
-                 const segs = relPath.split(/[\\/]/);
-                 if (segs[0] !== 'tmp') {
-                     // Maybe it's a direct relative path? Let's check if it exists in TMP_DIR
-                     const checkAbs = path.join(TMP_DIR, relPath);
-                     if (fs.existsSync(checkAbs)) return checkAbs;
-                     return null;
-                 }
-            }
-            
-            // It starts with tmp/
-            // But TMP_DIR already ends with uploads/tmp
-            // So we need to strip 'tmp/' from relPath to join with TMP_DIR
-            // OR join with UPLOADS_ROOT
-            
-            // Let's rely on standard resolution:
-            // If p is "uploads/tmp/user/file", abs is UPLOADS_ROOT + p
             const absFromRoot = path.join(__dirname, '../../', normalized);
-            if (fs.existsSync(absFromRoot) && absFromRoot.startsWith(TMP_DIR)) return absFromRoot;
-            
-            // If p is "/uploads/tmp/user/file", handle leading slash
-            const normalizedNoSlash = normalized.replace(/^\//, '');
-            const absFromRoot2 = path.join(__dirname, '../../', normalizedNoSlash);
-            if (fs.existsSync(absFromRoot2) && absFromRoot2.startsWith(TMP_DIR)) return absFromRoot2;
-
+            if (fs.existsSync(absFromRoot) && absFromRoot.startsWith(UPLOADS_ROOT)) return absFromRoot;
             return null;
         };
 
-        // Handle Cover Art move from TMP if not uploaded directly
-        if (!pathMap['coverArt'] && releaseData.coverArt && typeof releaseData.coverArt === 'string' && releaseData.coverArt.includes('/uploads/tmp/')) {
-             const tmpCover = releaseData.coverArt;
-             const absTmp = resolveTmpAbs(tmpCover);
-             if (absTmp && fs.existsSync(absTmp)) {
-                 const ext = path.extname(absTmp) || path.extname(tmpCover) || '.jpg';
+        // Handle Cover Art move from local uploads to Drive if not uploaded directly
+        if (!pathMap['coverArt'] && releaseData.coverArt && typeof releaseData.coverArt === 'string' && releaseData.coverArt.includes('/uploads/')) {
+             const localCover = releaseData.coverArt;
+             const absLocal = resolveAbsPath(localCover);
+             if (absLocal && fs.existsSync(absLocal)) {
+                 const ext = path.extname(absLocal) || path.extname(localCover) || '.jpg';
                  const outName = `${artistDirName} - ${releaseDirName}-cover${ext}`;
                  try {
-                     const driveRes = await uploadToDrive(absTmp, outName, 'image/jpeg');
+                     const driveRes = await uploadToDrive(absLocal, outName, 'image/jpeg');
                      pathMap['coverArt'] = driveRes.webContentLink;
-                     try { fs.unlinkSync(absTmp); } catch {}
+                     try { fs.unlinkSync(absLocal); } catch {}
                  } catch (e) {
                      console.warn('Cover art Drive upload failed:', e);
                  }
@@ -578,8 +552,8 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
         const audioFormatErrors = [];
 
         // Attach file paths back into releaseData
-        if (pathMap['coverArt']) {
-            releaseData.coverArt = pathMap['coverArt'];
+        if (pathMap['coverArt'] || pathMap['cover_art']) {
+            releaseData.coverArt = pathMap['coverArt'] || pathMap['cover_art'];
         }
         if (releaseData.tracks && Array.isArray(releaseData.tracks)) {
             releaseData.tracks = await Promise.all(releaseData.tracks.map(async (t, idx) => {
@@ -609,10 +583,10 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                     const baseName = `${artistDirName} - ${releaseDirName}`;
                     const trackIdx = idx + 1;
                     if (tmpAudioSource) {
-                        const absTmp = resolveTmpAbs(tmpAudioSource);
+                        const absTmp = resolveAbsPath(tmpAudioSource);
                         if (absTmp && fs.existsSync(absTmp)) {
                             const fmt = await checkAudioFormat24_48(absTmp);
-                            if (!fmt.ok) {
+                            if (!fmt.ok && !isAdmin) {
                                 audioFormatErrors.push(
                                     `Track ${trackIdx}: format harus 24-bit 48kHz (sampleRate=${fmt.sampleRate || 'unknown'}, bitDepth=${fmt.bitDepth || 'unknown'})`
                                 );
@@ -630,7 +604,7 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                         }
                     }
                     if (tmpClipSource) {
-                        const absTmp = resolveTmpAbs(tmpClipSource);
+                        const absTmp = resolveAbsPath(tmpClipSource);
                         if (absTmp && fs.existsSync(absTmp)) {
                             const outName = `${baseName}-track${trackIdx}-clip.wav`;
                             const outAbs = path.join(TMP_DIR, outName); // Temporarily store clip
@@ -685,28 +659,20 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             });
         }
 
+        // After checking for update, fetch existing release to preserve unchanged fields
+        let existingRelease = null;
         if (isUpdate) {
             const [rows] = await db.query('SELECT * FROM releases WHERE id = ?', [releaseData.id]);
             if (rows.length === 0) {
                 return res.status(404).json({ error: 'Release not found' });
             }
-            const existingRelease = rows[0];
-            if (req.user.role !== 'Admin' && existingRelease.user_id !== userId) {
-                return res.status(403).json({ error: 'Access denied' });
-            }
-        } else {
-            const [existing] = await db.query(
-                'SELECT id FROM releases WHERE user_id = ? AND title = ? AND version = ? AND status != "Rejected"',
-                [userId, releaseData.title, releaseData.version]
-            );
-            if (existing.length > 0) {
-                return res.status(200).json({ 
-                    message: 'Release already exists', 
-                    id: existing[0].id,
-                    isDuplicate: true 
-                });
+            existingRelease = rows[0];
+            // If coverArt not provided in this request, keep existing
+            if (!releaseData.coverArt && existingRelease.cover_art) {
+                releaseData.coverArt = existingRelease.cover_art;
             }
         }
+
 
         // 1. Insert/Update Release (dynamic columns for optional fields)
         const [releaseCols] = await db.query('SHOW COLUMNS FROM releases');
@@ -766,8 +732,9 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                     duplicateVersion: releaseData.version || 'Original'
                 });
             } else {
+                const targetUserId = (isAdmin && releaseData.userId) ? releaseData.userId : userId;
                 cols.unshift('user_id');
-                vals.unshift(userId);
+                vals.unshift(targetUserId);
                 cols.push('submission_date'); vals.push(new Date());
                 cols.push('status'); vals.push('Pending');
                 const placeholders = `(${cols.map(() => '?').join(', ')})`;
@@ -1012,11 +979,21 @@ router.post('/:id/cover-art', authenticateToken, handleUpload(upload.single('cov
             }
         }
 
-        const publicPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${destName}`;
-        const nextStatus = req.user.role === 'Admin' ? rel.status : 'Request Edit';
-        await db.query('UPDATE releases SET cover_art = ?, status = ? WHERE id = ?', [publicPath, nextStatus, releaseId]);
+        let finalPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${destName}`;
+        try {
+            const driveRes = await uploadToDrive(destPath, destName, 'image/jpeg');
+            finalPath = driveRes.webContentLink;
+            // Cleanup local file after Drive upload
+            try { fs.unlinkSync(destPath); } catch {}
+        } catch (driveErr) {
+            console.warn('Drive upload failed for single cover art update:', driveErr);
+            // Fallback to local path if Drive fails
+        }
 
-        res.json({ message: 'Cover art updated', coverArt: publicPath, status: nextStatus });
+        const nextStatus = req.user.role === 'Admin' ? rel.status : 'Request Edit';
+        await db.query('UPDATE releases SET cover_art = ?, status = ? WHERE id = ?', [finalPath, nextStatus, releaseId]);
+
+        res.json({ message: 'Cover art updated', coverArt: finalPath, status: nextStatus });
     } catch (err) {
         console.error('Update Cover Art Error:', err);
         res.status(500).json({ error: err.message });
