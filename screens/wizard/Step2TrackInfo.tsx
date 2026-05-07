@@ -10,6 +10,7 @@ interface Props {
   data: ReleaseData;
   updateData: (updates: Partial<ReleaseData> | ((prev: ReleaseData) => Partial<ReleaseData>)) => void;
   releaseType: ReleaseType;
+  userRole?: string;
 }
 
 // Sub-component for Audio Preview
@@ -44,7 +45,7 @@ const AudioPreview: React.FC<{ file: File | string }> = ({ file }) => {
     );
 };
 
-export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType }) => {
+export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType, userRole }) => {
   const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
   
   // Track processing state
@@ -635,7 +636,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                                     {/* FULL AUDIO */}
                                     <div className="md:col-span-2 space-y-3">
                                         <label className="block text-xs font-medium text-slate-700 mb-2 flex items-center justify-between">
-                                            <span>Full Audio (WAV 24-bit / 48kHz) <span className="text-red-500">*</span></span>
+                                            <span>Full Audio (WAV 24-bit / 48kHz) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</span>
                                             {isProcessingAudio && (
                                               <span className="text-xs text-blue-500 flex items-center gap-2">
                                                 <Loader2 size={14} className="animate-spin"/>
@@ -723,7 +724,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType 
                                     {/* AUDIO CLIP */}
                                     <div className="md:col-span-2 space-y-3">
                                         <label className="block text-xs font-medium text-slate-700 mb-2 flex items-center justify-between">
-                                            <span>Audio Clip (59s, 24-bit / 48kHz) <span className="text-red-500">*</span></span>
+                                            <span>Audio Clip (59s, 24-bit / 48kHz) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</span>
                                             {isProcessingClip && (
                                               <span className="text-xs text-orange-500 flex items-center gap-2">
                                                 <Loader2 size={14} className="animate-spin"/>

@@ -10,16 +10,23 @@ interface Props {
   data: ReleaseData;
   updateData: (updates: Partial<ReleaseData> | ((prev: ReleaseData) => Partial<ReleaseData>)) => void;
   releaseType?: ReleaseType;
+  userRole?: string;
 }
 
-export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseType }) => {
+export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseType, userRole }) => {
   const dateInputRef = React.useRef<HTMLInputElement>(null);
   const originalDateInputRef = React.useRef<HTMLInputElement>(null);
   
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 14);
+  // Admin can select any date (including past or immediate future)
+  if (userRole !== 'Admin') {
+    minDate.setDate(minDate.getDate() + 14);
+  } else {
+    // For admin, allow any date by setting min very far back or just today
+    minDate.setFullYear(2000); 
+  }
   const minDateStr = minDate.toISOString().split('T')[0];
-  const isDateInvalid = data.plannedReleaseDate && data.plannedReleaseDate < minDateStr;
+  const isDateInvalid = userRole !== 'Admin' && data.plannedReleaseDate && data.plannedReleaseDate < minDateStr;
 
   return (
     <div className="w-full max-w-4xl mx-auto">

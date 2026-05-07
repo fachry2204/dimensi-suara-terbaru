@@ -326,7 +326,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
 
                   <div>
                       <TextInput 
-                        label={<>Release Title <span className="text-red-500">*</span></>}
+                        label={<>Release Title {userRole !== 'Admin' && <span className="text-red-500">*</span>}</>}
                         value={data.title} 
                         onChange={(e) => updateData({ title: e.target.value })} 
                         placeholder="e.g. Midnight Memories"
@@ -335,7 +335,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
 
                   {/* Primary Artists (Multiple) */}
                   <div>
-                    <label className="block text-xs font-bold text-black mb-1">Primary Artist(s) <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-black mb-1">Primary Artist(s) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</label>
                     <div className="space-y-2">
                       {data.primaryArtists.map((artist, index) => {
                         const artistName = typeof artist === 'string' ? artist : artist.name;
@@ -446,13 +446,13 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                     
                     <div className="grid grid-cols-1 gap-3 mt-4">
                         <SelectInput 
-                          label={<>Release Version <span className="text-red-500">*</span></>}
+                          label={<>Release Version {userRole !== 'Admin' && <span className="text-red-500">*</span>}</>}
                           options={VERSIONS}
                           value={data.version}
                           onChange={(e) => updateData({ version: e.target.value })}
                         />
                         <SelectInput 
-                          label={<>Language / Territory <span className="text-red-500">*</span></>}
+                          label={<>Language / Territory {userRole !== 'Admin' && <span className="text-red-500">*</span>}</>}
                           options={LANGUAGES}
                           value={data.language}
                           onChange={(e) => updateData({ language: e.target.value })}
