@@ -255,7 +255,9 @@ const initDb = async () => {
             { name: 'language', type: "VARCHAR(50)" },
             { name: 'label', type: "VARCHAR(100)" },
             { name: 'upc', type: "VARCHAR(50)" },
-            { name: 'aggregator', type: "VARCHAR(50)" }
+            { name: 'aggregator', type: "VARCHAR(50)" },
+            { name: 'rejection_reason', type: "VARCHAR(255)" },
+            { name: 'rejection_description', type: "TEXT" }
         ];
 
         for (const col of releaseColumns) {

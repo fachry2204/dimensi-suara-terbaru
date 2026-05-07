@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import db from '../config/db.js';
 import { spawn } from 'child_process';
 import { authenticateToken } from '../middleware/authMiddleware.js';
-import { uploadToDrive } from '../utils/googleDrive.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -448,23 +448,26 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             }
         }
 
-        // Upload directly uploaded files to Google Drive and collect public paths
         const files = Array.isArray(req.files) ? req.files : [];
         const pathMap = {};
         for (const f of files) {
             const destName = f.filename;
-            const destPath = f.path; // multer saved it to RELEASES_DIR or TMP_DIR
-            const mimeType = f.mimetype;
+            const currentPath = f.path; // multer saved it to RELEASES_DIR or TMP_DIR
+            const destPath = path.join(targetDir, destName);
             
-            try {
-                const driveRes = await uploadToDrive(destPath, destName, mimeType);
-                pathMap[f.fieldname] = driveRes.webContentLink; // or webViewLink
-                // Delete local file after upload
-                try { fs.unlinkSync(destPath); } catch {}
-            } catch (err) {
-                console.error('Failed to upload directly attached file to Drive:', err);
-                throw new Error('Gagal upload file ke Google Drive');
+            if (currentPath !== destPath) {
+                 try {
+                    fs.renameSync(currentPath, destPath);
+                 } catch (renameErr) {
+                    if (renameErr.code === 'EXDEV') {
+                        fs.copyFileSync(currentPath, destPath);
+                        fs.unlinkSync(currentPath);
+                    } else {
+                        throw renameErr;
+                    }
+                 }
             }
+            pathMap[f.fieldname] = `/uploads/releases/${artistDirName}/${releaseDirName}/${destName}`;
         }
 
         // Helper: resolve absolute path from public tmp path (validates user scope)
@@ -476,19 +479,24 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             return null;
         };
 
-        // Handle Cover Art move from local uploads to Drive if not uploaded directly
         if (!pathMap['coverArt'] && releaseData.coverArt && typeof releaseData.coverArt === 'string' && releaseData.coverArt.includes('/uploads/')) {
              const localCover = releaseData.coverArt;
              const absLocal = resolveAbsPath(localCover);
              if (absLocal && fs.existsSync(absLocal)) {
                  const ext = path.extname(absLocal) || path.extname(localCover) || '.jpg';
                  const outName = `${artistDirName} - ${releaseDirName}-cover${ext}`;
+                 const finalAbs = path.join(targetDir, outName);
                  try {
-                     const driveRes = await uploadToDrive(absLocal, outName, 'image/jpeg');
-                     pathMap['coverArt'] = driveRes.webContentLink;
-                     try { fs.unlinkSync(absLocal); } catch {}
+                     fs.renameSync(absLocal, finalAbs);
+                     pathMap['coverArt'] = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
                  } catch (e) {
-                     console.warn('Cover art Drive upload failed:', e);
+                     if (e.code === 'EXDEV') {
+                         fs.copyFileSync(absLocal, finalAbs);
+                         fs.unlinkSync(absLocal);
+                         pathMap['coverArt'] = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
+                     } else {
+                        console.warn('Cover art local move failed:', e);
+                     }
                  }
              }
         }
@@ -593,12 +601,18 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                             } else {
                             const ext = path.extname(absTmp) || '.wav';
                             const outName = `${baseName}-track${trackIdx}${ext}`;
+                            const finalAbs = path.join(targetDir, outName);
                             try {
-                                const driveRes = await uploadToDrive(absTmp, outName, 'audio/wav');
-                                audioPath = driveRes.webContentLink;
-                                try { fs.unlinkSync(absTmp); } catch {}
+                                fs.renameSync(absTmp, finalAbs);
+                                audioPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
                             } catch (copyErr) {
-                                console.warn('Audio Drive upload failed:', copyErr.message || copyErr);
+                                if (copyErr.code === 'EXDEV') {
+                                    fs.copyFileSync(absTmp, finalAbs);
+                                    fs.unlinkSync(absTmp);
+                                    audioPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
+                                } else {
+                                    console.warn('Audio local move failed:', copyErr.message || copyErr);
+                                }
                             }
                             }
                         }
@@ -625,12 +639,20 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                             }
                             if (convertedClip) {
                                 try {
-                                    const driveRes = await uploadToDrive(outAbs, outName, 'audio/wav');
-                                    clipPath = driveRes.webContentLink;
-                                    try { fs.unlinkSync(outAbs); } catch {}
+                                    const finalAbs = path.join(targetDir, outName);
+                                    fs.renameSync(outAbs, finalAbs);
+                                    clipPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
                                     try { fs.unlinkSync(absTmp); } catch {}
                                 } catch (e) {
-                                    console.warn('Clip Drive upload failed:', e);
+                                    if (e.code === 'EXDEV') {
+                                        const finalAbs = path.join(targetDir, outName);
+                                        fs.copyFileSync(outAbs, finalAbs);
+                                        fs.unlinkSync(outAbs);
+                                        clipPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
+                                        try { fs.unlinkSync(absTmp); } catch {}
+                                    } else {
+                                        console.warn('Clip local move failed:', e);
+                                    }
                                 }
                             }
                         }
@@ -980,15 +1002,6 @@ router.post('/:id/cover-art', authenticateToken, handleUpload(upload.single('cov
         }
 
         let finalPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${destName}`;
-        try {
-            const driveRes = await uploadToDrive(destPath, destName, 'image/jpeg');
-            finalPath = driveRes.webContentLink;
-            // Cleanup local file after Drive upload
-            try { fs.unlinkSync(destPath); } catch {}
-        } catch (driveErr) {
-            console.warn('Drive upload failed for single cover art update:', driveErr);
-            // Fallback to local path if Drive fails
-        }
 
         const nextStatus = req.user.role === 'Admin' ? rel.status : 'Request Edit';
         await db.query('UPDATE releases SET cover_art = ?, status = ? WHERE id = ?', [finalPath, nextStatus, releaseId]);
@@ -996,6 +1009,49 @@ router.post('/:id/cover-art', authenticateToken, handleUpload(upload.single('cov
         res.json({ message: 'Cover art updated', coverArt: finalPath, status: nextStatus });
     } catch (err) {
         console.error('Update Cover Art Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/download', authenticateToken, (req, res) => {
+    try {
+        const { filePath, fileName } = req.query;
+        if (!filePath) return res.status(400).json({ error: 'filePath is required' });
+
+        // Normalize and validate path
+        const normalized = String(filePath).replace(/^[\\/]+/, '');
+        let relPath = normalized;
+        if (relPath.startsWith('uploads/')) {
+            relPath = relPath.replace(/^uploads[\\/]/, '');
+        } else if (relPath.startsWith('/uploads/')) {
+            relPath = relPath.replace(/^\/uploads[\\/]/, '');
+        }
+
+        const absPath = path.join(__dirname, '../../', relPath);
+        
+        // Security check: ensure path is within uploads directory
+        const uploadsRootAbs = path.resolve(UPLOADS_ROOT);
+        const resolvedAbsPath = path.resolve(absPath);
+        
+        if (!resolvedAbsPath.startsWith(uploadsRootAbs)) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        if (!fs.existsSync(resolvedAbsPath)) {
+            return res.status(404).json({ error: 'File not found on server' });
+        }
+
+        // Set headers for download
+        const name = fileName || path.basename(resolvedAbsPath);
+        res.download(resolvedAbsPath, name, (err) => {
+            if (err) {
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Failed to download file' });
+                }
+            }
+        });
+    } catch (err) {
+        console.error('Download Error:', err);
         res.status(500).json({ error: err.message });
     }
 });

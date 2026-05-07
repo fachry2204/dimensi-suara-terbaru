@@ -366,6 +366,42 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
   };
 
   const downloadFile = (url: string, filename: string) => {
+      // If it's a local file (starts with /uploads/ or contains it), use our download proxy
+      if (url.includes('/uploads/')) {
+          const relativePath = url.split('/uploads/')[1];
+          const downloadUrl = `${API_BASE_URL}/releases/download?filePath=/uploads/${relativePath}&fileName=${encodeURIComponent(filename)}&token=${token}`;
+          
+          // Since we need authentication, we can either use a token in query or fetch
+          // For simplicity with <a> tag, we'll use query param if the server supports it, 
+          // but our middleware uses Bearer token.
+          // Let's use a hidden form or a fetch-based download.
+          
+          fetch(downloadUrl, {
+              headers: { 'Authorization': `Bearer ${token}` }
+          })
+          .then(res => {
+              if (!res.ok) throw new Error('Download failed');
+              return res.blob();
+          })
+          .then(blob => {
+              const bUrl = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = bUrl;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(bUrl);
+          })
+          .catch(err => {
+              console.error(err);
+              // Fallback to direct link if fetch fails
+              window.open(url, '_blank');
+          });
+          return;
+      }
+
+      // Fallback for non-local (like old Google Drive links)
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -551,7 +587,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                     <div className="text-sm text-slate-600 mb-1 font-medium">
                         {(release as any).ownerDisplayName || 'Unknown User'}
                     </div>
-                    <h1 className="text-3xl font-bold text-black mb-1">{release.title}</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-1">{release.title}</h1>
                     <p className="text-slate-600 font-medium text-lg mb-3">
                         {release.primaryArtists.map(a => typeof a === 'string' ? a : a.name).join(", ")}
                     </p>
@@ -576,15 +612,28 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         </span>
                     </div>
 
-                    {status === 'Rejected' && (release.rejectionReason || release.rejectionDescription) && (
-                        <div className="mb-6 bg-red-50 border border-red-100 rounded-xl p-4 animate-fade-in">
-                            <div className="flex items-center gap-2 text-red-700 font-bold text-sm mb-1">
-                                <AlertTriangle size={16} />
-                                Alasan Penolakan:
+                    {/* REJECTION REASON DISPLAY */}
+                    {status === 'Rejected' && (rejectionReason || rejectionDesc) && (
+                        <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-2xl p-6 animate-fade-in-down shadow-sm">
+                            <div className="flex items-center gap-2.5 text-red-700 font-extrabold text-base mb-3">
+                                <AlertTriangle size={22} className="text-red-600" />
+                                RILIS DITOLAK (REJECTION REASON)
                             </div>
-                            <div className="text-red-600 text-sm font-medium">
-                                {release.rejectionReason && <p className="font-bold">{release.rejectionReason}</p>}
-                                {release.rejectionDescription && <p className="mt-1 whitespace-pre-line text-xs opacity-90">{release.rejectionDescription}</p>}
+                            <div className="bg-white/60 rounded-xl p-4 border border-red-100">
+                                {rejectionReason && (
+                                    <div className="mb-3">
+                                        <span className="text-[10px] uppercase font-bold text-red-500 tracking-widest block mb-1">Alasan Utama:</span>
+                                        <p className="text-sm font-bold text-red-900 leading-tight">{rejectionReason}</p>
+                                    </div>
+                                )}
+                                {rejectionDesc && (
+                                    <div>
+                                        <span className="text-[10px] uppercase font-bold text-red-400 tracking-widest block mb-1">Keterangan Detail:</span>
+                                        <p className="text-[13px] text-red-800 whitespace-pre-line leading-relaxed font-medium">
+                                            {rejectionDesc}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
