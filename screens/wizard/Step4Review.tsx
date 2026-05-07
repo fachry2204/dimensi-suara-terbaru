@@ -140,6 +140,8 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         if (prepped.coverArt instanceof File) total += 1;
         prepped.tracks.forEach(t => {
           const anyT = t as any;
+          if (anyT.audioFile instanceof File) total += 1;
+          if (anyT.audioClip instanceof File) total += 1;
           if (anyT.iplFile instanceof File) total += 1;
         });
         setUploadTotal(total);

@@ -647,6 +647,10 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                         <td className="px-3 py-1.5 text-slate-700 align-top">{formatDMY(release.plannedReleaseDate)}</td>
                                     </tr>
                                     <tr className="border-b border-slate-200">
+                                        <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Original Release Date</td>
+                                        <td className="px-3 py-1.5 text-slate-700 align-top">{formatDMY(release.originalReleaseDate)}</td>
+                                    </tr>
+                                    <tr className="border-b border-slate-200">
                                         <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Version</td>
                                         <td className="px-3 py-1.5 text-slate-700 align-top">{release.version || '-'}</td>
                                     </tr>

@@ -564,7 +564,9 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             releaseData.coverArt = pathMap['coverArt'] || pathMap['cover_art'];
         }
         if (releaseData.tracks && Array.isArray(releaseData.tracks)) {
-            releaseData.tracks = await Promise.all(releaseData.tracks.map(async (t, idx) => {
+            const processedTracks = [];
+            for (let idx = 0; idx < releaseData.tracks.length; idx++) {
+                const t = releaseData.tracks[idx];
                 const audioField = `track_${idx}_audio`;
                 const clipField = `track_${idx}_clip`;
                 const iplField = `track_${idx}_ipl`;
@@ -587,6 +589,7 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                 const tmpClipSource =
                     (typeof t.tempClipPath === 'string' && t.tempClipPath) ||
                     (typeof t.audioClip === 'string' && /\/uploads\/tmp\//.test(t.audioClip) ? t.audioClip : null);
+                
                 try {
                     const baseName = `${artistDirName} - ${releaseDirName}`;
                     const trackIdx = idx + 1;
@@ -599,21 +602,21 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                                     `Track ${trackIdx}: format harus 24-bit 48kHz (sampleRate=${fmt.sampleRate || 'unknown'}, bitDepth=${fmt.bitDepth || 'unknown'})`
                                 );
                             } else {
-                            const ext = path.extname(absTmp) || '.wav';
-                            const outName = `${baseName}-track${trackIdx}${ext}`;
-                            const finalAbs = path.join(targetDir, outName);
-                            try {
-                                fs.renameSync(absTmp, finalAbs);
-                                audioPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
-                            } catch (copyErr) {
-                                if (copyErr.code === 'EXDEV') {
-                                    fs.copyFileSync(absTmp, finalAbs);
-                                    fs.unlinkSync(absTmp);
+                                const ext = path.extname(absTmp) || '.wav';
+                                const outName = `${baseName}-track${trackIdx}${ext}`;
+                                const finalAbs = path.join(targetDir, outName);
+                                try {
+                                    fs.renameSync(absTmp, finalAbs);
                                     audioPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
-                                } else {
-                                    console.warn('Audio local move failed:', copyErr.message || copyErr);
+                                } catch (copyErr) {
+                                    if (copyErr.code === 'EXDEV') {
+                                        fs.copyFileSync(absTmp, finalAbs);
+                                        fs.unlinkSync(absTmp);
+                                        audioPath = `/uploads/releases/${artistDirName}/${releaseDirName}/${outName}`;
+                                    } else {
+                                        console.warn('Audio local move failed:', copyErr.message || copyErr);
+                                    }
                                 }
-                            }
                             }
                         }
                     }
@@ -661,15 +664,16 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
                     console.warn('TMP convert/move failed:', e.message || e);
                 }
 
-                return {
+                processedTracks.push({
                     ...t,
                     primaryArtists,
                     featuredArtists,
                     audioFile: audioPath,
                     audioClip: clipPath,
                     iplFile: pathMap[iplField] || t.iplFile || null
-                };
-            }));
+                });
+            }
+            releaseData.tracks = processedTracks;
         }
 
         if (audioFormatErrors.length > 0) {
