@@ -1,8 +1,9 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/api/releases/route": "app/api/releases/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/api/settings/branding/route": "app/api/settings/branding/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
   "/(dashboard)/releases/page": "app/(dashboard)/releases/page.js",
-  "/(dashboard)/artists/page": "app/(dashboard)/artists/page.js"
+  "/(dashboard)/artists/page": "app/(dashboard)/artists/page.js",
+  "/(dashboard)/users/page": "app/(dashboard)/users/page.js",
+  "/(dashboard)/dashboard-aggregator/page": "app/(dashboard)/dashboard-aggregator/page.js"
 }

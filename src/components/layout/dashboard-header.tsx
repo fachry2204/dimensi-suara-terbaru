@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bell, Shield, User, LogOut, X, CheckCircle, Info } from 'lucide-react';
+import { Bell, Shield, User, LogOut, X, CheckCircle, Info, XCircle, CornerDownRight } from 'lucide-react';
 
 interface DashboardHeaderProps {
   currentUser: string;
@@ -32,6 +32,9 @@ export function DashboardHeader({
   const headerBgColor = "rgba(15, 15, 18, 0.8)";
   const headerTitleColor = "#f8fafc"; // slate-50
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   const getPageTitle = () => {
     if (pathname === '/dashboard') return "Overview";
     if (pathname === '/aggregator') return "Aggregator Overview";
@@ -58,10 +61,90 @@ export function DashboardHeader({
       className="sticky top-0 z-30 backdrop-blur-xl border-b border-brand-border px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300"
       style={{ background: headerBgColor }}
     >
-      <div className="hidden md:flex flex-col leading-tight">
-        <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
-          {getPageTitle()}
-        </span>
+      <div className="flex items-center gap-8 flex-1">
+        <div className="hidden md:flex flex-col leading-tight">
+          <span className="text-sm tracking-tight whitespace-nowrap" style={{ color: headerTitleColor }}>
+            {getPageTitle()}
+          </span>
+        </div>
+
+        {/* Global Search Component */}
+        <div className="relative hidden md:block w-full max-w-sm z-[100]">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              className={`w-full bg-white/10 text-slate-100 placeholder:text-slate-400 border rounded-lg px-4 py-2 text-sm focus:outline-none transition-all ${
+                isSearchFocused || searchQuery 
+                  ? 'bg-white text-slate-800 placeholder:text-slate-300 border-teal-500 shadow-[0_0_0_2px_rgba(20,184,166,0.1)]' 
+                  : 'border-white/10 hover:border-white/20'
+              }`}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <XCircle size={16} className="fill-slate-400 text-white" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Dropdown */}
+          {isSearchFocused && (
+            <div className="absolute top-full left-0 mt-2 w-full sm:w-80 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+              
+              {/* Recent Search */}
+              <div className="p-4 border-b border-slate-50">
+                <div className="text-[13px] font-semibold text-slate-400 mb-3">Recent Search</div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors">React</span>
+                  <span className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors">Node JS</span>
+                  <span className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors">SCSS</span>
+                </div>
+              </div>
+
+              {/* Help */}
+              <div className="p-4 border-b border-slate-50">
+                <div className="text-[13px] font-semibold text-slate-400 mb-3">Help</div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 cursor-pointer group">
+                    <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors">
+                      <CornerDownRight size={16} className="text-slate-500" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">How to setup theme?</span>
+                  </div>
+                  <div className="flex items-center gap-3 cursor-pointer group">
+                    <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors">
+                      <CornerDownRight size={16} className="text-slate-500" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">View detail documentation</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Users */}
+              <div className="p-4 border-b border-slate-50">
+                <div className="text-[13px] font-semibold text-slate-400 mb-3">Users</div>
+                <div className="flex items-center gap-3 cursor-pointer group">
+                  <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-[10px] text-slate-500 font-bold overflow-hidden">
+                    <span className="opacity-70">100x100</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">Sarah Jone</span>
+                </div>
+              </div>
+
+              {/* Search all */}
+              <div className="p-3 bg-white hover:bg-slate-50 text-center cursor-pointer transition-colors">
+                <span className="text-sm font-medium text-teal-600 underline decoration-teal-600/30 underline-offset-2">Search all</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 md:flex-none flex justify-end items-center gap-6">
