@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ReleaseData, Track, TrackArtist, TrackContributor, ReleaseType } from '../../types';
+import { ReleaseData, Track, TrackArtist, TrackContributor, ReleaseType } from '@/types';
 import { Music, Trash2, PlusCircle, Info, ChevronDown, ChevronUp, FileAudio, Mic2, User, UserPlus, Loader2, Scissors, Play, Pause, X, Check, UploadCloud, Download } from 'lucide-react';
-import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS, TRACK_GENRES, SUB_GENRES_MAP } from '../../constants';
-import { processFullAudio, cropAndConvertAudio, getAudioDuration } from '../../utils/audioProcessing';
-import { api } from '../../utils/api';
+import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS, TRACK_GENRES, SUB_GENRES_MAP } from '@/constants';
+import { processFullAudio, cropAndConvertAudio, getAudioDuration } from '@/utils/audioProcessing';
+import { api } from '@/utils/api';
 import { AlertModal } from '../../components/AlertModal';
 
 interface Props {
@@ -936,11 +936,11 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {releaseType === 'ALBUM' && (
                                       <div>
-                                          <label className="block text-xs font-bold text-black mb-2">Track Number <span className="text-red-500">*</span></label>
+                                          <label className="block text-sm font-bold text-black mb-2">Track Number <span className="text-red-500">*</span></label>
                                           <input 
                                               value={track.trackNumber}
                                               onChange={(e) => updateTrack(track.id, { trackNumber: e.target.value })}
-                                              className="w-full px-4 py-2 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                              className="w-full px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
                                               placeholder="1"
                                           />
                                       </div>
@@ -948,22 +948,22 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     {/* Release Date Field Removed as per request */}
                                     {releaseType === 'ALBUM' && (
                                     <div>
-                                        <label className="block text-xs font-bold text-black mb-2">ISRC Code (Jika sudah rilis sebelumnya)</label>
+                                        <label className="block text-sm font-bold text-black mb-2">ISRC Code (Jika sudah rilis sebelumnya)</label>
                                         <input 
                                             value={track.isrc}
                                             onChange={(e) => updateTrack(track.id, { isrc: e.target.value })}
-                                            className="w-full px-4 py-2 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-gray-50 placeholder-gray-400 text-black font-semibold"
+                                            className="w-full px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-gray-50 placeholder-gray-400 text-black font-semibold"
                                             placeholder="e.g. USABC1234567"
                                         />
                                     </div>
                                     )}
                                     <div className="md:col-span-2">
-                                        <label className="block text-xs font-bold text-black mb-2">Track Title <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-2">Track Title <span className="text-red-500">*</span></label>
                                         <input 
                                             value={track.title}
                                             onChange={(e) => updateTrack(track.id, { title: e.target.value })}
                                             disabled={releaseType === 'SINGLE'}
-                                            className={`w-full px-4 py-2 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-500 font-semibold ${
+                                            className={`w-full px-4 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-500 font-semibold ${
                                                 releaseType === 'SINGLE' ? 'bg-gray-100 text-slate-600 cursor-not-allowed' : 'bg-white text-black'
                                             }`}
                                             placeholder="Enter song title"
@@ -976,7 +976,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                             <div className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6">
                                 <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Artists</h4>
                                 <div className="space-y-3">
-                                    <label className="block text-xs font-bold text-black mb-2 flex items-center gap-2">
+                                    <label className="block text-sm font-bold text-black mb-2 flex items-center gap-2">
                                         Primary Artists <span className="text-red-500">*</span>
                                     </label>
                                     {track.artists.map((artist, idx) => (
@@ -985,14 +985,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                 <input 
                                                     value={artist.name}
                                                     onChange={(e) => handleArtistChange(track.id, idx, 'name', e.target.value)}
-                                                    className="flex-[2] px-4 py-2 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                    className="flex-[2] px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
                                                     placeholder="Artist Name"
                                                 />
                                                 <div className="flex-1 relative">
                                                     <select 
                                                         value={artist.role}
                                                         onChange={(e) => handleArtistChange(track.id, idx, 'role', e.target.value)}
-                                                        className="w-full px-4 py-2 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                        className="w-full px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                                     >
                                                         {ARTIST_ROLES.map(role => <option key={role} value={role} className="text-black">{role}</option>)}
                                                     </select>
@@ -1015,7 +1015,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         <input 
                                                             value={artist.spotifyLink || ''}
                                                             onChange={(e) => handleArtistChange(track.id, idx, 'spotifyLink', e.target.value)}
-                                                            className="w-full pl-9 px-3 py-2 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white placeholder:text-gray-400 text-black"
+                                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white placeholder:text-gray-400 text-black"
                                                             placeholder="Spotify Artist Link (Optional)"
                                                         />
                                                         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-green-500">
@@ -1056,7 +1056,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                 <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Track Details</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                     <div>
-                                        <label className="block text-xs font-bold text-black mb-1">Instrumental <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-1">Instrumental <span className="text-red-500">*</span></label>
                                         <div className="relative">
                                             <select 
                                                 value={track.isInstrumental || 'No'}
@@ -1068,7 +1068,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         lyricist: val === 'Yes' ? '' : track.lyrics
                                                     });
                                                 }}
-                                                className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                             >
                                                 <option value="No" className="text-black">No</option>
                                                 <option value="Yes" className="text-black">Yes</option>
@@ -1080,12 +1080,12 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     </div>
                                     {track.isInstrumental !== 'Yes' && (
                                         <div className="transition-all duration-300 opacity-100">
-                                            <label className="block text-xs font-bold text-black mb-1">Explicit Lyrics <span className="text-red-500">*</span></label>
+                                            <label className="block text-sm font-bold text-black mb-1">Explicit Lyrics <span className="text-red-500">*</span></label>
                                             <div className="relative">
                                                 <select 
                                                     value={track.explicitLyrics}
                                                     onChange={(e) => updateTrack(track.id, { explicitLyrics: e.target.value })}
-                                                    className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                    className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                                 >
                                                     {EXPLICIT_OPTIONS.map(opt => <option key={opt} value={opt} className="text-black">{opt}</option>)}
                                                 </select>
@@ -1099,12 +1099,12 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-700 mb-1">Genre <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Genre <span className="text-red-500">*</span></label>
                                         <div className="relative">
                                             <select 
                                                 value={track.genre}
                                                 onChange={(e) => updateTrack(track.id, { genre: e.target.value, subGenre: "" })}
-                                                className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                             >
                                                 <option value="" className="text-black">Select Genre</option>
                                                 {TRACK_GENRES.map(g => <option key={g} value={g} className="text-black">{g}</option>)}
@@ -1115,12 +1115,12 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-700 mb-1">Sub Genre</label>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Sub Genre</label>
                                         <div className="relative">
                                             <select 
                                                 value={track.subGenre || ""}
                                                 onChange={(e) => updateTrack(track.id, { subGenre: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                             >
                                                 <option value="" className="text-black">Select Sub Genre</option>
                                                 {(SUB_GENRES_MAP[track.genre] || []).map(sg => (
@@ -1136,21 +1136,21 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-xs font-bold text-black mb-1">Composer <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-1">Composer <span className="text-red-500">*</span></label>
                                         <input 
                                             value={track.composer}
                                             onChange={(e) => updateTrack(track.id, { composer: e.target.value })}
-                                            className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
                                             placeholder="Full Name"
                                         />
                                     </div>
                                     {track.isInstrumental !== 'Yes' && (
                                     <div>
-                                        <label className="block text-xs font-bold text-black mb-1">Lyricist <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-1">Lyricist <span className="text-red-500">*</span></label>
                                         <input 
                                             value={track.lyricist}
                                             onChange={(e) => updateTrack(track.id, { lyricist: e.target.value })}
-                                            className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
                                             placeholder="Full Name"
                                         />
                                     </div>
@@ -1165,7 +1165,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                   <textarea 
                                       value={track.lyrics}
                                       onChange={(e) => updateTrack(track.id, { lyrics: e.target.value })}
-                                      className="w-full px-2.5 py-1.5 text-xs font-['Arial'] border border-gray-300 rounded focus:border-blue-500 focus:outline-none h-24 resize-y text-black font-semibold"
+                                      className="w-full px-2.5 py-1.5 text-sm font-['Arial'] border border-gray-300 rounded focus:border-blue-500 focus:outline-none h-24 resize-y text-black font-semibold"
                                       placeholder="Enter song lyrics here..."
                                   />
                               </div>
@@ -1180,14 +1180,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             <input 
                                                 value={contrib.name}
                                                 onChange={(e) => handleContributorChange(track.id, idx, 'name', e.target.value)}
-                                                className="flex-[2] px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
                                                 placeholder="Name"
                                             />
                                             <div className="flex-1 relative">
                                                 <select 
                                                     value={contrib.type}
                                                     onChange={(e) => handleContributorChange(track.id, idx, 'type', e.target.value)}
-                                                    className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                    className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                                 >
                                                     {CONTRIBUTOR_TYPES.map(type => <option key={type} value={type} className="text-black">{type}</option>)}
                                                 </select>
@@ -1198,7 +1198,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             <input 
                                                 value={contrib.role}
                                                 onChange={(e) => handleContributorChange(track.id, idx, 'role', e.target.value)}
-                                                className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
                                                 placeholder="Role (e.g. Drums)"
                                             />
                                             <button 

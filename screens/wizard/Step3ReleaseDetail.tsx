@@ -1,5 +1,5 @@
 import React from 'react';
-import { ReleaseData, ReleaseType } from '../../types';
+import { ReleaseData, ReleaseType } from '@/types';
 import { TextInput } from '../../components/Input';
 import { Calendar, Globe, Barcode, Disc } from 'lucide-react';
 import socialLogo from '../../assets/platforms/social.svg';
@@ -72,14 +72,14 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
             <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-in-down space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-xs font-bold text-black mb-2">Original Release Date</label>
+                        <label className="block text-sm font-bold text-black mb-2">Original Release Date</label>
                         <div className="relative group w-full">
                             <input 
                                ref={originalDateInputRef}
                                type="date" 
                                value={data.originalReleaseDate}
                                onChange={(e) => updateData({ originalReleaseDate: e.target.value })}
-                               className="w-full px-4 py-1.5 text-xs text-black border border-gray-300 rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all pl-4 pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 font-semibold"
+                               className="w-full px-4 py-1.5 text-sm text-black border border-gray-300 rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all pl-4 pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 font-semibold"
                             />
                            <div 
                                onClick={() => originalDateInputRef.current?.showPicker()}
@@ -100,7 +100,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                             value={data.upc}
                             onChange={(e) => updateData({ upc: e.target.value })}
                             placeholder="Masukkan kode UPC sebelumnya"
-                            className="w-full px-4 py-1.5 text-xs border border-gray-300 rounded bg-gray-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all"
+                            className="w-full px-4 py-1.5 text-sm border border-gray-300 rounded bg-gray-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all"
                         />
                     </div>
                     
@@ -115,7 +115,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                                 value={data.isrc}
                                 onChange={(e) => updateData({ isrc: e.target.value })}
                                 placeholder="Masukkan kode ISRC sebelumnya"
-                                className="w-full px-4 py-1.5 text-xs border border-gray-300 rounded bg-gray-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all"
+                                className="w-full px-4 py-1.5 text-sm border border-gray-300 rounded bg-gray-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all"
                             />
                         </div>
                     )}
@@ -149,7 +149,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                 className={`flex items-center gap-3 p-4 rounded-lg border ${selected ? 'bg-blue-50 border-blue-200' : 'border-gray-200'} hover:border-blue-200 transition-colors text-left`}
               >
                 <div className="w-10 h-10 rounded flex items-center justify-center bg-white border border-gray-200 overflow-hidden shrink-0 shadow-sm">
-                  <img src={opt.logo} alt={opt.label} className="w-6 h-6 object-contain" />
+                  <img src={typeof opt.logo === 'string' ? opt.logo : (opt.logo as any)?.src || opt.logo} alt={opt.label} className="w-6 h-6 object-contain" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-xs text-black truncate">{opt.label}</div>
@@ -167,7 +167,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
       <div className="border border-gray-200 rounded-lg p-6 relative mt-6">
         <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Schedule</h3>
         <div>
-            <label className="block text-xs font-bold text-black mb-2">Planned Release Date</label>
+            <label className="block text-sm font-bold text-black mb-2">Planned Release Date</label>
             <div className="relative group max-w-xs">
                 <input 
                     ref={dateInputRef}
@@ -175,7 +175,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                     min={minDateStr}
                     value={data.plannedReleaseDate}
                     onChange={(e) => updateData({ plannedReleaseDate: e.target.value })}
-                    className={`w-full px-4 py-1.5 text-xs border rounded focus:outline-none focus:ring-1 transition-all pl-4 pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 text-black font-semibold ${
+                    className={`w-full px-4 py-1.5 text-sm border rounded focus:outline-none focus:ring-1 transition-all pl-4 pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 text-black font-semibold ${
                         isDateInvalid 
                             ? 'border-red-500 text-red-600 focus:border-red-500 focus:ring-red-500/20 bg-red-50' 
                             : 'border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-500/20 shadow-sm'
@@ -198,6 +198,40 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
             <p className="text-xs text-blue-500 mt-2 font-medium">
                 Recommended: Set date at least 14 days from today
             </p>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-bold text-black mb-2">Pra Rilis Social Media</label>
+                <div className="relative group w-full">
+                    <input 
+                        type="date" 
+                        min={minDateStr}
+                        value={data.preReleaseSocialMedia || ''}
+                        onChange={(e) => updateData({ preReleaseSocialMedia: e.target.value })}
+                        className="w-full px-4 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all pl-4 pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 text-black font-semibold bg-white"
+                    />
+                    <div className="absolute right-2 top-1 bottom-1 aspect-square rounded flex items-center justify-center pointer-events-none text-blue-600 bg-blue-50 border border-blue-100">
+                        <Calendar size={16} />
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-black mb-2">Pra Rilis Youtube Music</label>
+                <div className="relative group w-full">
+                    <input 
+                        type="date" 
+                        min={minDateStr}
+                        value={data.preReleaseYoutubeMusic || ''}
+                        onChange={(e) => updateData({ preReleaseYoutubeMusic: e.target.value })}
+                        className="w-full px-4 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500/20 shadow-sm transition-all pl-4 pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 text-black font-semibold bg-white"
+                    />
+                    <div className="absolute right-2 top-1 bottom-1 aspect-square rounded flex items-center justify-center pointer-events-none text-blue-600 bg-blue-50 border border-blue-100">
+                        <Calendar size={16} />
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
     </div>

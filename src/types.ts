@@ -39,9 +39,9 @@ export interface AnalysisResult {
 export interface Track {
   id: string;
   // Files
-  audioFile?: File | null;
-  audioClip?: File | null;
-  videoFile?: File | null;
+  audioFile?: File | string | null;
+  audioClip?: File | string | null;
+  videoFile?: File | string | null;
   iplFile?: File | string | null;
   tempAudioPath?: string;
   tempClipPath?: string;
@@ -106,6 +106,7 @@ export interface ReleaseData {
   pLine?: string;
   cLine?: string;
   version: string;
+  iplFile?: File | string | null; // Added for Step 1
 
   // Step 2
   tracks: Track[];
@@ -114,6 +115,8 @@ export interface ReleaseData {
   isNewRelease: boolean;
   originalReleaseDate: string;
   plannedReleaseDate: string;
+  preReleaseSocialMedia?: string;
+  preReleaseYoutubeMusic?: string;
 }
 
 export enum Step {

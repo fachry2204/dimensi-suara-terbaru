@@ -1376,6 +1376,9 @@ video {
 .max-w-xs {
   max-width: 20rem;
 }
+.max-w-xl {
+  max-width: 36rem;
+}
 .flex-1 {
   flex: 1 1 0%;
 }
@@ -2047,6 +2050,10 @@ video {
 }
 .border-yellow-500\/30 {
   border-color: rgb(234 179 8 / 0.3);
+}
+.border-amber-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(253 230 138 / var(--tw-border-opacity, 1));
 }
 .border-t-white {
   --tw-border-opacity: 1;
@@ -3162,6 +3169,10 @@ video {
   --tw-text-opacity: 1;
   color: rgb(133 77 14 / var(--tw-text-opacity, 1));
 }
+.text-amber-900 {
+  --tw-text-opacity: 1;
+  color: rgb(120 53 15 / var(--tw-text-opacity, 1));
+}
 .underline {
   text-decoration-line: underline;
 }
@@ -3545,6 +3556,10 @@ label {
   border-radius: 0.5rem;
 }
 
+.file\:rounded::file-selector-button {
+  border-radius: 0.25rem;
+}
+
 .file\:border-0::file-selector-button {
   border-width: 0px;
 }
@@ -3579,6 +3594,16 @@ label {
   padding-bottom: 0.75rem;
 }
 
+.file\:px-4::file-selector-button {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.file\:py-2::file-selector-button {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
 .file\:text-\[10px\]::file-selector-button {
   font-size: 10px;
 }
@@ -3586,6 +3611,11 @@ label {
 .file\:text-xs::file-selector-button {
   font-size: 0.75rem;
   line-height: 1rem;
+}
+
+.file\:text-sm::file-selector-button {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .file\:font-medium::file-selector-button {
@@ -4568,6 +4598,11 @@ label {
   .md\:text-3xl {
     font-size: 1.875rem;
     line-height: 2.25rem;
+  }
+
+  .md\:text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
   }
 }
 

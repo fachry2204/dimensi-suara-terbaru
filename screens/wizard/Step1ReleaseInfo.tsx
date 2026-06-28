@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ReleaseData, ReleaseType } from '../../types';
+import { ReleaseData, ReleaseType } from '@/types';
 import { TextInput, SelectInput } from '../../components/Input';
-import { LANGUAGES, VERSIONS, TRACK_GENRES, SUB_GENRES_MAP } from '../../constants';
-import { ImagePlus, UserPlus, Trash2, Loader2, Download } from 'lucide-react';
-import { api } from '../../utils/api';
+import { LANGUAGES, VERSIONS, TRACK_GENRES, SUB_GENRES_MAP } from '@/constants';
+import { ImagePlus, UserPlus, Trash2, Loader2, Download, Music } from 'lucide-react';
+import { api } from '@/utils/api';
 import { AlertModal } from '../../components/AlertModal';
 
 interface Props {
@@ -335,7 +335,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
 
                   {/* Primary Artists (Multiple) */}
                   <div>
-                    <label className="block text-xs font-bold text-black mb-1">Primary Artist(s) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</label>
+                    <label className="block text-sm font-bold text-black mb-1">Primary Artist(s) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</label>
                     <div className="space-y-2">
                       {data.primaryArtists.map((artist, index) => {
                         const artistName = typeof artist === 'string' ? artist : artist.name;
@@ -355,7 +355,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                                 setSearchIdx(index);
                                 setSearchQuery(artistName || '');
                               }}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded bg-white text-xs text-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-400 transition-all font-semibold"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded bg-white text-sm text-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-400 transition-all font-semibold"
                               placeholder="Artist Name"
                             />
                             {searchIdx === index && showDropdown && (
@@ -410,13 +410,18 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <input 
-                                value={spotifyLink}
-                                onChange={(e) => handleArtistChange(index, 'spotifyLink', e.target.value)}
-                                onBlur={(e) => detectSpotifyArtist(index, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white text-xs text-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-400 transition-all font-semibold"
-                                placeholder="Spotify Artist Link (Optional)"
-                            />
+                            <div className="relative flex-1">
+                                <input 
+                                    value={spotifyLink}
+                                    onChange={(e) => handleArtistChange(index, 'spotifyLink', e.target.value)}
+                                    onBlur={(e) => detectSpotifyArtist(index, e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded bg-white text-sm text-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-400 transition-all font-semibold"
+                                    placeholder="Spotify Artist Link (Optional)"
+                                />
+                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-green-500">
+                                    <Music size={14} />
+                                </div>
+                            </div>
                             {spotifyLink && (spotifyLink.includes('spotify.com') || spotifyLink.startsWith('spotify:')) && (
                               <a
                                 href={toSpotifyUrl(spotifyLink)}
@@ -438,7 +443,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                     <button 
                       type="button"
                       onClick={addArtist}
-                      className="mt-2 flex items-center text-blue-600 font-medium text-xs hover:underline"
+                      className="mt-2 flex items-center text-blue-600 font-medium text-sm hover:underline"
                     >
                       <UserPlus size={16} className="mr-1" />
                       Add Another Artist
@@ -451,6 +456,25 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
                           value={data.version}
                           onChange={(e) => updateData({ version: e.target.value })}
                         />
+                        {data.version && data.version !== 'Original' && (
+                            <div className="mb-2 space-y-2 p-4 bg-amber-50 rounded-lg border border-amber-200 animate-fade-in-down">
+                                <label className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                                    <span>Upload IPL Document (Izin Penggunaan Lagu)</span>
+                                    <span className="text-red-500">*</span>
+                                </label>
+                                <p className="text-xs text-amber-700 mb-2">Karena versi rilis bukan Original, Anda diwajibkan melampirkan dokumen IPL.</p>
+                                <input 
+                                    type="file"
+                                    onChange={(e) => updateData({ iplFile: e.target.files?.[0] || null })}
+                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium cursor-pointer border border-gray-200 rounded bg-white file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
+                                />
+                                {data.iplFile && (
+                                  <p className="text-sm text-amber-600 font-bold mt-1 truncate">
+                                    📄 Attached: {typeof data.iplFile === 'string' ? 'Existing Document' : data.iplFile.name}
+                                  </p>
+                                )}
+                            </div>
+                        )}
                         <SelectInput 
                           label={<>Language / Territory {userRole !== 'Admin' && <span className="text-red-500">*</span>}</>}
                           options={LANGUAGES}

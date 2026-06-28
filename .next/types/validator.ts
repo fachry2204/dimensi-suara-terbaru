@@ -65,6 +65,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/(dashboard)/new-release/album/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/new-release/album">> = Specific
+  const handler = {} as typeof import("../../src/app/(dashboard)/new-release/album/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(dashboard)/new-release/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/new-release">> = Specific
+  const handler = {} as typeof import("../../src/app/(dashboard)/new-release/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/(dashboard)/new-release/single/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/new-release/single">> = Specific
+  const handler = {} as typeof import("../../src/app/(dashboard)/new-release/single/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/(dashboard)/publishing/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/publishing">> = Specific

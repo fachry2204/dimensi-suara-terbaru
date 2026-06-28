@@ -1,5 +1,5 @@
 import React from 'react';
-import { Step } from '../types';
+import { Step } from '@/types';
 import { Check } from 'lucide-react';
 
 interface Props {

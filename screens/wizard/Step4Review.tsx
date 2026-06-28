@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { ReleaseData } from '../../types';
-import { api } from '../../utils/api';
-import { assetUrl } from '../../utils/url';
+import { ReleaseData } from '@/types';
+import { api } from '@/utils/api';
+import { assetUrl } from '@/utils/url';
 import { Disc, CheckCircle, Loader2, AlertCircle, FileAudio, User, Music2, FileText, Calendar, Globe, Tag, Mic2, Users, PlayCircle, ChevronLeft, X, Check, ExternalLink, Download } from 'lucide-react';
 import { AlertModal } from '../../components/AlertModal';
 

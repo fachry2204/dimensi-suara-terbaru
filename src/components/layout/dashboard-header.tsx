@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Bell, Shield, User, LogOut, X, CheckCircle, Info, XCircle, CornerDownRight } from 'lucide-react';
 
@@ -34,6 +34,52 @@ export function DashboardHeader({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState<{users: any[], releases: any[]}>({ users: [], releases: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Load recent searches on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('recentSearches');
+      if (stored) setRecentSearches(JSON.parse(stored).slice(0, 5));
+    } catch (e) {}
+  }, []);
+
+  // Fetch search results
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2) {
+      setSearchResults({ users: [], releases: [] });
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data);
+        }
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleSearchSubmit = (query: string) => {
+    if (!query) return;
+    setSearchQuery(query);
+    
+    // Save to recent
+    const newRecent = [query, ...recentSearches.filter(q => q !== query)].slice(0, 5);
+    setRecentSearches(newRecent);
+    localStorage.setItem('recentSearches', JSON.stringify(newRecent));
+  };
 
   const getPageTitle = () => {
     if (pathname === '/dashboard') return "Overview";
@@ -73,9 +119,12 @@ export function DashboardHeader({
           <div className="relative">
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Cari user, rilis lagu..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearchSubmit(searchQuery);
+              }}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
               className={`w-full bg-white/10 text-slate-100 placeholder:text-slate-400 border rounded-lg px-4 py-2 text-sm focus:outline-none transition-all ${
@@ -89,59 +138,114 @@ export function DashboardHeader({
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
-                <XCircle size={16} className="fill-slate-400 text-white" />
+                <XCircle size={16} className={isSearchFocused ? "text-slate-400" : "text-white opacity-50"} />
               </button>
             )}
           </div>
 
           {/* Search Dropdown */}
           {isSearchFocused && (
-            <div className="absolute top-full left-0 mt-2 w-full sm:w-80 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+            <div className="absolute top-full left-0 mt-2 w-full sm:w-80 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[70vh] overflow-y-auto">
               
-              {/* Recent Search */}
-              <div className="p-4 border-b border-slate-50">
-                <div className="text-[13px] font-semibold text-slate-400 mb-3">Recent Search</div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors">React</span>
-                  <span className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors">Node JS</span>
-                  <span className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors">SCSS</span>
+              {/* Recent Search (Only show if search is empty) */}
+              {!searchQuery && recentSearches.length > 0 && (
+                <div className="p-4 border-b border-slate-50">
+                  <div className="flex items-center justify-between mb-3">
+                     <div className="text-[13px] font-semibold text-slate-400">Pencarian Terakhir</div>
+                     <button onClick={() => { setRecentSearches([]); localStorage.removeItem('recentSearches'); }} className="text-[10px] text-red-400 hover:text-red-500">Hapus</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {recentSearches.map((rs, idx) => (
+                      <span 
+                        key={idx} 
+                        onClick={() => handleSearchSubmit(rs)}
+                        className="px-3 py-1 bg-slate-100 hover:bg-slate-200 cursor-pointer text-slate-600 rounded-full text-[12px] font-medium transition-colors"
+                      >
+                        {rs}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Help */}
-              <div className="p-4 border-b border-slate-50">
-                <div className="text-[13px] font-semibold text-slate-400 mb-3">Help</div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 cursor-pointer group">
-                    <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors">
-                      <CornerDownRight size={16} className="text-slate-500" />
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">How to setup theme?</span>
-                  </div>
-                  <div className="flex items-center gap-3 cursor-pointer group">
-                    <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors">
-                      <CornerDownRight size={16} className="text-slate-500" />
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">View detail documentation</span>
-                  </div>
+              {/* Empty state when starting */}
+              {!searchQuery && recentSearches.length === 0 && (
+                <div className="p-6 text-center text-slate-400 text-sm">
+                  Ketikkan sesuatu untuk mencari...
                 </div>
-              </div>
+              )}
 
-              {/* Users */}
-              <div className="p-4 border-b border-slate-50">
-                <div className="text-[13px] font-semibold text-slate-400 mb-3">Users</div>
-                <div className="flex items-center gap-3 cursor-pointer group">
-                  <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-[10px] text-slate-500 font-bold overflow-hidden">
-                    <span className="opacity-70">100x100</span>
+              {/* Loading State */}
+              {isSearching && searchQuery.length >= 2 && (
+                 <div className="p-6 text-center text-teal-600 text-sm animate-pulse">
+                   Mencari data...
+                 </div>
+              )}
+
+              {/* Releases Results */}
+              {!isSearching && searchResults.releases?.length > 0 && (
+                <div className="p-4 border-b border-slate-50">
+                  <div className="text-[13px] font-semibold text-slate-400 mb-3">Releases (Lagu)</div>
+                  <div className="space-y-3">
+                    {searchResults.releases.map((release: any) => (
+                      <div key={release.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => window.location.href = '/releases'}>
+                        <div className="w-8 h-8 rounded-md bg-slate-100 overflow-hidden flex-shrink-0">
+                          {release.cover_image ? (
+                             <img src={getProfileImageUrl(release.cover_image) || ''} alt="cover" className="w-full h-full object-cover" />
+                          ) : (
+                             <div className="w-full h-full flex items-center justify-center"><CornerDownRight size={14} className="text-slate-400" /></div>
+                          )}
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors truncate">{release.title}</div>
+                          <div className="text-[11px] text-slate-400 truncate">{release.main_artist || 'Unknown Artist'}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">Sarah Jone</span>
                 </div>
-              </div>
+              )}
+
+              {/* Users Results */}
+              {!isSearching && searchResults.users?.length > 0 && (
+                <div className="p-4 border-b border-slate-50">
+                  <div className="text-[13px] font-semibold text-slate-400 mb-3">Users</div>
+                  <div className="space-y-3">
+                    {searchResults.users.map((u: any) => (
+                      <div key={u.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => window.location.href = '/users'}>
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] text-slate-500 font-bold overflow-hidden flex-shrink-0">
+                          {u.profile_picture ? (
+                             <img src={getProfileImageUrl(u.profile_picture) || ''} alt="avatar" className="w-full h-full object-cover" />
+                          ) : (
+                             <span className="opacity-70">{(u.full_name || u.username || 'U').substring(0, 2).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors truncate">{u.company_name || u.full_name || u.username}</div>
+                          <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No results */}
+              {!isSearching && searchQuery.length >= 2 && searchResults.users?.length === 0 && searchResults.releases?.length === 0 && (
+                <div className="p-6 text-center text-slate-400 text-sm">
+                  Tidak ada hasil untuk "{searchQuery}"
+                </div>
+              )}
 
               {/* Search all */}
-              <div className="p-3 bg-white hover:bg-slate-50 text-center cursor-pointer transition-colors">
-                <span className="text-sm font-medium text-teal-600 underline decoration-teal-600/30 underline-offset-2">Search all</span>
-              </div>
+              {searchQuery.length > 0 && (
+                <div 
+                  className="p-3 bg-white hover:bg-slate-50 text-center cursor-pointer transition-colors"
+                  onClick={() => handleSearchSubmit(searchQuery)}
+                >
+                  <span className="text-sm font-medium text-teal-600 underline decoration-teal-600/30 underline-offset-2">Simpan ke Riwayat Pencarian</span>
+                </div>
+              )}
             </div>
           )}
         </div>

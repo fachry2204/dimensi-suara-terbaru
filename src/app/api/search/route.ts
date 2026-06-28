@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
     if (session.role === "User") {
       releasesQuery += ` AND user_id = ?`;
-      releaseParams.push(session.userId);
+      releaseParams.push(session.userId.toString());
     }
     releasesQuery += ` LIMIT 3`;
 

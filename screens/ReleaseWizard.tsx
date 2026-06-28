@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { ReleaseType, ReleaseData, Step } from '../types';
+import { ReleaseType, ReleaseData, Step } from '@/types';
 import { StepIndicator } from '../components/StepIndicator';
 import { Step1ReleaseInfo } from './wizard/Step1ReleaseInfo';
 import { Step2TrackInfo } from './wizard/Step2TrackInfo';
 import { Step3ReleaseDetail } from './wizard/Step3ReleaseDetail';
 import { Step4Review } from './wizard/Step4Review';
 import { ChevronLeft, ChevronRight, AlertTriangle, X, Loader2 } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   type: ReleaseType;

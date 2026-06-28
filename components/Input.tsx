@@ -6,11 +6,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const TextInput: React.FC<InputProps> = ({ label, className, ...props }) => (
   <div className="mb-4 group">
-    <label className="block text-xs font-bold text-slate-900 mb-1 transition-colors group-focus-within:text-blue-600">
+    <label className="block text-sm font-bold text-slate-900 mb-1 transition-colors group-focus-within:text-blue-600">
       {label}
     </label>
     <input 
-      className={`w-full px-3 py-2 text-xs border border-gray-300 rounded bg-white shadow-sm text-black
+      className={`w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white shadow-sm text-black
       focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 
       placeholder-gray-400 transition-all duration-200 hover:border-blue-400 ${className}`}
       {...props}
@@ -25,12 +25,12 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 export const SelectInput: React.FC<SelectProps> = ({ label, options, ...props }) => (
   <div className="mb-4 group">
-    <label className="block text-xs font-bold text-slate-900 mb-1 transition-colors group-focus-within:text-blue-600">
+    <label className="block text-sm font-bold text-slate-900 mb-1 transition-colors group-focus-within:text-blue-600">
       {label}
     </label>
     <div className="relative">
       <select 
-        className="w-full px-3 py-2 text-xs border border-gray-300 rounded bg-white shadow-sm appearance-none text-black
+        className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white shadow-sm appearance-none text-black
         focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 
         transition-all duration-200 hover:border-blue-400 cursor-pointer"
         {...props}
