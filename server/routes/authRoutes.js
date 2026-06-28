@@ -146,8 +146,15 @@ router.post('/login', async (req, res) => {
         const { username, password } = req.body;
 
         // Allow login with either username or email
-        const [users] = await db.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, username]);
-        if (users.length === 0) {
+        let [admins] = await db.query('SELECT * FROM admins WHERE username = ? OR email = ?', [username, username]);
+        let user = admins[0];
+        
+        if (!user) {
+            let [users] = await db.query('SELECT * FROM users WHERE username = ? OR email = ?', [username, username]);
+            user = users[0];
+        }
+
+        if (!user) {
             // Log User Not Found
             const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
             const country = getCountry(ip);
@@ -156,8 +163,6 @@ router.post('/login', async (req, res) => {
                 
             return res.status(400).json({ error: 'User not found' });
         }
-
-        const user = users[0];
 
         // Check password
         const validPass = await bcrypt.compare(password, user.password_hash);

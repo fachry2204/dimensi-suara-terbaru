@@ -43,7 +43,7 @@ export const PaymentDetailScreen: React.FC = () => {
 
     useEffect(() => {
         if (!invoice) return;
-        const token = localStorage.getItem('cms_token') || '';
+        const token = '';
         if (!token) {
             setPotonganRate(0);
             return;

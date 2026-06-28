@@ -48,6 +48,12 @@ router.post('/upload-doc', upload.single('file'), async (req, res) => {
 // GET CURRENT USER PROFILE
 router.get('/profile', authenticateToken, async (req, res) => {
     try {
+        if (['Admin', 'Operator', 'Finance'].includes(req.user.role)) {
+            const [rows] = await db.query('SELECT id, username, email, role, status, profile_picture FROM admins WHERE id = ?', [req.user.id]);
+            if (rows.length === 0) return res.status(404).json({ error: 'Admin not found' });
+            return res.json(rows[0]);
+        }
+
         const [cols] = await db.query('SHOW COLUMNS FROM users');
         const colNames = cols.map(c => c.Field);
         
@@ -136,10 +142,12 @@ router.put('/profile', authenticateToken, upload.single('profilePicture'), async
 
         params.push(userId);
         
-        await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
+        const table = ['Admin', 'Operator', 'Finance'].includes(req.user.role) ? 'admins' : 'users';
+        
+        await db.query(`UPDATE ${table} SET ${updates.join(', ')} WHERE id = ?`, params);
 
         // Fetch updated user
-        const [rows] = await db.query('SELECT id, username, email, role, profile_picture FROM users WHERE id = ?', [userId]);
+        const [rows] = await db.query(`SELECT id, username, email, role, profile_picture FROM ${table} WHERE id = ?`, [userId]);
         
         res.json({ message: 'Profile updated successfully', user: rows[0] });
 

@@ -113,7 +113,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
     setIsSubmitting(true);
     try {
-        const token = localStorage.getItem('cms_token');
+        const token = '';
         if (!token) throw new Error("No auth token found. Please login again.");
         
         const prepped: ReleaseData = {

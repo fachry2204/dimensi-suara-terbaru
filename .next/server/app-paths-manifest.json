@@ -1,0 +1,7 @@
+{
+  "/(dashboard)/publishing/songs/page": "app/(dashboard)/publishing/songs/page.js",
+  "/(dashboard)/publishing/writer/page": "app/(dashboard)/publishing/writer/page.js",
+  "/(dashboard)/dashboard-aggregator/page": "app/(dashboard)/dashboard-aggregator/page.js",
+  "/(dashboard)/releases/page": "app/(dashboard)/releases/page.js",
+  "/(dashboard)/artists/page": "app/(dashboard)/artists/page.js"
+}

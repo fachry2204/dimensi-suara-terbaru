@@ -461,23 +461,61 @@ const initDb = async () => {
             console.warn('Warning dropping songwriters table:', err.message);
         }
         
-        // Seed Default Admin
-        const [users] = await connection.query("SELECT * FROM users WHERE role = 'Admin'");
-        if (users.length === 0) {
+        // 14. Ensure 'admins' table exists
+        try {
+            await connection.query('SELECT 1 FROM admins LIMIT 1');
+        } catch (err) {
+            if (err.code === 'ER_NO_SUCH_TABLE') {
+                console.log('🔨 Creating table: admins');
+                await connection.query(`
+                    CREATE TABLE admins (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        username VARCHAR(255) NOT NULL,
+                        email VARCHAR(255) NOT NULL UNIQUE,
+                        password_hash VARCHAR(255) NOT NULL,
+                        role ENUM('Admin', 'Operator', 'Finance') NOT NULL DEFAULT 'Admin',
+                        status VARCHAR(50) DEFAULT 'Active',
+                        profile_picture VARCHAR(255),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                `);
+                
+                // Migrate existing admins
+                console.log('Migrating existing admins from users to admins table...');
+                const [migratedUsers] = await connection.query(`
+                    SELECT id, username, email, password_hash, role, status, profile_picture, COALESCE(created_at, NOW()) as created_at
+                    FROM users
+                    WHERE role IN ('Admin', 'Operator', 'Finance')
+                `);
+                
+                for (const u of migratedUsers) {
+                    await connection.query(`
+                        INSERT IGNORE INTO admins (id, username, email, password_hash, role, status, profile_picture, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [u.id, u.username, u.email, u.password_hash, u.role, u.status, u.profile_picture, u.created_at]);
+                }
+                
+                console.log(`Migrated ${migratedUsers.length} admins.`);
+            }
+        }
+
+        // Seed Default Admin in admins table
+        const [adminUsers] = await connection.query("SELECT * FROM admins WHERE role = 'Admin'");
+        if (adminUsers.length === 0) {
             console.log("Creating default admin user...");
             const bcrypt = (await import('bcryptjs')).default;
             const salt = await bcrypt.genSalt(10);
             const hash = await bcrypt.hash('admin123', salt);
             
             await connection.query(
-                "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
+                "INSERT IGNORE INTO admins (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
                 ['Admin', 'admin@dimensisuara.com', hash, 'Admin']
             );
             console.log("Default admin created: admin@dimensisuara.com / admin123");
         }
 
-        // Ensure 'fachry' Admin exists
-        const [fachryRows] = await connection.query("SELECT id FROM users WHERE username = ? OR email = ?", ['fachry', 'fachry@dimensisuara.com']);
+        // Ensure 'fachry' Admin exists in admins table
+        const [fachryRows] = await connection.query("SELECT id FROM admins WHERE username = ? OR email = ?", ['fachry', 'fachry@dimensisuara.com']);
         if (fachryRows.length === 0) {
             console.log("Creating admin user: fachry");
             const bcrypt = (await import('bcryptjs')).default;
@@ -485,7 +523,7 @@ const initDb = async () => {
             const seedPass = process.env.SEED_FACHRY_PASSWORD || 'bangbens';
             const hash2 = await bcrypt.hash(seedPass, salt2);
             await connection.query(
-                "INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
+                "INSERT IGNORE INTO admins (username, email, password_hash, role) VALUES (?, ?, ?, ?)",
                 ['fachry', 'fachry@dimensisuara.com', hash2, 'Admin']
             );
             console.log("Admin 'fachry' created with role Admin.");

@@ -58,7 +58,7 @@ interface SystemLog {
 
 export const Settings: React.FC<Props> = ({ aggregators, onSaveAggregators }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'login_page' | 'system' | 'security' | 'gateway'>('general');
-  const [token] = useState(localStorage.getItem('cms_token') || '');
+  const [token] = useState('');
 
   // --- AGGREGATOR LOGIC ---
   const [newAgg, setNewAgg] = useState('');

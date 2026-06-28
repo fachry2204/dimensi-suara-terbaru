@@ -28,7 +28,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
 
   useEffect(() => {
     const fetchUserType = async () => {
-        const token = localStorage.getItem('cms_token');
+        const token = '';
         if (token) {
             try {
                 const profile = await api.getProfile(token);
@@ -120,7 +120,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
             return;
         }
 
-        const token = localStorage.getItem('cms_token') || '';
+        const token = '';
         let storedCover: any = file;
         
         if (token) {

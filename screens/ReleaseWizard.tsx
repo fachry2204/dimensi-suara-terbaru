@@ -56,7 +56,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     
     // Fetch user type for validation purposes
     const fetchUserType = async () => {
-        const token = localStorage.getItem('cms_token');
+        const token = '';
         if (token) {
             try {
                 const profile = await api.getProfile(token);
@@ -138,7 +138,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
       // Users reported files disappearing when navigating back.
       /*
       try {
-        const token = localStorage.getItem('cms_token') || '';
+        const token = '';
         if (token && data.title && (data.primaryArtists || []).length > 0) {
           (async () => {
             try {

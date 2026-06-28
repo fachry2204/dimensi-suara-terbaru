@@ -8,7 +8,7 @@ import { AlertModal } from '../components/AlertModal';
 export const UserEditPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [token] = useState(localStorage.getItem('cms_token') || '');
+  const [token] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

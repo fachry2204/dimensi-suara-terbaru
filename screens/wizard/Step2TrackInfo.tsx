@@ -205,7 +205,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
       closeTrimmer(); // Close inline trimmer
 
       try {
-        const token = localStorage.getItem('cms_token') || '';
+        const token = '';
         if (token) {
             const trackIndex = data.tracks.findIndex(t => t.id === trimmerState.trackId);
             if (trackIndex >= 0) {
@@ -382,7 +382,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
         setProcessingState(prev => ({ ...prev, [processKey]: true }));
         updateTrack(trackId, { processingAudio: true });
             try {
-            const token = localStorage.getItem('cms_token') || '';
+            const token = '';
             if (token) {
                 const trackIndex = data.tracks.findIndex(t => t.id === trackId);
                 if (trackIndex >= 0) {
@@ -440,7 +440,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
             const duration = await getAudioDuration(file);
             // If user uploads a ready 60s clip, accept it directly and upload to TMP
             if (duration >= 58 && duration <= 62) {
-                const token = localStorage.getItem('cms_token') || '';
+                const token = '';
                 if (token) {
                     const trackIndex = data.tracks.findIndex(t => t.id === trackId);
                     if (trackIndex >= 0) {

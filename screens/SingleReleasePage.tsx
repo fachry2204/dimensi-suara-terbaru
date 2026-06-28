@@ -15,7 +15,7 @@ export const SingleReleasePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('cms_token') || '';
+    const token = '';
     const run = async () => {
       try {
         const raw: any = await api.getRelease(token, id!);

@@ -9,7 +9,7 @@ export const RoleUserPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [token] = useState(localStorage.getItem('cms_token') || '');
+  const [token] = useState('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [alertState, setAlertState] = useState<AlertState>({
     isOpen: false,

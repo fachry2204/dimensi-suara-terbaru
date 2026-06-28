@@ -12,7 +12,7 @@ interface Props {
 export const UserDetailPage: React.FC<Props> = ({ isImpersonating: propIsImpersonating }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [token] = useState(localStorage.getItem('cms_token') || '');
+  const [token] = useState('');
   const [userRole] = useState(localStorage.getItem('cms_role') || '');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [user, setUser] = useState<User | null>(null);
