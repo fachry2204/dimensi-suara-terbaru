@@ -184,43 +184,49 @@ export default function ArtistsPage() {
                  <span className="text-xs text-slate-500 font-medium">
                      Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredArtists.length)} dari {filteredArtists.length} artis
                  </span>
-                 <div className="flex items-center gap-2">
-                    <button className="text-[15px] font-bold text-blue-600 hover:text-blue-700 mr-2 transition-colors">
+                 <div className="flex gap-2">
+                     <button className="px-3 py-1.5 text-[14px] font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         View All
-                    </button>
-                    <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="w-9 h-9 shrink-0 flex items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                    {Array.from({ length: totalPages }).map((_, i) => i + 1).filter(p => {
-                        if (totalPages <= 5) return true;
-                        if (p === 1 || p === totalPages) return true;
-                        return Math.abs(p - currentPage) <= 1;
-                    }).map((p, i, arr) => (
-                        <React.Fragment key={p}>
-                            {i > 0 && arr[i-1] !== p - 1 && <span className="px-1 text-slate-400 font-bold tracking-widest">...</span>}
-                            <button
-                                onClick={() => setCurrentPage(p)}
-                                className={`w-9 h-9 shrink-0 rounded-[10px] text-[15px] font-bold flex items-center justify-center transition-colors ${
-                                    currentPage === p 
-                                    ? 'bg-green-500 text-white' 
-                                    : 'bg-blue-100/50 text-blue-600 hover:bg-blue-100'
-                                }`}
-                            >
-                                {p}
-                            </button>
-                        </React.Fragment>
-                    ))}
-                    <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="w-9 h-9 shrink-0 flex items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-                    >
-                        <ChevronRight size={18} />
-                    </button>
+                     </button>
+                     <div className="flex items-center gap-1">
+                         <button
+                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                             disabled={currentPage === 1}
+                             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                         >
+                             <ChevronLeft size={16} />
+                         </button>
+                         {Array.from({ length: totalPages }).map((_, i) => i + 1).filter(p => {
+                             const distance = Math.abs(p - currentPage);
+                             return distance < 2 || p === 1 || p === totalPages;
+                         }).map((p, index, array) => {
+                             if (index > 0 && p - array[index - 1] > 1) {
+                                 return (
+                                     <span key={`ellipsis-${p}`} className="w-8 h-8 flex items-center justify-center text-slate-400">...</span>
+                                 );
+                             }
+                             return (
+                                 <button
+                                     key={p}
+                                     onClick={() => setCurrentPage(p)}
+                                     className={`w-8 h-8 flex items-center justify-center rounded-lg text-[13px] font-bold transition-all ${
+                                         currentPage === p
+                                             ? 'bg-green-500 text-white shadow-md shadow-green-200'
+                                             : 'bg-blue-100 text-blue-600 hover:bg-blue-200 shadow-sm'
+                                     }`}
+                                 >
+                                     {p}
+                                 </button>
+                             );
+                         })}
+                         <button
+                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                             disabled={currentPage === totalPages}
+                             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                         >
+                             <ChevronRight size={16} />
+                         </button>
+                     </div>
                  </div>
              </div>
          )}
