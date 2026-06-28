@@ -184,13 +184,16 @@ export default function ArtistsPage() {
                  <span className="text-xs text-slate-500 font-medium">
                      Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredArtists.length)} dari {filteredArtists.length} artis
                  </span>
-                 <div className="flex items-center gap-1.5">
+                 <div className="flex items-center gap-2">
+                    <button className="text-[15px] font-bold text-blue-600 hover:text-blue-700 mr-2 transition-colors">
+                        View All
+                    </button>
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                        className="w-9 h-9 shrink-0 flex items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
                     >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={18} />
                     </button>
                     {Array.from({ length: totalPages }).map((_, i) => i + 1).filter(p => {
                         if (totalPages <= 5) return true;
@@ -198,13 +201,13 @@ export default function ArtistsPage() {
                         return Math.abs(p - currentPage) <= 1;
                     }).map((p, i, arr) => (
                         <React.Fragment key={p}>
-                            {i > 0 && arr[i-1] !== p - 1 && <span className="px-1 text-slate-400">...</span>}
+                            {i > 0 && arr[i-1] !== p - 1 && <span className="px-1 text-slate-400 font-bold tracking-widest">...</span>}
                             <button
                                 onClick={() => setCurrentPage(p)}
-                                className={`min-w-[36px] h-9 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${
+                                className={`w-9 h-9 shrink-0 rounded-[10px] text-[15px] font-bold flex items-center justify-center transition-colors ${
                                     currentPage === p 
-                                    ? 'bg-blue-600 text-white shadow-sm' 
-                                    : 'text-slate-600 hover:bg-slate-200'
+                                    ? 'bg-green-500 text-white' 
+                                    : 'bg-blue-100/50 text-blue-600 hover:bg-blue-100'
                                 }`}
                             >
                                 {p}
@@ -214,9 +217,9 @@ export default function ArtistsPage() {
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                        className="w-9 h-9 shrink-0 flex items-center justify-center rounded-[10px] border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
                     >
-                        <ChevronRight size={20} />
+                        <ChevronRight size={18} />
                     </button>
                  </div>
              </div>

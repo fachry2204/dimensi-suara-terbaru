@@ -381,7 +381,7 @@ export default function ReleasesPage() {
                             // Date priority: Planned > Original > Submission
                             const displayDateRaw = release.plannedReleaseDate || release.originalReleaseDate || release.submissionDate || "N/A";
                             const status = release.status || "Pending";
-                            const ownerName = (release as any).ownerDisplayName || "";
+                            const ownerName = release.company_name || release.user_full_name || release.owner_name || release.owner || release.created_by || "Unknown User";
 
                             // Determine color based on status
                             let statusClass = "bg-gray-100 text-gray-600 border-gray-200";

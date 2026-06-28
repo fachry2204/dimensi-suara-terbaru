@@ -39,15 +39,15 @@ export async function getReleases(
   userId: number,
   role: string
 ): Promise<any[]> {
-  let query = "SELECT * FROM releases";
+  let query = "SELECT r.*, u.username AS owner_name, u.full_name AS user_full_name, u.company_name FROM releases r LEFT JOIN users u ON r.user_id = u.id";
   const params: any[] = [];
 
   if (role !== "Admin") {
-    query += " WHERE user_id = ?";
+    query += " WHERE r.user_id = ?";
     params.push(userId);
   }
 
-  query += " ORDER BY submission_date DESC";
+  query += " ORDER BY r.submission_date DESC";
 
   const [releases] = await db.query<ReleaseRow[]>(query, params);
 

@@ -1,7 +1,8 @@
 {
-  "/(dashboard)/publishing/songs/page": "app/(dashboard)/publishing/songs/page.js",
-  "/(dashboard)/publishing/writer/page": "app/(dashboard)/publishing/writer/page.js",
-  "/(dashboard)/dashboard-aggregator/page": "app/(dashboard)/dashboard-aggregator/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/releases/route": "app/api/releases/route.js",
+  "/api/settings/branding/route": "app/api/settings/branding/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/(dashboard)/releases/page": "app/(dashboard)/releases/page.js",
   "/(dashboard)/artists/page": "app/(dashboard)/artists/page.js"
 }
