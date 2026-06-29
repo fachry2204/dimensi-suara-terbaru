@@ -16,60 +16,40 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/layout.js"
     ],
-    "/(dashboard)/releases/page": [
+    "/(dashboard)/new-release/single/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/releases/page.js"
+      "static/chunks/app/(dashboard)/new-release/single/page.js"
     ],
-    "/api/releases/route": [
+    "/api/genres/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/releases/route.js"
+      "static/chunks/app/api/genres/route.js"
     ],
     "/api/settings/branding/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/settings/branding/route.js"
     ],
-    "/(dashboard)/dashboard-aggregator/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/dashboard-aggregator/page.js"
-    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/_not-found/page.js"
     ],
-    "/(dashboard)/artists/page": [
+    "/api/uploads/init/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/artists/page.js"
+      "static/chunks/app/api/uploads/init/route.js"
     ],
-    "/(dashboard)/users/page": [
+    "/api/uploads/[uploadId]/chunk/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/users/page.js"
+      "static/chunks/app/api/uploads/[uploadId]/chunk/route.js"
     ],
-    "/api/users/route": [
+    "/api/uploads/[uploadId]/complete/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/users/route.js"
-    ],
-    "/api/search/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/search/route.js"
-    ],
-    "/(dashboard)/new-release/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/new-release/page.js"
-    ],
-    "/(dashboard)/new-release/single/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/new-release/single/page.js"
+      "static/chunks/app/api/uploads/[uploadId]/complete/route.js"
     ]
   }
 }

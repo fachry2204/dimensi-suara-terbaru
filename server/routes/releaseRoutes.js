@@ -685,6 +685,30 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             });
         }
 
+        if (releaseData.genreId && releaseData.subgenreId) {
+            const [rows] = await db.query(
+              `SELECT id FROM subgenres WHERE id = ? AND genre_id = ? AND is_active = 1 LIMIT 1`,
+              [releaseData.subgenreId, releaseData.genreId]
+            );
+            if (rows.length === 0) {
+              return res.status(400).json({ error: "Subgenre tidak sesuai dengan genre pada Release", code: "INVALID_SUBGENRE" });
+            }
+        }
+
+        if (releaseData.tracks && Array.isArray(releaseData.tracks)) {
+            for (const t of releaseData.tracks) {
+                if (t.genreId && t.subgenreId) {
+                    const [rows] = await db.query(
+                      `SELECT id FROM subgenres WHERE id = ? AND genre_id = ? AND is_active = 1 LIMIT 1`,
+                      [t.subgenreId, t.genreId]
+                    );
+                    if (rows.length === 0) {
+                      return res.status(400).json({ error: `Subgenre tidak sesuai dengan genre pada track ${t.title || t.trackNumber || ''}`, code: "INVALID_SUBGENRE" });
+                    }
+                }
+            }
+        }
+
         // After checking for update, fetch existing release to preserve unchanged fields
         let existingRelease = null;
         if (isUpdate) {
@@ -707,7 +731,7 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             'title','version','release_type',
             'primary_artists','cover_art','label',
             'p_line','c_line','genre','sub_genre','language',
-            'upc'
+            'upc', 'genre_id', 'subgenre_id'
         ];
         const vals = [
             releaseData.title,
@@ -721,7 +745,9 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             releaseData.genre || null,
             releaseData.subGenre || null,
             releaseData.language || null,
-            releaseData.upc || null
+            releaseData.upc || null,
+            releaseData.genreId || null,
+            releaseData.subgenreId || null
         ];
         if (releaseColNames.includes('distribution_targets')) {
             cols.push('distribution_targets');
@@ -794,7 +820,7 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             const baseCols = [
                 'release_id','track_number','title','version',
                 'primary_artists','featured_artists','audio_file',
-                'isrc','explicit_lyrics','composer','lyricist','producer','genre','sub_genre','preview_start'
+                'isrc','explicit_lyrics','composer','lyricist','producer','genre','sub_genre','preview_start', 'genre_id', 'subgenre_id'
             ];
             const optCols = [];
             if (trackColNames.includes('audio_clip')) optCols.push('audio_clip');

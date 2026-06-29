@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ReleaseData, Track, TrackArtist, TrackContributor, ReleaseType } from '@/types';
 import { Music, Trash2, PlusCircle, Info, ChevronDown, ChevronUp, FileAudio, Mic2, User, UserPlus, Loader2, Scissors, Play, Pause, X, Check, UploadCloud, Download } from 'lucide-react';
-import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS, TRACK_GENRES, SUB_GENRES_MAP } from '@/constants';
+import { useGenres, useSubGenres } from '@/hooks/useGenres';
+import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS } from '@/constants';
 import { processFullAudio, cropAndConvertAudio, getAudioDuration } from '@/utils/audioProcessing';
 import { api } from '@/utils/api';
 import { AlertModal } from '../../components/AlertModal';
@@ -50,6 +51,59 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
   
   // Track processing state
   const [processingState, setProcessingState] = useState<{ [key: string]: boolean }>({});
+  const [showIsrcTooltip, setShowIsrcTooltip] = useState<{ [key: string]: boolean }>({});
+  
+  const TrackGenreSelectors = ({ track, updateTrack }: { track: Track; updateTrack: (id: string, updates: Partial<Track>) => void }) => {
+    const { genres } = useGenres();
+    const { subgenres } = useSubGenres(track.genreId || "");
+    
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Genre <span className="text-red-500">*</span></label>
+                <div className="relative">
+                    <select 
+                        value={track.genre || ""}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            const g = genres.find(x => x.name === val);
+                            updateTrack(track.id, { genre: val, genreId: g?.id, subGenre: "", subgenreId: undefined });
+                        }}
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                    >
+                        <option value="" className="text-black">Select Genre</option>
+                        {genres.map(g => <option key={g.id} value={g.name} className="text-black">{g.name}</option>)}
+                    </select>
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+                        <ChevronDown size={16} />
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sub Genre</label>
+                <div className="relative">
+                    <select 
+                        value={track.subGenre || ""}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            const sg = subgenres.find(x => x.name === val);
+                            updateTrack(track.id, { subGenre: val, subgenreId: sg?.id });
+                        }}
+                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                    >
+                        <option value="" className="text-black">Select Sub Genre</option>
+                        {subgenres.map(sg => (
+                            <option key={sg.id} value={sg.name} className="text-black">{sg.name}</option>
+                        ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+                        <ChevronDown size={16} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+  };
 
   // Trimmer State
   const [trimmerState, setTrimmerState] = useState<{
@@ -1097,42 +1151,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Genre <span className="text-red-500">*</span></label>
-                                        <div className="relative">
-                                            <select 
-                                                value={track.genre}
-                                                onChange={(e) => updateTrack(track.id, { genre: e.target.value, subGenre: "" })}
-                                                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
-                                            >
-                                                <option value="" className="text-black">Select Genre</option>
-                                                {TRACK_GENRES.map(g => <option key={g} value={g} className="text-black">{g}</option>)}
-                                            </select>
-                                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
-                                                <ChevronDown size={16} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Sub Genre</label>
-                                        <div className="relative">
-                                            <select 
-                                                value={track.subGenre || ""}
-                                                onChange={(e) => updateTrack(track.id, { subGenre: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
-                                            >
-                                                <option value="" className="text-black">Select Sub Genre</option>
-                                                {(SUB_GENRES_MAP[track.genre] || []).map(sg => (
-                                                    <option key={sg} value={sg} className="text-black">{sg}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
-                                                <ChevronDown size={16} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <TrackGenreSelectors track={track} updateTrack={updateTrack} />
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>

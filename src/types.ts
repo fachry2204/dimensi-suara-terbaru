@@ -60,8 +60,10 @@ export interface Track {
   artists: TrackArtist[];
 
   // Details
-  genre: string;
+  genre?: string;
+  genreId?: number;
   subGenre?: string;
+  subgenreId?: number;
   isInstrumental?: 'Yes' | 'No';
   explicitLyrics: string; // 'Yes', 'No', 'Clean'
   composer: string;
@@ -102,7 +104,9 @@ export interface ReleaseData {
   primaryArtists: (string | PrimaryArtist)[];
   label: string;
   genre?: string;
+  genreId?: number;
   subGenre?: string;
+  subgenreId?: number;
   pLine?: string;
   cLine?: string;
   version: string;

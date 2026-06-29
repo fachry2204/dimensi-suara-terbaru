@@ -20,7 +20,7 @@ export const TextInput: React.FC<InputProps> = ({ label, className, ...props }) 
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label: React.ReactNode;
-  options: string[];
+  options: (string | { label: string; value: string | number })[];
 }
 
 export const SelectInput: React.FC<SelectProps> = ({ label, options, ...props }) => (
@@ -36,7 +36,12 @@ export const SelectInput: React.FC<SelectProps> = ({ label, options, ...props })
         {...props}
       >
         <option value="" className="text-gray-500">Select an option...</option>
-        {options.map(opt => <option key={opt} value={opt} className="text-black">{opt}</option>)}
+        {options.map((opt: any, i: number) => {
+          if (typeof opt === 'object' && opt !== null && 'label' in opt) {
+            return <option key={`${opt.value}-${i}`} value={opt.value} className="text-black">{opt.label}</option>;
+          }
+          return <option key={String(opt)} value={String(opt)} className="text-black">{String(opt)}</option>;
+        })}
       </select>
       <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
         <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
