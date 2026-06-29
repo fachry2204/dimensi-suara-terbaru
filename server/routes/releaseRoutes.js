@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import * as mm from 'music-metadata';
 import { fileURLToPath } from 'url';
 import db from '../config/db.js';
 import { spawn } from 'child_process';
@@ -313,6 +314,22 @@ router.post('/upload-tmp-chunk', authenticateToken, handleUpload(uploadTmpChunk.
         const finalName = `${artistDirName} - ${releaseDirName}-${field}${ext || ''}`;
         const finalAbs = path.join(targetDir, finalName);
         fs.renameSync(assemblingPath, finalAbs);
+
+        // Validation: Ensure Social Media Audio (clip) doesn't exceed 60 seconds
+        if (field.includes('clip')) {
+            try {
+                const metadata = await mm.parseFile(finalAbs);
+                const duration = metadata.format?.duration || 0;
+                if (duration > 60) {
+                    fs.unlinkSync(finalAbs);
+                    return res.status(400).json({ error: 'Durasi audio clip (Social Media) maksimal 60 detik.' });
+                }
+            } catch (err) {
+                console.warn('Failed to parse clip duration:', err.message);
+                // Can't parse duration; depending on strictness, we might allow or reject. For now, we bypass if unparseable.
+            }
+        }
+
         const publicPath = `/uploads/tmp/${userId}/${artistDirName}/${releaseDirName}/${finalName}`;
         return res.json({ done: true, path: publicPath, field });
     } catch (err) {
@@ -923,7 +940,32 @@ router.post('/', authenticateToken, handleUpload(upload.any()), async (req, res)
             console.warn('Cleanup tmp after finalize failed:', e.message || e);
         }
 
+        try {
+            const notifType = isUpdate ? 'EDIT' : 'UPLOAD';
+            const action = isUpdate ? 'diperbarui' : 'diupload';
+            
+            // Notification for the user who performed the action
+            await db.query(
+                'INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)',
+                [req.user.id, notifType, `Rilis "${releaseData.title}" berhasil ${action}.`]
+            );
+            
+            // Notification for all Admins if action was done by a normal User
+            if (req.user.role !== 'Admin') {
+                const [admins] = await db.query("SELECT id FROM users WHERE role = 'Admin'");
+                for (const admin of admins) {
+                    await db.query(
+                        'INSERT INTO notifications (user_id, type, message) VALUES (?, ?, ?)',
+                        [admin.id, 'ADMIN_ALERT', `User (ID: ${req.user.id}) telah ${action} rilis: "${releaseData.title}"`]
+                    );
+                }
+            }
+        } catch (e) {
+            console.error('Failed to create notification:', e);
+        }
+
         res.status(isUpdate ? 200 : 201).json({ message: isUpdate ? 'Release updated successfully' : 'Release submitted successfully', id: releaseId });
+
 
     } catch (err) {
         console.error("Create Release Error:", err);

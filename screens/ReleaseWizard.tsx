@@ -28,6 +28,7 @@ const INITIAL_DATA: ReleaseData = {
   pLine: "",
   cLine: "",
   version: "",
+  releaseVersion: "Original",
   tracks: [],
   isNewRelease: true,
   originalReleaseDate: "",
@@ -37,13 +38,11 @@ const INITIAL_DATA: ReleaseData = {
 export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialData, userRole }) => {
   const [currentStep, setCurrentStep] = useState<number>(Step.INFO);
   const [showExitModal, setShowExitModal] = useState(false);
-  const [showTrackWarning, setShowTrackWarning] = useState(false);
-  const [showArtistWarning, setShowArtistWarning] = useState(false);
-  const [showCoverMissingWarning, setShowCoverMissingWarning] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [showMissingWarning, setShowMissingWarning] = useState(false);
   const [showCoverProcessingWarning, setShowCoverProcessingWarning] = useState(false);
   const [isProcessingCover, setIsProcessingCover] = useState(false);
   const [showAudioProcessingWarning, setShowAudioProcessingWarning] = useState(false);
-  const [showAudioMissingWarning, setShowAudioMissingWarning] = useState<string[] | false>(false);
   const [userType, setUserType] = useState<'Company' | 'Personal' | null>(null);
   
   const [data, setData] = useState<ReleaseData>(() => initialData ? initialData : INITIAL_DATA);
@@ -87,38 +86,58 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     }
 
     if (currentStep === Step.INFO) {
+        const anyData = data as any;
+        const artists = (anyData.primaryArtists || []).map((a: any) => (typeof a === 'string' ? a : a.name || '').trim()).filter((a: any) => a.length > 0);
+        const songwriters = (anyData.songwriters || []).map((s: any) => (typeof s === 'string' ? s : s.name || '').trim()).filter((s: any) => s.length > 0);
+        const lyricists = (anyData.lyricists || []).map((l: any) => (typeof l === 'string' ? l : l.name || '').trim()).filter((l: any) => l.length > 0);
+        const production = (anyData.productionCredits || []).map((p: any) => (p.name || '').trim()).filter((p: any) => p.length > 0);
+        
+        let missing: string[] = [];
+        if (type === 'SINGLE') {
+            if (!anyData.masterUploadId) missing.push("Master Audio File");
+            if (!anyData.socialMediaUploadId) missing.push("Social Media Audio");
+        } else {
+            if (!anyData.tracks || anyData.tracks.length < 2) missing.push("Minimum 2 Tracks for Album");
+            const processing = (anyData.tracks || []).some((t: any) => (t.processingAudio === true) || (t.processingClip === true));
+            if (processing) {
+                setShowAudioProcessingWarning(true);
+                return;
+            }
+        }
+        
+        if (artists.length === 0) missing.push("Primary Artist");
+        if (songwriters.length === 0) missing.push("Songwriter / Composer");
+        if (!anyData.isInstrumental && lyricists.length === 0) missing.push("Lyricists");
+        if (production.length === 0) missing.push("Production & Additional Production");
+        if (!anyData.title || !anyData.title.trim()) missing.push("Release Title");
+        if (!anyData.releaseVersion) missing.push("Release Version");
+        if (!anyData.genreId) missing.push("Genre");
+        if (!anyData.subgenreId) missing.push("Subgenre");
+
+        if (missing.length > 0) {
+            setMissingFields(missing);
+            setShowMissingWarning(true);
+            return;
+        }
+    }
+    
+    if (currentStep === Step.DETAILS) {
+        let missing: string[] = [];
         if (isProcessingCover) {
              setShowCoverProcessingWarning(true);
              return;
         }
 
-        if (!data.coverArt) {
-             setShowCoverMissingWarning(true);
-             return;
-        }
-
-        const artists = (data.primaryArtists || []).map(a => (typeof a === 'string' ? a : a.name || '').trim()).filter(a => a.length > 0);
-        // Check mandatory fields: title, primaryArtists, version, language (territory)
-        if (artists.length === 0 || !data.title || !data.title.trim() || !data.version || !data.language) {
-            setShowArtistWarning(true);
+        if (!data.coverArt) missing.push("Cover Art");
+        if (!data.plannedReleaseDate) missing.push("Tanggal Rilis");
+        
+        if (missing.length > 0) {
+            setMissingFields(missing);
+            setShowMissingWarning(true);
             return;
         }
     }
-    if (currentStep === Step.TRACKS) {
-        const processing = (data.tracks || []).some(t => (t.processingAudio === true) || (t.processingClip === true));
-        if (processing) {
-            setShowAudioProcessingWarning(true);
-            return;
-        }
-        // Tidak lagi memblokir di Step 2 berdasarkan cek "sudah diupload ke server".
-        // Cukup pastikan proses belum berjalan; validasi audio/clip penuh dilakukan di Step 4.
-    }
-    if (currentStep === Step.TRACKS && type === 'ALBUM') {
-        if (data.tracks.length < 2) {
-            setShowTrackWarning(true);
-            return;
-        }
-    }
+    
     if (currentStep < Step.REVIEW) {
         setCurrentStep(prev => prev + 1);
     }
@@ -153,11 +172,50 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
       onBack();
   };
 
-  const renderStep = () => {
+    const renderStep = () => {
     switch (currentStep) {
-        case Step.INFO: return <Step1ReleaseInfo data={data} updateData={updateData} releaseType={type} isProcessingCover={isProcessingCover} setIsProcessingCover={setIsProcessingCover} />;
-        case Step.TRACKS: return <Step2TrackInfo data={data} updateData={updateData} releaseType={type} userRole={userRole} />;
-        case Step.DETAILS: return <Step3ReleaseDetail data={data} updateData={updateData} releaseType={type} userRole={userRole} />;
+        case Step.INFO: 
+            return (
+                <div className="space-y-6">
+                    <Step1ReleaseInfo data={data} updateData={updateData} />
+                    {type === 'ALBUM' && (
+                        <div className="mt-8">
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 border-b pb-2">Album Tracks</h3>
+                            <Step2TrackInfo data={data} updateData={updateData} releaseType={type} userRole={userRole} />
+                        </div>
+                    )}
+                </div>
+            );
+        case Step.DETAILS: 
+            return (
+                <div className="space-y-6">
+                    {/* Placeholder for Cover Art Uploader */}
+                    <div className="bg-white border border-gray-200 rounded p-6">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">Cover Art</h3>
+                        <p className="text-sm text-slate-600 mb-4">Silakan upload Cover Art (JPG/PNG, minimal 3000x3000px).</p>
+                        <input 
+                            type="file" 
+                            accept="image/jpeg, image/png"
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                    updateData({ coverArt: e.target.files[0] });
+                                }
+                            }}
+                            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        {data.coverArt && (
+                            <div className="mt-4">
+                                <img 
+                                    src={data.coverArt instanceof File ? URL.createObjectURL(data.coverArt) : (typeof data.coverArt === 'string' ? data.coverArt : '')} 
+                                    alt="Cover Preview" 
+                                    className="w-32 h-32 object-cover rounded shadow"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <Step3ReleaseDetail data={data} updateData={updateData} releaseType={type} userRole={userRole} />
+                </div>
+            );
         case Step.REVIEW: return <Step4Review data={{...data, type}} onSave={onSave} onBack={handlePrev} userRole={userRole} userType={userType} />;
         default: return null;
     }
@@ -219,37 +277,37 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                         <AlertTriangle className="text-yellow-600" size={16} />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-[10px] font-medium text-yellow-800">Warning</h3>
-                        <p className="text-[10px] text-yellow-700">Confirmation Required</p>
+                        <h3 className="text-sm font-bold text-yellow-800">Warning</h3>
+                        <p className="text-xs text-yellow-700">Confirmation Required</p>
                     </div>
                     <button 
                         onClick={() => setShowExitModal(false)}
                         className="text-yellow-400 hover:text-yellow-600 transition-colors"
                     >
-                        <X size={16} />
+                        <X size={20} />
                     </button>
                 </div>
                 
-                <div className="p-4">
-                    <p className="text-slate-600 mb-3 font-medium text-[10px]">
-                        Apakah kamu akan kembali ke Pemilihan Single atau EP/Album?
+                <div className="p-5">
+                    <p className="text-slate-700 mb-3 font-medium text-sm">
+                        Do you want to return to the selection page?
                     </p>
-                    <p className="text-[10px] text-slate-500 mb-4 bg-slate-50 p-2.5 rounded-lg">
-                        Jika Ya, data draft yang sudah di isi akan dihapus.
+                    <p className="text-sm text-slate-500 mb-5 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        If Yes, the draft data you have filled in will be deleted.
                     </p>
                     
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-3 justify-end">
                         <button
                             onClick={() => setShowExitModal(false)}
-                            className="px-3 py-1.5 rounded font-medium text-slate-600 hover:bg-slate-100 transition-colors text-[10px]"
+                            className="px-4 py-2 rounded-md font-semibold text-slate-600 hover:bg-slate-100 transition-colors text-sm"
                         >
-                            Tidak
+                            No
                         </button>
                         <button
                             onClick={handleConfirmExit}
-                            className="px-3 py-1.5 rounded font-medium bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/30 transition-all text-[10px]"
+                            className="px-4 py-2 rounded-md font-semibold bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/30 transition-all text-sm"
                         >
-                            Ya
+                            Yes
                         </button>
                     </div>
                 </div>
@@ -264,23 +322,23 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                         <Loader2 className="text-blue-600 animate-spin" size={16} />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-[10px] font-medium text-blue-800">Proses Upload Berjalan</h3>
-                        <p className="text-[10px] text-blue-700">Cover Art sedang diunggah. Mohon tunggu sebentar.</p>
+                        <h3 className="text-sm font-bold text-blue-800">Upload in Progress</h3>
+                        <p className="text-xs text-blue-700">Cover Art is currently uploading. Please wait a moment.</p>
                     </div>
                     <button 
                         onClick={() => setShowCoverProcessingWarning(false)}
-                        className="text-blue-300 hover:text-blue-500 transition-colors"
+                        className="text-blue-400 hover:text-blue-600 transition-colors"
                     >
-                        <X size={16} />
+                        <X size={20} />
                     </button>
                 </div>
-                <div className="p-4">
+                <div className="p-5">
                     <div className="flex justify-end">
                         <button
                             onClick={() => setShowCoverProcessingWarning(false)}
-                            className="px-3 py-1.5 rounded font-medium bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30 transition-all text-[10px]"
+                            className="px-4 py-2 rounded-md font-semibold bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30 transition-all text-sm"
                         >
-                            Baik, Saya Tunggu
+                            Okay, I'll wait
                         </button>
                     </div>
                 </div>
@@ -288,7 +346,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
         </div>
       )}
 
-      {showCoverMissingWarning && (
+      {showMissingWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full overflow-hidden transform transition-all scale-100 animate-fade-in-up">
                 <div className="bg-red-50 p-3 border-b border-red-100 flex items-center gap-3">
@@ -296,26 +354,29 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                         <AlertTriangle className="text-red-600" size={16} />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-[10px] font-medium text-red-800">Cover Art Belum Diupload</h3>
-                        <p className="text-[10px] text-red-700">Wajib upload Cover Art sebelum lanjut.</p>
+                        <h3 className="text-sm font-bold text-red-800">Incomplete Form Data</h3>
+                        <p className="text-xs text-red-700">Please complete the following fields before continuing.</p>
                     </div>
                     <button 
-                        onClick={() => setShowCoverMissingWarning(false)}
-                        className="text-red-300 hover:text-red-500 transition-colors"
+                        onClick={() => setShowMissingWarning(false)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
                     >
-                        <X size={16} />
+                        <X size={20} />
                     </button>
                 </div>
-                <div className="p-4">
-                    <p className="text-slate-600 mb-3 font-medium text-[10px]">
-                        Silakan upload gambar Cover Art (JPG/PNG, 3000x3000px).
-                    </p>
+                
+                <div className="p-5">
+                    <ul className="list-disc pl-5 mb-5 space-y-1 text-slate-700 text-sm">
+                        {missingFields.map((field, idx) => (
+                            <li key={idx}><strong>{field}</strong> is required</li>
+                        ))}
+                    </ul>
                     <div className="flex justify-end">
                         <button
-                            onClick={() => setShowCoverMissingWarning(false)}
-                            className="px-3 py-1.5 rounded font-medium bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-[10px]"
+                            onClick={() => setShowMissingWarning(false)}
+                            className="px-4 py-2 rounded-md font-semibold bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-sm"
                         >
-                            Mengerti
+                            Understand
                         </button>
                     </div>
                 </div>
@@ -330,57 +391,23 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                         <AlertTriangle className="text-red-600" size={16} />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-[10px] font-medium text-red-800">Proses Belum Selesai</h3>
-                        <p className="text-[10px] text-red-700">Audio sedang diproses/diunggah. Tunggu selesai sebelum lanjut.</p>
+                        <h3 className="text-sm font-bold text-red-800">Process Incomplete</h3>
+                        <p className="text-xs text-red-700">Audio is still processing/uploading. Please wait until it completes before proceeding.</p>
                     </div>
                     <button 
                         onClick={() => setShowAudioProcessingWarning(false)}
-                        className="text-red-300 hover:text-red-500 transition-colors"
+                        className="text-red-400 hover:text-red-600 transition-colors"
                     >
-                        <X size={16} />
+                        <X size={20} />
                     </button>
                 </div>
-                <div className="p-4">
+                <div className="p-5">
                     <div className="flex justify-end">
                         <button
                             onClick={() => setShowAudioProcessingWarning(false)}
-                            className="px-3 py-1.5 rounded font-medium bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-[10px]"
+                            className="px-4 py-2 rounded-md font-semibold bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-sm"
                         >
-                            Mengerti
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-      )}
-      {Array.isArray(showAudioMissingWarning) && showAudioMissingWarning.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full overflow-hidden transform transition-all scale-100 animate-fade-in-up">
-                <div className="bg-red-50 p-3 border-b border-red-100 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <AlertTriangle className="text-red-600" size={16} />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="text-[10px] font-medium text-red-800">Data Audio Belum Lengkap</h3>
-                        <p className="text-[10px] text-red-700">Perbaiki masalah berikut sebelum lanjut:</p>
-                    </div>
-                    <button 
-                        onClick={() => setShowAudioMissingWarning(false)}
-                        className="text-red-300 hover:text-red-500 transition-colors"
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
-                <div className="p-4">
-                    <ul className="text-[10px] text-slate-700 list-disc pl-5 space-y-1">
-                        {showAudioMissingWarning.map((msg, i) => (<li key={i}>{msg}</li>))}
-                    </ul>
-                    <div className="flex justify-end mt-4">
-                        <button
-                            onClick={() => setShowAudioMissingWarning(false)}
-                            className="px-3 py-1.5 rounded font-medium bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-[10px]"
-                        >
-                            Mengerti
+                            Understand
                         </button>
                     </div>
                 </div>
@@ -388,80 +415,6 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
         </div>
       )}
 
-      {showTrackWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full overflow-hidden transform transition-all scale-100 animate-fade-in-up">
-                <div className="bg-red-50 p-3 border-b border-red-100 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <AlertTriangle className="text-red-600" size={16} />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="text-[10px] font-medium text-red-800">Peringatan</h3>
-                        <p className="text-[10px] text-red-700">Jumlah track belum mencukupi</p>
-                    </div>
-                    <button 
-                        onClick={() => setShowTrackWarning(false)}
-                        className="text-red-300 hover:text-red-500 transition-colors"
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
-                
-                <div className="p-4">
-                    <p className="text-slate-600 mb-3 font-medium text-[10px]">
-                        Untuk rilis Album/EP, minimal harus ada 2 track sebelum lanjut ke Step berikutnya.
-                    </p>
-                    <p className="text-[10px] text-slate-500 mb-4 bg-slate-50 p-3 rounded-lg">
-                        Tambahkan setidaknya satu track lagi di daftar Tracklist.
-                    </p>
-                    
-                    <div className="flex justify-end">
-                        <button
-                            onClick={() => setShowTrackWarning(false)}
-                            className="px-3 py-1.5 rounded font-medium bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-[10px]"
-                        >
-                            Mengerti
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-      )}
-      {showArtistWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full overflow-hidden transform transition-all scale-100 animate-fade-in-up">
-                <div className="bg-red-50 p-3 border-b border-red-100 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <AlertTriangle className="text-red-600" size={16} />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="text-xs font-medium text-red-800">Data Belum Lengkap</h3>
-                        <p className="text-[10px] text-red-700">Mohon lengkapi semua field bertanda bintang (*)</p>
-                    </div>
-                    <button 
-                        onClick={() => setShowArtistWarning(false)}
-                        className="text-red-300 hover:text-red-500 transition-colors"
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
-                
-                <div className="p-4">
-                    <p className="text-slate-600 mb-3 font-medium text-[10px]">
-                        Pastikan Release Title, Primary Artist, Version, dan Territory sudah terisi sebelum lanjut.
-                    </p>
-                    <div className="flex justify-end">
-                        <button
-                            onClick={() => setShowArtistWarning(false)}
-                            className="px-3 py-1.5 rounded font-medium bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all text-[10px]"
-                        >
-                            Mengerti
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-      )}
     </div>
   );
 };

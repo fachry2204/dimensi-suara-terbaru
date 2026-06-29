@@ -838,7 +838,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 const MetaItem: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode }> = ({ label, value, icon }) => (
     <div className="flex flex-col border border-gray-200 rounded p-3 bg-slate-50/50">
         <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-            {React.cloneElement(icon as React.ReactElement, { size: 14 })} {label}
+            {React.cloneElement(icon as React.ReactElement, { size: 14 } as any)} {label}
         </span>
         <div className="text-xs font-bold text-slate-900 break-words">{value || "-"}</div>
     </div>

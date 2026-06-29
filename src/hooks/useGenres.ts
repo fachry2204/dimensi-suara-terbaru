@@ -21,10 +21,15 @@ export function useGenres() {
     useEffect(() => {
         const fetchGenres = async () => {
             try {
+                console.log("Fetching genres from:", `${API_BASE_URL}/genres`);
                 const response = await fetch(`${API_BASE_URL}/genres`);
+                console.log("Genres response status:", response.status);
                 const json = await response.json();
+                console.log("Genres JSON:", json);
                 if (json.success) {
                     setGenres(json.data);
+                } else {
+                    console.error("Genres fetch not successful:", json);
                 }
             } catch (err) {
                 console.error("Failed to fetch genres", err);

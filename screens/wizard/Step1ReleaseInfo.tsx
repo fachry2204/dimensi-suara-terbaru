@@ -34,16 +34,18 @@ interface Props {
 }
 
 export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
-  const { genres } = useGenres();
-  const { subgenres } = useSubGenres(data.genreId);
+  const { genres, loading: genresLoading } = useGenres();
+  const { subgenres, loading: subgenresLoading } = useSubGenres(data.genreId);
   const [userType, setUserType] = useState<string>('Personal');
 
   useEffect(() => {
     const fetchUserType = async () => {
         try {
             const token = ''; // Get from auth store in real app
-            const profile = await api.getProfile(token);
-            setUserType(profile.account_type?.toUpperCase() === 'COMPANY' ? 'Company' : 'Personal');
+            if (token) {
+                const profile = await api.getProfile(token);
+                setUserType(profile.account_type?.toUpperCase() === 'COMPANY' ? 'Company' : 'Personal');
+            }
         } catch (e) {}
     };
     fetchUserType();
@@ -51,7 +53,11 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
 
   const handleArrayChange = (field: string, index: number, key: string, value: any) => {
     const arr = [...(data[field] || [])];
-    arr[index] = { ...arr[index], [key]: value };
+    let current = arr[index];
+    if (typeof current === 'string') {
+        current = { name: current };
+    }
+    arr[index] = { ...current, [key]: value };
     updateData({ [field]: arr });
   };
 
@@ -63,15 +69,20 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
 
   const removeArrayItem = (field: string, index: number) => {
     const arr = [...(data[field] || [])].filter((_, i) => i !== index);
-    arr.forEach((item, i) => item.sequenceNumber = i + 1);
-    updateData({ [field]: arr });
+    const newArr = arr.map((item, i) => {
+        if (typeof item === 'string') {
+            return { name: item, sequenceNumber: i + 1 };
+        }
+        return { ...item, sequenceNumber: i + 1 };
+    });
+    updateData({ [field]: newArr });
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-slate-900">Step 1 — Release Single Baru</h2>
-        <p className="text-sm text-slate-600">Lengkapi data Single Anda</p>
+        <h2 className="text-xl font-bold text-slate-900">Step 1 — New Single Release</h2>
+        <p className="text-sm text-slate-600">Complete your single release details</p>
       </div>
 
       {/* A. Audio File */}
@@ -115,15 +126,17 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectInput 
               label={<>Genre <span className="text-red-500">*</span></>}
-              options={genres.map(g => ({ label: g.name, value: g.id }))}
+              options={genresLoading ? [{label: 'Loading...', value: ''}] : (genres.length === 0 ? [{label: 'No genres found', value: ''}] : genres.map(g => ({ label: g.name, value: g.id })))}
               value={data.genreId || ''}
               onChange={(e) => updateData({ genreId: Number(e.target.value), subgenreId: null })}
+              disabled={genresLoading || genres.length === 0}
             />
             <SelectInput 
               label={<>Subgenre <span className="text-red-500">*</span></>}
-              options={subgenres.map(s => ({ label: s.name, value: s.id }))}
+              options={subgenresLoading ? [{label: 'Loading...', value: ''}] : (data.genreId ? (subgenres.length === 0 ? [{label: 'No subgenres found', value: ''}] : subgenres.map(s => ({ label: s.name, value: s.id }))) : [])}
               value={data.subgenreId || ''}
               onChange={(e) => updateData({ subgenreId: Number(e.target.value) })}
+              disabled={!data.genreId || subgenresLoading || (data.genreId && subgenres.length === 0)}
             />
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -139,41 +152,9 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
         </div>
       </div>
 
-      {/* C. Lyrics Information */}
-      {!data.isInstrumental && (
-        <div className="bg-white border border-gray-200 rounded p-6 relative">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">C. Lyrics Information</h3>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SelectInput 
-                label={<>Lyrics Language <span className="text-red-500">*</span></>}
-                options={LANGUAGES}
-                value={data.lyricsLanguage || ''}
-                onChange={(e) => updateData({ lyricsLanguage: e.target.value })}
-              />
-              <SelectInput 
-                label={<>Explicit Content <span className="text-red-500">*</span></>}
-                options={[{label: 'No', value: 'NO'}, {label: 'Clean', value: 'CLEAN'}, {label: 'Yes', value: 'YES'}]}
-                value={data.explicitType || 'NO'}
-                onChange={(e) => updateData({ explicitType: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Lyrics <span className="text-red-500">*</span></label>
-              <textarea 
-                className="w-full border border-gray-300 rounded p-3 text-sm min-h-[220px]"
-                value={data.lyrics || ''}
-                onChange={(e) => updateData({ lyrics: e.target.value })}
-                placeholder="Paste lyrics here..."
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* D. Artists */}
+      {/* C. Artists */}
       <div className="bg-white border border-gray-200 rounded p-6 relative">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">D. Artists</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">C. Artists</h3>
         
         {/* Primary Artists */}
         <div className="mb-6">
@@ -189,8 +170,8 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
               {i > 0 && <button type="button" onClick={() => removeArrayItem('primaryArtists', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>}
             </div>
           ))}
-          <button type="button" onClick={() => addArrayItem('primaryArtists', {name: ''})} className="text-blue-600 text-sm font-medium flex items-center mt-2">
-            <Plus size={16} className="mr-1"/> Add Primary Artist
+          <button type="button" onClick={() => addArrayItem('primaryArtists', {name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+            <Plus size={14} className="mr-0.5"/> Add Primary Artist
           </button>
         </div>
 
@@ -208,16 +189,123 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
               <button type="button" onClick={() => removeArrayItem('featuredArtists', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
             </div>
           ))}
-          <button type="button" onClick={() => addArrayItem('featuredArtists', {name: ''})} className="text-blue-600 text-sm font-medium flex items-center mt-2">
-            <Plus size={16} className="mr-1"/> Add Featured Artist
+          <button type="button" onClick={() => addArrayItem('featuredArtists', {name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+            <Plus size={14} className="mr-0.5"/> Add Featured Artist
           </button>
         </div>
       </div>
 
-      {/* E. Credits */}
+      {/* D. Writers */}
       <div className="bg-white border border-gray-200 rounded p-6 relative space-y-6">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">E. Credits</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">D. Writers</h3>
         
+        {/* Songwriters */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Songwriter / Composer <span className="text-red-500">*</span></label>
+          {(data.songwriters || []).map((s: any, i: number) => (
+            <div key={i} className="flex gap-2 mb-2 items-center">
+              <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Real Name (not band name)" value={s.name || ''} onChange={(e) => handleArrayChange('songwriters', i, 'name', e.target.value)} />
+              {i > 0 && <button type="button" onClick={() => removeArrayItem('songwriters', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>}
+            </div>
+          ))}
+          <button type="button" onClick={() => addArrayItem('songwriters', {name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+            <Plus size={14} className="mr-0.5"/> Add Songwriter
+          </button>
+        </div>
+
+        {/* Lyricists */}
+        {!data.isInstrumental && (
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Lyricists <span className="text-red-500">*</span></label>
+            {(data.lyricists || []).map((l: any, i: number) => (
+              <div key={i} className="flex gap-2 mb-2 items-center">
+                <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Name" value={l.name || ''} onChange={(e) => handleArrayChange('lyricists', i, 'name', e.target.value)} />
+                <button type="button" onClick={() => removeArrayItem('lyricists', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
+              </div>
+            ))}
+            <button type="button" onClick={() => addArrayItem('lyricists', {name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+              <Plus size={14} className="mr-0.5"/> Add Lyricist
+            </button>
+          </div>
+        )}
+
+        {/* Additional Writers */}
+        {!data.isInstrumental && (
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Additional Writers</label>
+            {(data.additionalWriters || []).map((a: any, i: number) => (
+              <div key={i} className="flex gap-2 mb-2 items-center">
+                <select className="w-1/3 border border-gray-300 rounded p-2 text-sm" value={a.roleName || ''} onChange={(e) => handleArrayChange('additionalWriters', i, 'roleName', e.target.value)}>
+                  <option value="">Select Role...</option>
+                  {WRITER_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Name" value={a.name || ''} onChange={(e) => handleArrayChange('additionalWriters', i, 'name', e.target.value)} />
+                <button type="button" onClick={() => removeArrayItem('additionalWriters', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
+              </div>
+            ))}
+            <button type="button" onClick={() => addArrayItem('additionalWriters', {roleName: '', name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+              <Plus size={14} className="mr-0.5"/> Add Additional Writer
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* E. Lyrics Information */}
+      {!data.isInstrumental && (
+        <div className="bg-white border border-gray-200 rounded p-6 relative">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">E. Lyrics Information</h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SelectInput 
+                label="Lyrics Language"
+                options={LANGUAGES}
+                value={data.lyricsLanguage || ''}
+                onChange={(e) => updateData({ lyricsLanguage: e.target.value })}
+              />
+              <SelectInput 
+                label="Explicit Content"
+                options={[{label: 'No', value: 'NO'}, {label: 'Clean', value: 'CLEAN'}, {label: 'Yes', value: 'YES'}]}
+                value={data.explicitType || 'NO'}
+                onChange={(e) => updateData({ explicitType: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Lyrics</label>
+              <textarea 
+                className="w-full border border-gray-300 rounded p-3 text-sm min-h-[220px]"
+                value={data.lyrics || ''}
+                onChange={(e) => updateData({ lyrics: e.target.value })}
+                placeholder="Paste lyrics here..."
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+      {/* F. Credits */}
+      <div className="bg-white border border-gray-200 rounded p-6 relative space-y-6">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">F. Credits</h3>
+        
+        {/* Production */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Production & Additional Production <span className="text-red-500">*</span></label>
+          {(data.productionCredits || []).map((p: any, i: number) => (
+            <div key={i} className="flex gap-2 mb-2 items-center">
+              <select className="w-1/3 border border-gray-300 rounded p-2 text-sm" value={p.roleName || ''} onChange={(e) => handleArrayChange('productionCredits', i, 'roleName', e.target.value)}>
+                <option value="">Select Role...</option>
+                {PRODUCTION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Name" value={p.name || ''} onChange={(e) => handleArrayChange('productionCredits', i, 'name', e.target.value)} />
+              <button type="button" onClick={() => removeArrayItem('productionCredits', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
+            </div>
+          ))}
+          <button type="button" onClick={() => addArrayItem('productionCredits', {roleName: '', name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+            <Plus size={14} className="mr-0.5"/> Add Production
+          </button>
+        </div>
+
         {/* Contributors */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">Contributors</label>
@@ -231,80 +319,16 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
               <button type="button" onClick={() => removeArrayItem('contributors', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
             </div>
           ))}
-          <button type="button" onClick={() => addArrayItem('contributors', {roleName: '', name: ''})} className="text-blue-600 text-sm font-medium flex items-center">
-            <Plus size={16} className="mr-1"/> Add Contributor
-          </button>
-        </div>
-
-        {/* Production */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Production & Additional Production</label>
-          {(data.productionCredits || []).map((p: any, i: number) => (
-            <div key={i} className="flex gap-2 mb-2 items-center">
-              <select className="w-1/3 border border-gray-300 rounded p-2 text-sm" value={p.roleName || ''} onChange={(e) => handleArrayChange('productionCredits', i, 'roleName', e.target.value)}>
-                <option value="">Select Role...</option>
-                {PRODUCTION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Name" value={p.name || ''} onChange={(e) => handleArrayChange('productionCredits', i, 'name', e.target.value)} />
-              <button type="button" onClick={() => removeArrayItem('productionCredits', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
-            </div>
-          ))}
-          <button type="button" onClick={() => addArrayItem('productionCredits', {roleName: '', name: ''})} className="text-blue-600 text-sm font-medium flex items-center">
-            <Plus size={16} className="mr-1"/> Add Production
-          </button>
-        </div>
-
-        {/* Songwriters */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Songwriter / Composer <span className="text-red-500">*</span></label>
-          {(data.songwriters || []).map((s: any, i: number) => (
-            <div key={i} className="flex gap-2 mb-2 items-center">
-              <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Real Name (not band name)" value={s.name || ''} onChange={(e) => handleArrayChange('songwriters', i, 'name', e.target.value)} />
-              {i > 0 && <button type="button" onClick={() => removeArrayItem('songwriters', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>}
-            </div>
-          ))}
-          <button type="button" onClick={() => addArrayItem('songwriters', {name: ''})} className="text-blue-600 text-sm font-medium flex items-center">
-            <Plus size={16} className="mr-1"/> Add Songwriter
-          </button>
-        </div>
-
-        {/* Lyricists */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Lyricists</label>
-          {(data.lyricists || []).map((l: any, i: number) => (
-            <div key={i} className="flex gap-2 mb-2 items-center">
-              <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Name" value={l.name || ''} onChange={(e) => handleArrayChange('lyricists', i, 'name', e.target.value)} />
-              <button type="button" onClick={() => removeArrayItem('lyricists', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
-            </div>
-          ))}
-          <button type="button" onClick={() => addArrayItem('lyricists', {name: ''})} className="text-blue-600 text-sm font-medium flex items-center">
-            <Plus size={16} className="mr-1"/> Add Lyricist
-          </button>
-        </div>
-
-        {/* Additional Writers */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">Additional Writers</label>
-          {(data.additionalWriters || []).map((a: any, i: number) => (
-            <div key={i} className="flex gap-2 mb-2 items-center">
-              <select className="w-1/3 border border-gray-300 rounded p-2 text-sm" value={a.roleName || ''} onChange={(e) => handleArrayChange('additionalWriters', i, 'roleName', e.target.value)}>
-                <option value="">Select Role...</option>
-                {WRITER_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <input className="flex-1 border border-gray-300 rounded p-2 text-sm" placeholder="Name" value={a.name || ''} onChange={(e) => handleArrayChange('additionalWriters', i, 'name', e.target.value)} />
-              <button type="button" onClick={() => removeArrayItem('additionalWriters', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>
-            </div>
-          ))}
-          <button type="button" onClick={() => addArrayItem('additionalWriters', {roleName: '', name: ''})} className="text-blue-600 text-sm font-medium flex items-center">
-            <Plus size={16} className="mr-1"/> Add Additional Writer
+          <button type="button" onClick={() => addArrayItem('contributors', {roleName: '', name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+            <Plus size={14} className="mr-0.5"/> Add Contributor
           </button>
         </div>
       </div>
 
-      {/* F. Record Label (Company Only) */}
+      {/* G. Record Label (Company Only) */}
       {userType === 'Company' && (
         <div className="bg-white border border-gray-200 rounded p-6 relative">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">F. Label</h3>
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">G. Label</h3>
           <TextInput 
             label="Record Label"
             value={data.label || ''}

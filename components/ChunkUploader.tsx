@@ -54,8 +54,8 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
         const d = audio.duration;
         if (d < 30 || d > 60) {
           Swal.fire({
-            title: 'Durasi Tidak Sesuai',
-            text: `Durasi file sosial media harus antara 30 hingga 60 detik. File Anda berdurasi ${Math.round(d)} detik.`,
+            title: 'Invalid Duration',
+            text: `Social media audio duration must be between 30 and 60 seconds. Your file is ${Math.round(d)} seconds.`,
             icon: 'error',
             confirmButtonColor: '#3085d6'
           });
@@ -97,7 +97,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       });
 
       const initData = await initRes.json();
-      if (!initRes.ok || !initData.success) throw new Error(initData.message || 'Gagal inisialisasi upload');
+      if (!initRes.ok || !initData.success) throw new Error(initData.message || 'Failed to initialize upload');
       
       const currentUploadId = initData.uploadId;
       setUploadId(currentUploadId);
@@ -110,14 +110,14 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
         const formData = new FormData();
         formData.append('chunkIndex', i.toString());
-        formData.append('chunk', chunk);
+        formData.append('chunk', chunk, selectedFile.name);
 
         const chunkRes = await fetch(`/api/uploads/${currentUploadId}/chunk`, {
           method: 'POST',
           body: formData
         });
 
-        if (!chunkRes.ok) throw new Error('Gagal mengupload bagian file');
+        if (!chunkRes.ok) throw new Error('Failed to upload file chunk');
         
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
@@ -130,7 +130,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
       const completeData = await completeRes.json();
       if (!completeRes.ok || !completeData.success) {
-        throw new Error(completeData.message || 'File tidak valid');
+        throw new Error(completeData.message || 'Invalid file');
       }
 
       setDuration(completeData.data?.duration || null);
@@ -140,10 +140,10 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
     } catch (err: any) {
       console.error(err);
       setStatus('ERROR');
-      setErrorMessage(err.message || 'Terjadi kesalahan saat upload');
+      setErrorMessage(err.message || 'An error occurred during upload');
       Swal.fire({
-        title: 'Upload Gagal',
-        text: err.message || 'Terjadi kesalahan saat upload',
+        title: 'Upload Failed',
+        text: err.message || 'An error occurred during upload',
         icon: 'error',
         confirmButtonColor: '#d33'
       });
@@ -163,7 +163,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           {label} {required && <span className="text-red-500">*</span>}
         </label>
         {filePurpose === 'SOCIAL_MEDIA_AUDIO' && (
-          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">30-60 detik</span>
+          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">30-60 seconds</span>
         )}
       </div>
 
@@ -173,8 +173,8 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           className="w-full border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-slate-50 hover:border-blue-400 cursor-pointer transition-colors"
         >
           <Upload className="text-slate-400 mb-2" size={24} />
-          <p className="text-sm text-slate-600 font-medium">Klik untuk memilih file</p>
-          <p className="text-xs text-slate-400 mt-1">WAV atau FLAC (Minimal 16-bit)</p>
+          <p className="text-sm text-slate-600 font-medium">Click to select file</p>
+          <p className="text-xs text-slate-400 mt-1">WAV or FLAC (Minimum 16-bit)</p>
         </div>
       )}
 
@@ -183,7 +183,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-slate-700 truncate mr-4">{file?.name}</span>
             <span className="text-xs font-bold text-blue-600">
-              {status === 'VALIDATING' ? 'Validasi...' : `${progress}%`}
+              {status === 'VALIDATING' ? 'Validating...' : `${progress}%`}
             </span>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-2">
@@ -195,7 +195,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           {status === 'VALIDATING' && (
             <p className="text-xs text-slate-500 mt-2 flex items-center">
               <Loader2 size={12} className="animate-spin mr-1" />
-              Mengecek format, durasi, dan bit-depth...
+              Checking format, duration, and bit-depth...
             </p>
           )}
         </div>
@@ -208,7 +208,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
             <div className="truncate flex-1">
               <p className="text-sm font-medium text-green-800 truncate pr-6">{file?.name}</p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded font-medium">Berhasil diverifikasi</span>
+                <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded font-medium">Successfully verified</span>
                 {duration && (
                   <span className="text-xs text-green-700 bg-green-200/50 border border-green-200 px-2 py-0.5 rounded font-semibold tracking-wide">
                     ⏱ {formatDuration(duration)}
@@ -238,7 +238,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           </button>
           <div className="flex items-center text-red-600 mb-1">
             <AlertCircle size={18} className="mr-1.5" />
-            <span className="text-sm font-bold">Gagal</span>
+            <span className="text-sm font-bold">Upload Failed</span>
           </div>
           <p className="text-xs text-red-600">{errorMessage}</p>
           <button 
@@ -248,7 +248,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
             }}
             className="mt-3 text-xs font-medium bg-white px-3 py-1.5 border border-red-200 rounded text-red-600 hover:bg-red-50 shadow-sm"
           >
-            Coba Lagi
+            Try Again
           </button>
         </div>
       )}

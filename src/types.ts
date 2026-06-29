@@ -125,9 +125,8 @@ export interface ReleaseData {
 
 export enum Step {
   INFO = 1,
-  TRACKS = 2,
-  DETAILS = 3,
-  REVIEW = 4,
+  DETAILS = 2,
+  REVIEW = 3,
 }
 
 export type ReleaseType = 'SINGLE' | 'ALBUM';

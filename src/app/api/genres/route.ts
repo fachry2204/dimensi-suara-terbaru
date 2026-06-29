@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
@@ -15,6 +16,7 @@ export async function GET() {
         return NextResponse.json({ success: true, data: genres });
     } catch (error: any) {
         console.error('Error fetching genres:', error);
+        console.error('Error stack:', error.stack);
         return NextResponse.json(
             { success: false, message: 'Server error', error: error.message },
             { status: 500 }

@@ -146,7 +146,7 @@ export default function LoginScreen() {
       
       router.push('/');
     } catch (err: any) {
-      console.error(err);
+      // Prevent red overlay in Next.js
       setError(err.message || 'Login gagal. Pastikan server berjalan.');
       setIsLoading(false);
     }

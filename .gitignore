@@ -28,3 +28,9 @@ uploads
 
 # Ignore Google credentials
 server/config/credentials.json
+
+# Next.js build output
+.next
+
+# Public uploads
+public/uploads

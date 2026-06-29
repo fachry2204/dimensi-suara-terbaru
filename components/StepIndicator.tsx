@@ -8,9 +8,8 @@ interface Props {
 }
 
 const steps = [
-  { id: Step.INFO, label: "Info", desc: "Basic Details" },
-  { id: Step.TRACKS, label: "Tracks", desc: "Audio Files" },
-  { id: Step.DETAILS, label: "Details", desc: "Dates & UPC" },
+  { id: Step.INFO, label: "Info & Tracks", desc: "Audio & Metadata" },
+  { id: Step.DETAILS, label: "Cover & Date", desc: "Cover Art & Release Date" },
   { id: Step.REVIEW, label: "Review", desc: "Finalize" },
 ];
 

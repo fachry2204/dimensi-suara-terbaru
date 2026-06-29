@@ -12,6 +12,8 @@ interface Props {
   updateData: (updates: Partial<ReleaseData> | ((prev: ReleaseData) => Partial<ReleaseData>)) => void;
   releaseType: ReleaseType;
   userRole?: string;
+  isProcessingCover?: boolean;
+  setIsProcessingCover?: (isProcessing: boolean) => void;
 }
 
 // Sub-component for Audio Preview

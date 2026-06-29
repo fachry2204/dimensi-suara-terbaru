@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
     request: Request,
-    { params }: { params: { genreId: string } }
+    { params }: { params: Promise<{ genreId: string }> }
 ) {
     try {
-        const { genreId } = params;
+        const { genreId } = await params;
         const query = `
             SELECT id, genre_id, name, slug 
             FROM subgenres 

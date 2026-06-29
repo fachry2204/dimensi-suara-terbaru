@@ -1,15 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import SimpleBar from 'simplebar-react';
-import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Inbox, Plus, Search, Settings, Tag } from 'react-feather';
+import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Inbox, Plus, Search, Settings, Tag, Disc, Edit, AlertCircle } from 'react-feather';
 import { Button, Container, Dropdown, Form, InputGroup, Nav, Navbar } from 'react-bootstrap';
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
 import HkBadge from '@/components/@hk-badge/@hk-badge';
 import { useGlobalStateContext } from '@/context/GolobalStateProvider';
 import React from 'react';
+import { api } from '@/utils/api';
+
+const timeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return date.toLocaleDateString();
+};
 
 //Images
 import avatar2 from '@/assets/img/avatar2.jpg';
@@ -27,6 +42,42 @@ CustomMotionMenu.displayName = "CustomMotionMenu";
 
 const TopNav = () => {
     const router = useRouter();
+    const { states, dispatch } = useGlobalStateContext();
+    const [notifications, setNotifications] = useState([]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                // Get token from local storage or cookie, depending on auth strategy
+                // Since this component is client-side, we may have the token in localStorage
+                const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+                const data = await api.getNotifications(token || '');
+                if (Array.isArray(data)) {
+                    setNotifications(data);
+                }
+            } catch (err) {
+                console.error('Error fetching notifications:', err);
+            }
+        };
+
+        fetchNotifications();
+        
+        // Optional: poll every minute
+        const interval = setInterval(fetchNotifications, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+
+    const handleMarkAsRead = async () => {
+        try {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            await api.markNotificationRead(token || '', undefined);
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        } catch (err) {
+            console.error('Error marking notifications as read:', err);
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -37,25 +88,29 @@ const TopNav = () => {
         }
     };
 
-    const { states, dispatch } = useGlobalStateContext();
-
-
     const pageVariants = {
-        initial: {
-            opacity: 0,
-            y: 10
-        },
-        open: {
-            opacity: 1,
-            y: 0
-        },
-        close: {
-            opacity: 0,
-            y: 10
+        initial: { opacity: 0, y: 10 },
+        open: { opacity: 1, y: 0 },
+        close: { opacity: 0, y: 10 }
+    };
+
+    const getIconForType = (type) => {
+        switch(type) {
+            case 'UPLOAD': return <Disc />;
+            case 'EDIT': return <Edit />;
+            case 'ADMIN_ALERT': return <AlertCircle />;
+            default: return <Bell />;
         }
     };
 
-
+    const getColorForType = (type) => {
+        switch(type) {
+            case 'UPLOAD': return 'bg-success';
+            case 'EDIT': return 'bg-primary';
+            case 'ADMIN_ALERT': return 'bg-warning';
+            default: return 'bg-secondary';
+        }
+    };
 
     return (
         <Navbar expand="xl" className="hk-navbar navbar-light fixed-top" >
@@ -88,135 +143,50 @@ const TopNav = () => {
                         </Nav.Item>
                         <Nav.Item>
                             <Dropdown className="dropdown-notifications">
-                                <Dropdown.Toggle variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover no-caret">
+                                <Dropdown.Toggle variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover no-caret" onClick={handleMarkAsRead}>
                                     <span className="icon">
                                         <span className="position-relative">
                                             <span className="feather-icon"><Bell /></span>
-                                            <HkBadge bg="success" indicator className="position-top-end-overflow-1" />
+                                            {unreadCount > 0 && (
+                                                <HkBadge bg="danger" indicator className="position-top-end-overflow-1" />
+                                            )}
                                         </span>
                                     </span>
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu align="end" className="p-0">
                                     <Dropdown.Header className="px-4 fs-6">
                                         Notifications
-                                        <Button variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover">
-                                            <span className="icon">
-                                                <span className="feather-icon"><Settings /></span>
-                                            </span>
-                                        </Button>
                                     </Dropdown.Header>
-                                    <SimpleBar className="dropdown-body  p-2">
-                                        <Dropdown.Item>
-                                            <div className="media">
-                                                <div className="media-head">
-                                                    <div className="avatar avatar-rounded avatar-sm">
-                                                        <Image src={avatar2} alt="user" className="avatar-img" />
-                                                    </div>
-                                                </div>
-                                                <div className="media-body">
-                                                    <div>
-                                                        <div className="notifications-text">Morgan Freeman accepted your invitation to join the team</div>
-                                                        <div className="notifications-info">
-                                                            <HkBadge bg="success" soft >Collaboration</HkBadge>
-                                                            <div className="notifications-time">Today, 10:14 PM</div>
+                                    <SimpleBar className="dropdown-body p-2" style={{ maxHeight: '400px' }}>
+                                        {notifications.length === 0 ? (
+                                            <div className="p-4 text-center text-muted">No new notifications</div>
+                                        ) : (
+                                            notifications.map((notif, index) => (
+                                                <Dropdown.Item key={index}>
+                                                    <div className="media">
+                                                        <div className="media-head">
+                                                            <div className={`avatar avatar-icon avatar-sm ${getColorForType(notif.type)} avatar-rounded`}>
+                                                                <span className="initial-wrap">
+                                                                    <span className="feather-icon">{getIconForType(notif.type)}</span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="media-body">
+                                                            <div>
+                                                                <div className={`notifications-text ${!notif.is_read ? 'fw-bold' : ''}`}>
+                                                                    {notif.message}
+                                                                </div>
+                                                                <div className="notifications-info">
+                                                                    <div className="notifications-time">
+                                                                        {timeAgo(notif.created_at)}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </Dropdown.Item>
-                                        <Dropdown.Item>
-                                            <div className="media">
-                                                <div className="media-head">
-                                                    <div className="avatar  avatar-icon avatar-sm avatar-success avatar-rounded">
-                                                        <span className="initial-wrap">
-                                                            <span className="feather-icon"><Inbox /> </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="media-body">
-                                                    <div>
-                                                        <div className="notifications-text">New message received from Alan Rickman</div>
-                                                        <div className="notifications-info">
-                                                            <div className="notifications-time">Today, 7:51 AM</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Dropdown.Item>
-                                        <Dropdown.Item>
-                                            <div className="media">
-                                                <div className="media-head">
-                                                    <div className="avatar  avatar-icon avatar-sm avatar-pink avatar-rounded">
-                                                        <span className="initial-wrap">
-                                                            <span className="feather-icon"><Clock /></span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="media-body">
-                                                    <div>
-                                                        <div className="notifications-text">You have a follow up with Jampack Head on Friday, Dec 19 at 9:30 am</div>
-                                                        <div className="notifications-info">
-                                                            <div className="notifications-time">Yesterday, 9:25 PM</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Dropdown.Item>
-                                        <Dropdown.Item>
-                                            <div className="media">
-                                                <div className="media-head">
-                                                    <div className="avatar avatar-sm avatar-rounded">
-                                                        <Image src={avatar3} alt="user" className="avatar-img" />
-                                                    </div>
-                                                </div>
-                                                <div className="media-body">
-                                                    <div>
-                                                        <div className="notifications-text">Application of Sarah Williams is waiting for your approval</div>
-                                                        <div className="notifications-info">
-                                                            <div className="notifications-time">Today 10:14 PM</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Dropdown.Item>
-                                        <Dropdown.Item>
-                                            <div className="media">
-                                                <div className="media-head">
-                                                    <div className="avatar avatar-sm avatar-rounded">
-                                                        <Image src={avatar10} alt="user" className="avatar-img" />
-                                                    </div>
-                                                </div>
-                                                <div className="media-body">
-                                                    <div>
-                                                        <div className="notifications-text">Winston Churchil shared a document with you</div>
-                                                        <div className="notifications-info">
-                                                            <HkBadge bg="violet" soft >File Manager</HkBadge>
-                                                            <div className="notifications-time">2 Oct, 2021</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Dropdown.Item>
-                                        <Dropdown.Item>
-                                            <div className="media">
-                                                <div className="media-head">
-                                                    <div className="avatar  avatar-icon avatar-sm avatar-danger avatar-rounded">
-                                                        <span className="initial-wrap">
-                                                            <span className="feather-icon"><Calendar /></span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="media-body">
-                                                    <div>
-                                                        <div className="notifications-text">Last 2 days left for the project to be completed</div>
-                                                        <div className="notifications-info">
-                                                            <HkBadge bg="orange" soft >Updates</HkBadge>
-                                                            <div className="notifications-time">14 Sep, 2021</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Dropdown.Item>
+                                                </Dropdown.Item>
+                                            ))
+                                        )}
                                     </SimpleBar>
                                     <div className="dropdown-footer">
                                         <Link href="#"><u>View all notifications</u>
