@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Calculator, ChevronRight, DollarSign, Wallet, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../utils/api';
-import { useBranding } from '../../contexts/BrandingContext';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
 
 const Payments = () => {
   const { getTextColor } = useBranding();

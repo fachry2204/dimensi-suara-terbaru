@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
     Plus, Search, Edit2, Trash2, FileText, CreditCard, User, MapPin, Calendar, Briefcase, Eye, CheckCircle, AlertTriangle, XCircle, MessageCircle
 } from 'lucide-react';
-import { api } from '../../utils/api';
-import { assetUrl } from '../../utils/url';
-import { useBranding } from '../../contexts/BrandingContext';
+import { api } from '@/utils/api';
+import { assetUrl } from '@/utils/url';
+import { useBranding } from '@/contexts/BrandingContext';
 
 interface Creator {
     id: number;

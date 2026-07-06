@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music4, User, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Loader2, Mail } from 'lucide-react';
 
-import { api } from '../utils/api';
-import { getTextColorClass, getShadowColor } from '../utils/colorUtils';
+import { api } from '@/utils/api';
+import { getTextColorClass, getShadowColor } from '@/utils/colorUtils';
 
 // register mode removed
 
@@ -145,8 +145,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       }
       onLogin(user, data.token);
       navigate('/');
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 5000);
     } catch (err: any) {
-      console.error(err);
       setError(err.message || 'Login gagal. Pastikan server berjalan.');
       setIsLoading(false);
     }

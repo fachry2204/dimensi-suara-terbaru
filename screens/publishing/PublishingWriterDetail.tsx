@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
     ArrowLeft, FileText, CreditCard, User, MapPin, Calendar, Briefcase, CheckCircle, AlertTriangle, XCircle, MessageCircle
 } from 'lucide-react';
-import { api } from '../../utils/api';
-import { assetUrl } from '../../utils/url';
+import { api } from '@/utils/api';
+import { assetUrl } from '@/utils/url';
 
 interface WriterDetailProps {
     token: string;

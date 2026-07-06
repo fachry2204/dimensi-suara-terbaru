@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ReleaseData, ReportData } from '../types';
+import { ReleaseData, ReportData } from '@/types';
 import { BarChart3, DollarSign, ListMusic, TrendingUp, Music, CheckCircle } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   releases: ReleaseData[];

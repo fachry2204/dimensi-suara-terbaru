@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, Upload, Filter, FileSpreadsheet, Download, Search, Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { api } from '../../utils/api';
-import { useBranding } from '../../contexts/BrandingContext';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
 import { AlertModal } from '../../components/AlertModal';
 
 interface Report {

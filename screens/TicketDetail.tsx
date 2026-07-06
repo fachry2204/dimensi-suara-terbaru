@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 import { Send, ArrowLeft, XCircle } from 'lucide-react';
 import { AlertModal } from '../components/AlertModal';
 

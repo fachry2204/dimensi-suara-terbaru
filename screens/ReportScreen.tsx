@@ -1,11 +1,11 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, FileText, AlertCircle, CheckCircle, CheckCircle2, Download, Calendar, Clock, ChevronLeft, ChevronRight, Search, User, XCircle, Filter, FileSpreadsheet, Trash2, AlertTriangle } from 'lucide-react';
-import { ReportData, ReleaseData } from '../types';
-import { formatDMY, formatHM } from '../utils/date';
+import { ReportData, ReleaseData } from '@/types';
+import { formatDMY, formatHM } from '@/utils/date';
 import { PublishingReports } from './publishing/PublishingReports';
-import { useBranding } from '../contexts/BrandingContext';
-import { api } from '../utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
+import { api } from '@/utils/api';
 
 interface ReportScreenProps {
   onImport: (data: ReportData[]) => void;

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ReportData } from '../types';
+import { ReportData } from '@/types';
 import { DollarSign, TrendingUp, Music, Globe, Smartphone, Download } from 'lucide-react';
 import { PublishingReports } from './publishing/PublishingReports';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FileText, CheckCircle, Upload, ArrowLeft } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface PaymentInvoice {
     id: string;
@@ -43,7 +43,7 @@ export const PaymentDetailScreen: React.FC = () => {
 
     useEffect(() => {
         if (!invoice) return;
-        const token = '';
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
         if (!token) {
             setPotonganRate(0);
             return;

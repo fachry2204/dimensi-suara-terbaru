@@ -11,6 +11,8 @@ import { getTextColorClass, getShadowColor } from '@/utils/colorUtils';
 // register mode removed
 
 
+const ADMIN_DASHBOARD_PATH = '/dashboard-aggregator';
+
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -144,7 +146,21 @@ export default function LoginScreen() {
         return;
       }
       
-      router.push('/');
+      const role = String(user.role || '').toLowerCase();
+      const targetPath = role === 'admin' ? ADMIN_DASHBOARD_PATH : '/';
+      router.replace(targetPath);
+
+      if (typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          if (window.location.pathname !== targetPath) {
+            window.location.replace(targetPath);
+          }
+        }, 500);
+
+        window.setTimeout(() => {
+          setIsLoading(false);
+        }, 5000);
+      }
     } catch (err: any) {
       // Prevent red overlay in Next.js
       setError(err.message || 'Login gagal. Pastikan server berjalan.');

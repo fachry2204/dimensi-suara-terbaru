@@ -14,8 +14,8 @@ import {
     Trash2,
     Edit
 } from 'lucide-react';
-import { User } from '../types';
-import { api } from '../utils/api';
+import { User } from '@/types';
+import { api } from '@/utils/api';
 import { AlertModal, AlertState } from '../components/AlertModal';
 
 interface Props {
@@ -246,7 +246,8 @@ export const UserManagement: React.FC<Props> = ({ currentUserRole, token: propTo
                                 name: '',
                                 email: '',
                                 role: userTab === 'REGISTERED' ? 'User' : 'Operator',
-                                password: ''
+                                password: '',
+                                status: userTab === 'REGISTERED' ? 'Pending' : 'Active'
                             });
                             setShowAddUserModal(true);
                         }}

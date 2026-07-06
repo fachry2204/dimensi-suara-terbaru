@@ -15,6 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
     aggregator: false,
     publishing: false,
     report: false,
+    reportUtama: false,
     reportUser: false,
     system: false,
     dataSaya: false,
@@ -28,8 +29,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
   });
 
   const toggleSection = (section: string) => {
-    const TOP_SECTIONS = ['dashboard','aggregator','publishing','report','reportUser','system','dataSaya','bantuan'];
-    const REPORT_SUBS = ['statistics','reportList','importReports','payments','revenue'];
+    const TOP_SECTIONS = ['dashboard','aggregator','publishing','report','reportUtama','reportUser','system','dataSaya','bantuan'];
+    const REPORT_SUBS = ['statistics','reportList','revenue'];
+    const REPORT_UTAMA_SUBS = ['importReports','payments'];
+    
     setExpandedSections(prev => {
       const next = { ...prev };
       // Accordion for top-level sections
@@ -42,8 +45,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
       if (REPORT_SUBS.includes(section)) {
         REPORT_SUBS.forEach(s => { next[s] = false; });
         next[section] = !prev[section];
-        // ensure parent report container is open
         next.report = true;
+        return next;
+      }
+      if (REPORT_UTAMA_SUBS.includes(section)) {
+        REPORT_UTAMA_SUBS.forEach(s => { next[s] = false; });
+        next[section] = !prev[section];
+        next.reportUtama = true;
         return next;
       }
       // Default toggle
@@ -287,8 +295,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                             </NavLink>
                         </li>
                     </ul>
-                )}
-            </li> */}
+            {/* End of Report Section */}
+          </ul>
+          )}
+        </div>
+        )}
+
+        {/* Laporan Utama Section */}
+        {userRole !== 'User' && (
+        <div>
+          <h3 
+            className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
+            onClick={() => toggleSection('reportUtama')}
+          >
+            Laporan Utama
+            {expandedSections.reportUtama ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </h3>
+          {expandedSections.reportUtama && (
+            <ul className="space-y-2">
 
             {/* Import Laporan Dropdown */}
             <li>
@@ -440,7 +464,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                 {({ isActive }) => (
                   <>
                     <Settings size={20} className={getIconClass(isActive)} />
-                    Settings
+                    Setting System
                   </>
                 )}
               </NavLink>

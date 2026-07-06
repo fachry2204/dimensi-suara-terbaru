@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FileText, Search, Filter, Plus, RefreshCw, CheckCircle, Clock, AlertCircle, Eye, Edit, Trash2 } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   token: string;
@@ -14,6 +14,7 @@ interface ContractData {
   full_name?: string; // user.full_name
   email?: string; // user.email
   contract_status: 'Not Generated' | 'On Review' | 'Done';
+  date?: string;
   joinedDate?: string; // for users
   created_at?: string; // for writers
 }

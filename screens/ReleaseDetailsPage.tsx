@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ReleaseData } from '../types';
-import { api } from '../utils/api';
+import { ReleaseData } from '@/types';
+import { api } from '@/utils/api';
 import { ReleaseDetailModal } from '../components/ReleaseDetailModal';
 import { AlertModal } from '../components/AlertModal';
 

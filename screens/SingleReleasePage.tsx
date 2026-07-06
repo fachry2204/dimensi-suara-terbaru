@@ -1,21 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useRouter, useParams } from 'next/navigation';
 import { ReleaseWizard } from './ReleaseWizard';
-import { ReleaseData } from '../types';
-import { api } from '../utils/api';
-import socialLogo from '../assets/platforms/social.svg';
-import youtubeMusicLogo from '../assets/platforms/youtube-music.svg';
-import allDspLogo from '../assets/platforms/alldsp.svg';
+import { ReleaseData } from '@/types';
+import { api } from '@/utils/api';
 
 export const SingleReleasePage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const params = useParams();
+  const id = params?.id as string;
+  const router = useRouter();
   const [initialData, setInitialData] = useState<ReleaseData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = '';
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
     const run = async () => {
       try {
         const raw: any = await api.getRelease(token, id!);
@@ -49,9 +47,9 @@ export const SingleReleasePage: React.FC = () => {
         };
         const primaryArtists = mapArr(raw.primaryArtists);
         const optionMap: Record<string, { id: string; label: string; logo: string }> = {
-          'SOCIAL': { id: 'SOCIAL', label: 'Social Media', logo: socialLogo },
-          'YOUTUBE_MUSIC': { id: 'YOUTUBE_MUSIC', label: 'YouTube Music', logo: youtubeMusicLogo },
-          'ALL_DSP': { id: 'ALL_DSP', label: 'All DSP', logo: allDspLogo },
+          'SOCIAL': { id: 'SOCIAL', label: 'Social Media', logo: '' },
+          'YOUTUBE_MUSIC': { id: 'YOUTUBE_MUSIC', label: 'YouTube Music', logo: '' },
+          'ALL_DSP': { id: 'ALL_DSP', label: 'All DSP', logo: '' },
         };
         let distributionTargets: { id: string; label: string; logo: string }[] = [];
         if (Array.isArray(raw.distributionTargets)) {
@@ -140,18 +138,21 @@ export const SingleReleasePage: React.FC = () => {
     return (
       <div className="p-8 max-w-3xl mx-auto">
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl">{error}</div>
-        <button onClick={() => navigate('/releases')} className="mt-4 px-4 py-2 bg-slate-100 rounded-lg">Back</button>
+        <button onClick={() => router.push('/releases')} className="mt-4 px-4 py-2 bg-slate-100 rounded-lg">Back</button>
       </div>
     );
   }
   if (!initialData) return null;
 
+  const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
+
   return (
     <ReleaseWizard 
       type="SINGLE"
       initialData={initialData}
-      onBack={() => navigate('/releases')}
-      onSave={() => navigate('/releases')}
+      onBack={() => router.push('/releases')}
+      onSave={() => router.push('/releases')}
+      token={token}
     />
   );
 };

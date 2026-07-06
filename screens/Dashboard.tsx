@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useBranding } from '../contexts/BrandingContext';
-import { ReleaseData } from '../types';
+import { useBranding } from '@/contexts/BrandingContext';
+import { ReleaseData } from '@/types';
 import { 
     LayoutDashboard, 
     Clock, 
@@ -12,7 +12,7 @@ import {
     FileText,
     Plus
 } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   releases: ReleaseData[];

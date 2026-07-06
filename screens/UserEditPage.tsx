@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User } from '../types';
-import { api } from '../utils/api';
+import { User } from '@/types';
+import { api } from '@/utils/api';
 import { ChevronLeft, Save, XCircle, UploadCloud, FileText, CheckCircle } from 'lucide-react';
 import { AlertModal } from '../components/AlertModal';
 
@@ -69,7 +69,7 @@ export const UserEditPage: React.FC = () => {
     if (!user || !token) return;
     try {
       setIsSaving(true);
-      const updatedData = { ...formData };
+      const updatedData: Partial<User> & Record<string, any> = { ...formData };
 
       // Upload new files if any
       const fileFields = [
@@ -85,7 +85,7 @@ export const UserEditPage: React.FC = () => {
           try {
             const res = await api.uploadUserDoc(token, field.type, newFiles[field.key]);
             if (res && res.path) {
-              updatedData[field.key as keyof User] = res.path as any;
+              updatedData[field.key] = res.path;
             }
           } catch (uploadErr) {
             console.error(`Failed to upload ${field.type}:`, uploadErr);

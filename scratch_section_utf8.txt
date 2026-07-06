@@ -1,0 +1,200 @@
+﻿    try {
+      const token = '';
+      if (!token) throw new Error("No auth token found. Please login again.");
+
+      const prepped: ReleaseData = {
+        ...data,
+        // Ensure default labels for personal accounts
+        label: (userType !== 'Company' && !data.label) ? 'Dimensi Suara' : data.label,
+        pLine: (userType !== 'Company' && !data.pLine) ? 'Dimensi Suara' : data.pLine,
+        cLine: (userType !== 'Company' && !data.cLine) ? 'Dimensi Suara' : data.cLine,
+        // Filter out empty artists and handle object structure
+        primaryArtists: (data.primaryArtists || []).filter(a => {
+          const name = typeof a === 'string' ? a : a?.name;
+          return name && name.trim().length > 0;
+        }),
+        userId: data.userId, // Ensure original owner is preserved
+        tracks: (data.tracks || []).map(t => ({ ...t }))
+      };
+
+      // If Single, copy Release-level ISRC to the track if available
+      if (prepped.type === 'SINGLE' && prepped.isrc && prepped.tracks.length > 0) {
+        prepped.tracks[0].isrc = prepped.isrc;
+      }
+
+      let total = 0;
+      if (prepped.coverArt instanceof File) total += 1;
+      prepped.tracks.forEach(t => {
+        const anyT = t as any;
+        if (anyT.audioFile instanceof File) total += 1;
+        if (anyT.audioClip instanceof File) total += 1;
+        if (anyT.iplFile instanceof File) total += 1;
+      });
+      setUploadTotal(total);
+      setUploadDone(0);
+      setUploadStartTs(Date.now());
+      const queueBuild: { key: string; label: string; status: 'Queued' | 'Uploading' | 'Done'; progress: number }[] = [];
+      if (prepped.coverArt instanceof File) {
+        queueBuild.push({ key: 'coverArt', label: 'Cover Art', status: 'Queued', progress: 0 });
+      }
+      for (let i = 0; i < prepped.tracks.length; i++) {
+        const t = prepped.tracks[i] as any;
+        if (t.audioFile instanceof File) {
+          queueBuild.push({ key: `track_${i}_audio`, label: `Track ${i + 1} Audio`, status: 'Queued', progress: 0 });
+        }
+        if (t.audioClip instanceof File) {
+          queueBuild.push({ key: `track_${i}_clip`, label: `Track ${i + 1} Clip`, status: 'Queued', progress: 0 });
+        }
+        if (t.iplFile instanceof File) {
+          queueBuild.push({ key: `track_${i}_ipl`, label: `Track ${i + 1} IPL`, status: 'Queued', progress: 0 });
+        }
+      }
+      setUploadQueue(queueBuild);
+      const setQ = (key: string, status?: 'Queued' | 'Uploading' | 'Done', progress?: number) => {
+        setUploadQueue(prev => prev.map(it => it.key === key ? { ...it, status: status ?? it.status, progress: progress ?? it.progress } : it));
+      };
+      if (prepped.coverArt instanceof File) {
+        try {
+          setUploadLabel('Cover Art');
+          setFileProgress(0);
+          setQ('coverArt', 'Uploading', 0);
+          const resp: any = await api.uploadReleaseFileProgress(
+            token,
+            { title: prepped.title, primaryArtists: prepped.primaryArtists },
+            'coverArt',
+            prepped.coverArt,
+            (p: number) => setFileProgress(p)
+          );
+          const candidate =
+            (resp && resp.paths && resp.paths['coverArt']) ||
+            (resp && resp.paths && resp.paths['file']) ||
+            (resp && resp.path) ||
+            (resp && resp.url) ||
+            '';
+          if (candidate) {
+            prepped.coverArt = candidate;
+          }
+        } catch { }
+        finally {
+          setUploadDone(prev => prev + 1);
+          setFileProgress(100);
+          setQ('coverArt', 'Done', 100);
+        }
+      }
+      for (let i = 0; i < prepped.tracks.length; i++) {
+        const t = prepped.tracks[i] as any;
+        if (t.iplFile instanceof File) {
+          const fieldName = `track_${i}_ipl`;
+          try {
+            setUploadLabel(`Track ${i + 1} IPL`);
+            setFileProgress(0);
+            setQ(fieldName, 'Uploading', 0);
+            const resp: any = await api.uploadReleaseFileProgress(
+              token,
+              { title: prepped.title, primaryArtists: prepped.primaryArtists },
+              fieldName,
+              t.iplFile,
+              (p: number) => setFileProgress(p)
+            );
+            const candidate =
+              (resp && resp.paths && resp.paths[fieldName]) ||
+              (resp && resp.paths && resp.paths['file']) ||
+              (resp && resp.path) ||
+              (resp && resp.url) ||
+              (resp && resp[fieldName]) ||
+              '';
+            if (candidate) {
+              prepped.tracks[i].iplFile = candidate;
+            }
+          } catch { }
+          finally {
+            setUploadDone(prev => prev + 1);
+            setFileProgress(100);
+            setQ(fieldName, 'Done', 100);
+          }
+        }
+        if ((!t.tempAudioPath || typeof t.tempAudioPath !== 'string' || !t.tempAudioPath.trim()) && t.audioFile instanceof File) {
+          const fieldName = `track_${i}_audio_tmp`;
+          try {
+            setUploadLabel(`Track ${i + 1} Audio`);
+            setFileProgress(0);
+            setQ(fieldName, 'Uploading', 0);
+            // Always chunk for reliability, especially for full tracks
+            const resp: any = await api.uploadTmpReleaseFileChunked(
+              token,
+              { title: prepped.title, primaryArtists: prepped.primaryArtists },
+              `track_${i}_audio`,
+              t.audioFile,
+              10 * 1024 * 1024,
+              (p: number) => {
+                setFileProgress(p);
+                setQ(fieldName, 'Uploading', p);
+              }
+            );
+            const candidate =
+              (resp && resp.paths && resp.paths[`track_${i}_audio`]) ||
+              (resp && resp.paths && resp.paths['file']) ||
+              (resp && resp.path) ||
+              (resp && resp.url) ||
+              '';
+            if (candidate) {
+              prepped.tracks[i].tempAudioPath = candidate;
+              prepped.tracks[i].audioFile = candidate;
+            }
+          } catch { }
+          finally {
+            setUploadDone(prev => prev + 1);
+            setFileProgress(100);
+            setQ(fieldName, 'Done', 100);
+          }
+        }
+        if ((!t.tempClipPath || typeof t.tempClipPath !== 'string' || !t.tempClipPath.trim()) && t.audioClip instanceof File) {
+          const fieldName = `track_${i}_clip_tmp`;
+          try {
+            setUploadLabel(`Track ${i + 1} Clip`);
+            setFileProgress(0);
+            setQ(fieldName, 'Uploading', 0);
+            // Always chunk for reliability
+            const resp: any = await api.uploadTmpReleaseFileChunked(
+              token,
+              { title: prepped.title, primaryArtists: prepped.primaryArtists },
+              `track_${i}_clip`,
+              t.audioClip,
+              10 * 1024 * 1024,
+              (p: number) => {
+                setFileProgress(p);
+                setQ(fieldName, 'Uploading', p);
+              }
+            );
+            const candidate =
+              (resp && resp.paths && resp.paths[`track_${i}_clip`]) ||
+              (resp && resp.paths && resp.paths['file']) ||
+              (resp && resp.path) ||
+              (resp && resp.url) ||
+              '';
+            if (candidate) {
+              prepped.tracks[i].tempClipPath = candidate;
+              prepped.tracks[i].audioClip = candidate;
+              if (typeof prepped.tracks[i].previewStart !== 'number') {
+                prepped.tracks[i].previewStart = 0;
+              }
+            }
+          } catch { }
+          finally {
+            setUploadDone(prev => prev + 1);
+            setFileProgress(100);
+            setQ(fieldName, 'Done', 100);
+          }
+        }
+      }
+      // Verify: ensure audio/clip exist via tmp path or server URL
+      const uploadErrors: string[] = [];
+      prepped.tracks.forEach((t: any, idx: number) => {
+        const audioOk = (typeof t.audioFile === 'string' && t.audioFile.trim().length > 0) ||
+          (typeof t.tempAudioPath === 'string' && t.tempAudioPath.trim().length > 0);
+        if (!audioOk) uploadErrors.push(`Track ${idx + 1}: Audio file belum ada di server (TMP).`);
+        const clipOk = (typeof t.audioClip === 'string' && t.audioClip.trim().length > 0) ||
+          (typeof t.tempClipPath === 'string' && t.tempClipPath.trim().length > 0);
+        if (!clipOk) uploadErrors.push(`Track ${idx + 1}: Audio clip belum ada di server (TMP).`);
+      });
+      if (uploadErrors.length > 0) {

@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Disc, Music, Calendar, Eye, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Globe, ChevronLeft, ChevronRight, List, Plus, Users } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ReleaseData } from '../types';
-import { formatDMY } from '../utils/date';
-import { assetUrl } from '../utils/url';
-import { useBranding } from '../contexts/BrandingContext';
+import { ReleaseData } from '@/types';
+import { formatDMY } from '@/utils/date';
+import { assetUrl } from '@/utils/url';
+import { useBranding } from '@/contexts/BrandingContext';
 
 interface Props {
   releases: ReleaseData[];

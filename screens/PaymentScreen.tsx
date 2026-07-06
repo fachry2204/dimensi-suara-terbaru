@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DollarSign, FileText, Download, Upload, CheckCircle, Clock, AlertCircle, Plus, Search, Filter, X, ChevronRight } from 'lucide-react';
-import { User } from '../types';
-import { api } from '../utils/api';
-import { useBranding } from '../contexts/BrandingContext';
+import { User } from '@/types';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
 
 // Mock types for Payment
 interface PaymentInvoice {

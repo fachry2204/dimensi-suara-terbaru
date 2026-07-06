@@ -25,7 +25,7 @@ const parseResponse = async (res: Response) => {
             throw err;
         } catch {
             const t = await res.text().catch(() => '');
-            console.error('API Error Response Text:', t, 'Status:', res.status);
+            // Suppressed console.error to avoid Next.js dev overlay for handled network errors
             const msg = t || (res.status === 404 ? 'Resource not found (404)' : `Request failed (Status: ${res.status} ${res.statusText})`);
             const err: any = new Error(msg);
             (err as any).status = res.status;
@@ -376,6 +376,21 @@ export const api = {
         return parseResponse(res);
     },
 
+    updateRelease: async (token, id, data) => {
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(data));
+        const res = await fetch(`${API_BASE_URL}/releases/${id}`, {
+            // Using POST to handle multipart/form-data with PHP which often drops PUT form-data
+            method: 'POST', 
+            headers: { 
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: formData,
+            credentials: 'include'
+        });
+        return parseResponse(res);
+    },
+
     uploadReleaseFile: async (token, releaseMeta, fieldName, file) => {
         const formData = new FormData();
         formData.append('data', JSON.stringify({
@@ -584,24 +599,36 @@ export const api = {
 
     // Notifications
     getNotifications: async (token) => {
-        const res = await fetch(`${API_BASE_URL}/notifications`, {
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-            credentials: 'include'
-        });
-        return parseResponse(res);
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                credentials: 'include'
+            });
+            if (res.status === 401 || res.status === 403) return [];
+            if (!res.ok) return [];
+            return res.json();
+        } catch {
+            return [];
+        }
     },
 
     markNotificationRead: async (token, id) => {
-        const res = await fetch(`${API_BASE_URL}/notifications/mark-read`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify({ id }),
-            credentials: 'include'
-        });
-        return parseResponse(res);
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications/mark-read`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ id }),
+                credentials: 'include'
+            });
+            if (res.status === 401 || res.status === 403) return { success: false };
+            if (!res.ok) return { success: false };
+            return res.json();
+        } catch {
+            return { success: false };
+        }
     },
 
     // Contracts

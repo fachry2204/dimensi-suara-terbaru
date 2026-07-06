@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, Music, CheckCircle, Clock } from 'lucide-react';
-import { api } from '../../utils/api';
+import { api } from '@/utils/api';
 
 interface AnalyticsData {
     totalRevenue: number;

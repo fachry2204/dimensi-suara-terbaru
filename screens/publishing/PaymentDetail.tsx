@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, User, FileText, ChevronDown, ChevronRight, Upload, Save, CheckCircle, Eye, X, Download, MessageCircle, CreditCard } from 'lucide-react';
-import { api } from '../../utils/api';
-import { useBranding } from '../../contexts/BrandingContext';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
 
 const PaymentDetail = () => {
   const { getTextColor } = useBranding();

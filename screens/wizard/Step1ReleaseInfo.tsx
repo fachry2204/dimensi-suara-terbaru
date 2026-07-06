@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ReleaseData } from '@/types';
+import { ReleaseData, ReleaseType } from '@/types';
 import { TextInput, SelectInput } from '../../components/Input';
 import { LANGUAGES, VERSIONS } from '@/constants';
 import { Trash2, Plus, Music } from 'lucide-react';
@@ -31,9 +31,11 @@ const WRITER_ROLES = [
 interface Props {
   data: any;
   updateData: (updates: any) => void;
+  releaseType?: ReleaseType;
+  coverArtUploader?: React.ReactNode;
 }
 
-export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
+export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseType = 'SINGLE', coverArtUploader }) => {
   const { genres, loading: genresLoading } = useGenres();
   const { subgenres, loading: subgenresLoading } = useSubGenres(data.genreId);
   const [userType, setUserType] = useState<string>('Personal');
@@ -41,7 +43,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
   useEffect(() => {
     const fetchUserType = async () => {
         try {
-            const token = ''; // Get from auth store in real app
+            const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
             if (token) {
                 const profile = await api.getProfile(token);
                 setUserType(profile.account_type?.toUpperCase() === 'COMPANY' ? 'Company' : 'Personal');
@@ -50,6 +52,20 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
     };
     fetchUserType();
   }, []);
+
+  // Initialize default values so validation doesn't fail for untouched fields
+  useEffect(() => {
+    const updates: any = {};
+    if (!data.releaseVersion && !data.version) {
+      updates.releaseVersion = 'Original';
+      updates.version = 'Original';
+    }
+    if (Object.keys(updates).length > 0) {
+      updateData(updates);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const handleArrayChange = (field: string, index: number, key: string, value: any) => {
     const arr = [...(data[field] || [])];
@@ -81,11 +97,18 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-slate-900">Step 1 - New {releaseType === 'ALBUM' ? 'Album' : 'Single'} Release</h2>
+        <p className="text-sm text-slate-600">Complete your {releaseType === 'ALBUM' ? 'album' : 'single'} release details</p>
+      </div>
+      <div className="hidden">
         <h2 className="text-xl font-bold text-slate-900">Step 1 — New Single Release</h2>
         <p className="text-sm text-slate-600">Complete your single release details</p>
       </div>
 
+      {coverArtUploader}
+
       {/* A. Audio File */}
+      {releaseType === 'SINGLE' && (
       <div className="bg-white border border-gray-200 rounded p-6 relative">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">A. Audio File</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -94,6 +117,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
             accept=".wav,.flac" 
             filePurpose="MASTER_AUDIO"
             required
+            existingUploadId={data.masterUploadId || null}
             onUploadComplete={(id) => updateData({ masterUploadId: id })}
             onRemove={() => updateData({ masterUploadId: null })}
           />
@@ -102,18 +126,22 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
             accept=".wav,.flac" 
             filePurpose="SOCIAL_MEDIA_AUDIO"
             required
+            existingUploadId={data.socialMediaUploadId || null}
             onUploadComplete={(id) => updateData({ socialMediaUploadId: id })}
             onRemove={() => updateData({ socialMediaUploadId: null })}
           />
         </div>
       </div>
+      )}
 
-      {/* B. Track Information */}
+      {/* B. Track / Album Information */}
       <div className="bg-white border border-gray-200 rounded p-6 relative">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">B. Track Information</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">
+          B. {releaseType === 'ALBUM' ? 'Album Information' : 'Track Information'}
+        </h3>
         <div className="space-y-4">
           <TextInput 
-            label={<>Track / Release Title <span className="text-red-500">*</span></>}
+            label={<>{releaseType === 'ALBUM' ? 'Album Title' : 'Track / Release Title'} <span className="text-red-500">*</span></>}
             value={data.title || ''} 
             onChange={(e) => updateData({ title: e.target.value })} 
           />
@@ -121,24 +149,33 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
             label={<>Release Version <span className="text-red-500">*</span></>}
             options={VERSIONS}
             value={data.releaseVersion || 'Original'}
-            onChange={(e) => updateData({ releaseVersion: e.target.value })}
+            onChange={(e) => updateData({ releaseVersion: e.target.value, version: e.target.value })}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectInput 
               label={<>Genre <span className="text-red-500">*</span></>}
               options={genresLoading ? [{label: 'Loading...', value: ''}] : (genres.length === 0 ? [{label: 'No genres found', value: ''}] : genres.map(g => ({ label: g.name, value: g.id })))}
               value={data.genreId || ''}
-              onChange={(e) => updateData({ genreId: Number(e.target.value), subgenreId: null })}
+              onChange={(e) => {
+                const selectedId = Number(e.target.value);
+                const selectedGenre = genres.find(g => g.id === selectedId);
+                updateData({ genreId: selectedId, genre: selectedGenre?.name || '', subgenreId: null, subGenre: '' });
+              }}
               disabled={genresLoading || genres.length === 0}
             />
             <SelectInput 
               label={<>Subgenre <span className="text-red-500">*</span></>}
               options={subgenresLoading ? [{label: 'Loading...', value: ''}] : (data.genreId ? (subgenres.length === 0 ? [{label: 'No subgenres found', value: ''}] : subgenres.map(s => ({ label: s.name, value: s.id }))) : [])}
               value={data.subgenreId || ''}
-              onChange={(e) => updateData({ subgenreId: Number(e.target.value) })}
+              onChange={(e) => {
+                const selectedId = Number(e.target.value);
+                const selectedSubgenre = subgenres.find(s => s.id === selectedId);
+                updateData({ subgenreId: selectedId, subGenre: selectedSubgenre?.name || '' });
+              }}
               disabled={!data.genreId || subgenresLoading || (data.genreId && subgenres.length === 0)}
             />
           </div>
+          {releaseType === 'SINGLE' && (
           <div className="flex items-center gap-2 mt-2">
             <input 
               type="checkbox" 
@@ -149,6 +186,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
             />
             <label htmlFor="isInstrumental" className="text-sm font-medium text-slate-700">Instrumental Track?</label>
           </div>
+          )}
         </div>
       </div>
 
@@ -195,6 +233,8 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
         </div>
       </div>
 
+      {releaseType === 'SINGLE' && (
+      <>
       {/* D. Writers */}
       <div className="bg-white border border-gray-200 rounded p-6 relative space-y-6">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">D. Writers</h3>
@@ -257,10 +297,10 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectInput 
-                label="Lyrics Language"
+                label={<>Lyrics Language <span className="text-red-500">*</span></>}
                 options={LANGUAGES}
                 value={data.lyricsLanguage || ''}
-                onChange={(e) => updateData({ lyricsLanguage: e.target.value })}
+                onChange={(e) => updateData({ lyricsLanguage: e.target.value, language: e.target.value })}
               />
               <SelectInput 
                 label="Explicit Content"
@@ -336,6 +376,8 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData }) => {
             placeholder="Company Label Name"
           />
         </div>
+      )}
+      </>
       )}
     </div>
   );

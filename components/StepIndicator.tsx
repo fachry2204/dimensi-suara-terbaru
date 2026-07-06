@@ -1,19 +1,27 @@
 import React from 'react';
-import { Step } from '@/types';
+import { ReleaseType, Step } from '@/types';
 import { Check } from 'lucide-react';
 
 interface Props {
   currentStep: number;
   onStepClick?: (step: Step) => void;
+  releaseType?: ReleaseType;
 }
 
-const steps = [
-  { id: Step.INFO, label: "Info & Tracks", desc: "Audio & Metadata" },
-  { id: Step.DETAILS, label: "Cover & Date", desc: "Cover Art & Release Date" },
-  { id: Step.REVIEW, label: "Review", desc: "Finalize" },
-];
+const getSteps = (releaseType?: ReleaseType) => releaseType === 'ALBUM'
+  ? [
+      { id: Step.INFO, label: "Album Info", desc: "Cover & Metadata" },
+      { id: Step.DETAILS, label: "Upload Track", desc: "Audio & Track Metadata" },
+      { id: Step.REVIEW, label: "Review", desc: "Finalize" },
+    ]
+  : [
+      { id: Step.INFO, label: "Info & Tracks", desc: "Audio & Metadata" },
+      { id: Step.DETAILS, label: "Cover & Date", desc: "Cover Art & Release Date" },
+      { id: Step.REVIEW, label: "Review", desc: "Finalize" },
+    ];
 
-export const StepIndicator: React.FC<Props> = ({ currentStep, onStepClick }) => {
+export const StepIndicator: React.FC<Props> = ({ currentStep, onStepClick, releaseType }) => {
+  const steps = getSteps(releaseType);
   return (
     <div className="w-full mb-8">
       <div className="flex w-full bg-slate-50 p-1 rounded-xl border border-slate-200">

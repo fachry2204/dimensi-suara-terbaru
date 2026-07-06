@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
     Plus, Search, Edit2, Trash2, FileText, Music, User, Globe, Clock, Tag, FileAudio, Eye, CheckCircle, XCircle, AlertTriangle 
 } from 'lucide-react';
-import { api } from '../../utils/api';
-import { useBranding } from '../../contexts/BrandingContext';
-import { TRACK_GENRES, COUNTRIES_WITH_DIAL_CODES } from '../../constants';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
+import { TRACK_GENRES, COUNTRIES_WITH_DIAL_CODES } from '@/constants';
 
 import { AlertModal } from '../../components/AlertModal';
 

@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { Music4, FileText, ArrowRight, LogOut, ArrowRightCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+const ADMIN_DASHBOARD_PATH = '/dashboard-aggregator';
+
 export default function PortalPage() {
   const router = useRouter();
   const [branding, setBranding] = useState<any>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
     fetch('/api/settings/branding')
@@ -29,6 +32,33 @@ export default function PortalPage() {
       .catch(err => console.error("Failed to load branding:", err));
   }, []);
 
+  useEffect(() => {
+    const redirectAdminToDashboard = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!res.ok) {
+          router.replace('/login');
+          return;
+        }
+
+        const data = await res.json();
+        const role = String(data?.user?.role || '').toLowerCase();
+        if (role === 'admin') {
+          router.replace(ADMIN_DASHBOARD_PATH);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to check session:', err);
+        router.replace('/login');
+        return;
+      }
+
+      setIsCheckingSession(false);
+    };
+
+    redirectAdminToDashboard();
+  }, [router]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -37,6 +67,14 @@ export default function PortalPage() {
       console.error('Logout error:', error);
     }
   };
+
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ReleaseTypeSelection } from './ReleaseTypeSelection';
-import { ReleaseType, ReleaseData } from '../types';
+import { ReleaseType, ReleaseData } from '@/types';
 
 interface NewReleaseFlowProps {
     editingRelease: ReleaseData | null;

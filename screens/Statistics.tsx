@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ReleaseData, ReportData } from '../types';
+import { ReleaseData, ReportData } from '@/types';
 import { PublishingAnalytics } from './publishing/PublishingAnalytics';
 import { 
     Music, 

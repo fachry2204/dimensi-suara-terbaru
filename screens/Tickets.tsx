@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 import { Plus, MessageSquare, Search } from 'lucide-react';
-import { ReleaseData } from '../types';
+import { ReleaseData } from '@/types';
 import { AlertModal } from '../components/AlertModal';
 
 interface Ticket {

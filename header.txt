@@ -1,0 +1,72 @@
+            <div className="mb-8 space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                        (status === 'Live' || status === 'Released') ? 'bg-green-100 text-green-700 border-green-200' :
+                        status === 'Processing' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                        status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                        'bg-yellow-100 text-yellow-700 border-yellow-200'
+                    }`}>
+                        {status === 'Rejected' && <AlertTriangle size={14} />}
+                        <span className="uppercase tracking-wider">{(status === 'Live' || status === 'Released') ? 'Released' : status}</span>
+                    </span>
+                    {(userRole === 'Admin' || userRole === 'Operator') && release.aggregator && (
+                        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1.5">
+                            <Globe size={14} /> {release.aggregator}
+                        </span>
+                    )}
+                    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-slate-600 border border-gray-200 flex items-center gap-1.5">
+                        <Music2 size={14} /> {release.tracks.length > 1 ? 'Album' : 'Single'}
+                    </span>
+                </div>
+
+                {/* REJECTION REASON DISPLAY */}
+                {status === 'Rejected' && (rejectionReason || rejectionDesc) && (
+                    <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center gap-2.5 text-red-700 font-extrabold text-base mb-3">
+                            <AlertTriangle size={22} className="text-red-600" />
+                            RILIS DITOLAK (REJECTION REASON)
+                        </div>
+                        <div className="bg-white/60 rounded-xl p-4 border border-red-100">
+                            {rejectionReason && (
+                                <div className="mb-3">
+                                    <span className="text-[10px] uppercase font-bold text-red-500 tracking-widest block mb-1">Alasan Utama:</span>
+                                    <p className="text-sm font-bold text-red-900 leading-tight">{rejectionReason}</p>
+                                </div>
+                            )}
+                            {rejectionDesc && (
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-red-400 tracking-widest block mb-1">Keterangan Detail:</span>
+                                    <p className="text-[13px] text-red-800 whitespace-pre-line leading-relaxed font-medium">
+                                        {rejectionDesc}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                    {userRole === 'Admin' && onEdit && (
+                        <button
+                            onClick={() => onEdit(release)}
+                            disabled={!!isUpdatingCoverArt}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            title="Edit Release"
+                        >
+                            <Edit3 size={14} />
+                            Edit Release
+                        </button>
+                    )}
+                    
+                    {userRole === 'Admin' && onDelete && (
+                        <button
+                            onClick={() => onDelete(release)}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                            title="Delete Release"
+                        >
+                            <Trash2 size={14} />
+                            Delete Release
+                        </button>
+                    )}
+                </div>
+            </div>

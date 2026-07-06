@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Camera, Save, User, Mail, Lock } from 'lucide-react';
-import { api, API_BASE_URL } from '../utils/api';
-import { getProfileImageUrl } from '../utils/imageUtils';
+import { api } from '@/utils/api';
+import { getProfileImageUrl } from '@/utils/imageUtils';
 import { AlertModal, AlertState } from './AlertModal';
 
 interface ProfileModalProps {

@@ -1099,7 +1099,7 @@ router.get('/download', authenticateToken, (req, res) => {
             relPath = relPath.replace(/^\/uploads[\\/]/, '');
         }
 
-        const absPath = path.join(__dirname, '../../', relPath);
+        const absPath = path.join(UPLOADS_ROOT, relPath);
         
         // Security check: ensure path is within uploads directory
         const uploadsRootAbs = path.resolve(UPLOADS_ROOT);

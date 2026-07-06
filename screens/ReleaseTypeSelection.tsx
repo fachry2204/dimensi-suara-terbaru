@@ -1,6 +1,6 @@
 import React from 'react';
 import { Music, Disc, ArrowRight } from 'lucide-react';
-import { ReleaseType } from '../src/types';
+import { ReleaseType } from '@/types';
 
 interface Props {
   onSelect: (type: ReleaseType) => void;

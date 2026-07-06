@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReleaseData } from '../types';
-import { useBranding } from '../contexts/BrandingContext';
+import { ReleaseData } from '@/types';
+import { useBranding } from '@/contexts/BrandingContext';
 import { 
     LayoutDashboard, 
     Clock, 
@@ -16,7 +16,7 @@ import {
     Users,
     Plus
 } from 'lucide-react';
-import { assetUrl } from '../utils/url';
+import { assetUrl } from '@/utils/url';
 
 interface Props {
   releases: ReleaseData[];

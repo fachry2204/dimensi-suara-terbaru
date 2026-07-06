@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ReleaseData, Track } from '../types';
-import { api } from '../utils/api';
-import { assetUrl } from '../utils/url';
+import { ReleaseData, Track } from '@/types';
+import { api } from '@/utils/api';
+import { assetUrl } from '@/utils/url';
 import { ChevronLeft } from 'lucide-react';
 const SpotifyIcon = (props: any) => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true" {...props}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, CheckCircle, FileBadge, Loader2 } from 'lucide-react';
-import { User } from '../types';
-import { api } from '../utils/api';
+import { User } from '@/types';
+import { api } from '@/utils/api';
 
 interface Props {
   currentUserData: User;
@@ -27,7 +27,7 @@ export const MyContracts: React.FC<Props> = ({ currentUserData, defaultTab }) =>
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const token = ''; // Correct key: cms_token
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
       const res = await api.getUsers(token || '');
       // Filter only role 'User'
       const users = Array.isArray(res) ? res : [];

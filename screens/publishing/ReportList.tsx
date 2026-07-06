@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Banknote, PieChart, Wallet, Filter } from 'lucide-react';
-import { api } from '../../utils/api';
-import { useBranding } from '../../contexts/BrandingContext';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
 
 const ReportList = () => {
   const { getTextColor } = useBranding();

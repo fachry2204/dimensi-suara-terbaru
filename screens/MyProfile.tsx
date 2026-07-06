@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User as UserIcon, Eye, Download, XCircle } from 'lucide-react';
-import { User } from '../types';
+import { User } from '@/types';
 
 interface Props {
   currentUserData: User;

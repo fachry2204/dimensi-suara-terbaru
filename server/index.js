@@ -20,6 +20,7 @@ import { securityLogger } from './middleware/securityLogger.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import spotifyRoutes from './routes/spotifyRoutes.js';
 import genreRoutes from './routes/genreRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 import { initDb } from './init-db.js';
 
@@ -118,6 +119,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/spotify', spotifyRoutes);
 app.use('/api/genres', genreRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Proxy Wilayah.id (to avoid browser CORS)
 app.get('/api/wilayah/provinces', async (req, res) => {

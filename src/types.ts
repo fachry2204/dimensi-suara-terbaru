@@ -9,6 +9,8 @@ export interface TrackContributor {
   name: string;
   type: string;
   role: string;
+  roleName?: string;
+  role_name?: string;
 }
 
 export interface AnalysisSegment {
@@ -69,6 +71,10 @@ export interface Track {
   composer: string;
   lyricist: string;
   lyrics: string;
+  songwriters?: any[];
+  lyricists?: any[];
+  productionCredits?: any[];
+  additionalWriters?: any[];
 
   // Additional Contributors
   contributors: TrackContributor[];
@@ -110,6 +116,7 @@ export interface ReleaseData {
   pLine?: string;
   cLine?: string;
   version: string;
+  releaseVersion?: string;
   iplFile?: File | string | null; // Added for Step 1
 
   // Step 2

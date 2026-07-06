@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import HkBadge from '@/components/@hk-badge/@hk-badge';
 import { useGlobalStateContext } from '@/context/GolobalStateProvider';
 import React from 'react';
-import { api } from '@/utils/api';
+import { API_BASE_URL } from '@/utils/api';
 
 const timeAgo = (dateString) => {
     const date = new Date(dateString);
@@ -50,13 +50,21 @@ const TopNav = () => {
             try {
                 // Get token from local storage or cookie, depending on auth strategy
                 // Since this component is client-side, we may have the token in localStorage
-                const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-                const data = await api.getNotifications(token || '');
+                const token = typeof window !== 'undefined' ? localStorage.getItem('cms_token') : null;
+                const res = await fetch(`${API_BASE_URL}/notifications`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    credentials: 'include',
+                });
+                if (!res.ok) {
+                    setNotifications([]);
+                    return;
+                }
+                const data = await res.json().catch(() => []);
                 if (Array.isArray(data)) {
                     setNotifications(data);
                 }
             } catch (err) {
-                console.error('Error fetching notifications:', err);
+                setNotifications([]);
             }
         };
 
@@ -71,11 +79,19 @@ const TopNav = () => {
 
     const handleMarkAsRead = async () => {
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-            await api.markNotificationRead(token || '', undefined);
+            const token = typeof window !== 'undefined' ? localStorage.getItem('cms_token') : null;
+            await fetch(`${API_BASE_URL}/notifications/mark-read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({}),
+                credentials: 'include',
+            });
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         } catch (err) {
-            console.error('Error marking notifications as read:', err);
+            // Notification status is non-blocking for navigation.
         }
     };
 

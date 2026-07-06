@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ReleaseData, Track } from '../types';
-import { GoogleGenAI } from "@google/genai";
+import { ReleaseData, Track } from '@/types';
 import { ArrowLeft, Play, Pause, FileAudio, CheckCircle, AlertTriangle, Globe, Disc, Save, Clipboard, Calendar, Tag, User, Mic2, FileText, Wand2, Loader2, Clock, Music2, Info, Download, Scissors, Users, ChevronDown, ChevronUp, Edit3, Trash2, Upload, Camera } from 'lucide-react';
-import { formatDMY } from '../utils/date';
-import { assetUrl } from '../utils/url';
-import { api, API_BASE_URL } from '../utils/api';
+import { formatDMY } from '@/utils/date';
+import { assetUrl } from '@/utils/url';
+import { api, API_BASE_URL } from '@/utils/api';
 import { AlertModal } from './AlertModal';
 
 interface Props {
@@ -25,6 +24,41 @@ interface Props {
 
 export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, onUpdate, availableAggregators, mode = 'edit', onEdit, onDelete, userRole, isUpdatingCoverArt, token, onCoverArtUpdated }) => {
   const [activeTab, setActiveTab] = useState<'INFO' | 'DISTRIBUTION'>('INFO');
+  
+  const renderList = (arr: any[], nameKey = 'name', roleKey?: string) =>
+    (!arr || arr.length === 0) ? <span className="text-slate-400 font-normal italic">-</span> :
+      <div className="flex flex-col gap-0.5">
+        {arr.map((item: any, i: number) => {
+          const roleVal = roleKey ? (item[roleKey] || item.role || item.roleName || item.role_name || '') : '';
+          return (
+            <span key={i} className="text-slate-700 text-xs font-semibold">
+              {typeof item === 'string' ? item : item[nameKey] || '-'}
+              {roleVal ? <span className="text-slate-400 font-normal ml-1">({roleVal})</span> : null}
+            </span>
+          );
+        })}
+      </div>;
+
+  const artistRoleEquals = (artist: any, roles: string[]) => {
+    const role = String(artist?.role || artist?.roleName || artist?.role_name || '').toLowerCase();
+    return roles.map(r => r.toLowerCase()).includes(role);
+  };
+
+  const getTrackArtists = (track: any, roles: string[]) =>
+    (track.artists || []).filter((artist: any) => artist?.name && artistRoleEquals(artist, roles));
+
+  const getNamedPeople = (list: any, fallback?: string) => {
+    const normalized = Array.isArray(list) ? list.filter(Boolean) : [];
+    if (normalized.length > 0) return normalized;
+    return fallback ? fallback.split(',').map(name => ({ name: name.trim() })).filter(item => item.name) : [];
+  };
+
+  const formatGenreSubGenre = (track: any) => {
+    const genre = track.genre || release.genre || '';
+    const subGenre = track.subGenre || (track as any).sub_genre || release.subGenre || (release as any).sub_genre || '';
+    return genre ? `${genre}${subGenre ? ` / ${subGenre}` : ''}` : '-';
+  };
+
   const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' | 'info' | 'success' }>({
     isOpen: false,
     title: '',
@@ -57,6 +91,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
 
   const upcDisplay = upcInput || release.upc || '';
   const primaryIsrc = release.tracks[0]?.isrc || '';
+  const isAlbumRelease = release.type === 'ALBUM' || release.tracks.length > 1;
 
   useEffect(() => {
     if (isOpen) {
@@ -252,7 +287,18 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
     }
   };
 
-  // AI Generation for Rejection
+  const buildRejectionDescription = (reason: string) => {
+      const cleanReason = reason.trim();
+      return [
+          `Rilis Anda belum dapat kami setujui karena terdapat kendala pada aspek berikut: ${cleanReason}.`,
+          '',
+          'Mohon lakukan pengecekan ulang terhadap materi rilis dan pastikan seluruh data, audio, artwork, serta metadata sudah sesuai dengan ketentuan distribusi digital.',
+          '',
+          'Setelah perbaikan selesai, silakan ajukan ulang rilis tersebut agar dapat kami review kembali. Pastikan informasi yang diperbarui sudah lengkap dan konsisten untuk menghindari penolakan ulang.'
+      ].join('\n');
+  };
+
+  // Generate rejection message without calling client-side API keys.
   const generateRejectionMessage = async () => {
       if (!rejectionReason) {
           setAlertState({
@@ -264,35 +310,8 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
           return;
       }
       setIsGeneratingAi(true);
-      try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-          
-          const prompt = `
-            Bertindaklah sebagai tim Quality Control distribusi musik digital. 
-            Tuliskan email penolakan rilis yang **detail, sopan, dan profesional dalam Bahasa Indonesia** kepada artis.
-            Jelaskan mengapa rilis mereka ditolak berdasarkan alasan utama ini: "${rejectionReason}".
-            Berikan instruksi spesifik tentang apa yang perlu mereka perbaiki agar rilis dapat disetujui pada pengajuan berikutnya.
-            Hindari sapaan pembuka seperti "Halo Artis", langsung ke inti permasalahan namun tetap ramah.
-          `;
-
-          const result = await ai.models.generateContent({
-             model: 'gemini-3-flash-preview',
-             contents: prompt,
-          });
-          setRejectionDesc(result.text || "");
-      } catch (error) {
-          console.error("AI Generation Error", error);
-          setAlertState({
-              isOpen: true,
-              title: 'Gagal',
-              message: 'Gagal membuat deskripsi. Periksa API Key atau coba lagi manual.',
-              type: 'error'
-          });
-          // Fallback if AI fails
-          setRejectionDesc(`Rilis Anda ditolak karena: ${rejectionReason}. Mohon perbaiki masalah ini dan ajukan ulang.`);
-      } finally {
-          setIsGeneratingAi(false);
-      }
+      setRejectionDesc(buildRejectionDescription(rejectionReason));
+      setIsGeneratingAi(false);
   };
 
   const handleSaveStatus = () => {
@@ -366,48 +385,57 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
   };
 
   const downloadFile = (url: string, filename: string) => {
-      // If it's a local file (starts with /uploads/ or contains it), use our download proxy
+      // Helper: trigger download from blob
+      const triggerBlobDownload = (blob: Blob, name: string) => {
+          const bUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = bUrl;
+          a.download = name;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(bUrl);
+          }, 200);
+      };
+
+      // Helper: trigger download via direct anchor (no new tab)
+      const triggerAnchorDownload = (href: string, name: string) => {
+          const a = document.createElement('a');
+          a.href = href;
+          a.download = name;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { document.body.removeChild(a); }, 200);
+      };
+
       if (url.includes('/uploads/')) {
           const relativePath = url.split('/uploads/')[1];
-          const downloadUrl = `${API_BASE_URL}/releases/download?filePath=/uploads/${relativePath}&fileName=${encodeURIComponent(filename)}&token=${token}`;
+          const downloadUrl = `${API_BASE_URL}/releases/download?filePath=/uploads/${relativePath}&fileName=${encodeURIComponent(filename)}`;
           
-          // Since we need authentication, we can either use a token in query or fetch
-          // For simplicity with <a> tag, we'll use query param if the server supports it, 
-          // but our middleware uses Bearer token.
-          // Let's use a hidden form or a fetch-based download.
-          
+          // Try authenticated fetch first
           fetch(downloadUrl, {
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: { 'Authorization': `Bearer ${token}` },
+              credentials: 'include'
           })
           .then(res => {
               if (!res.ok) throw new Error('Download failed');
               return res.blob();
           })
           .then(blob => {
-              const bUrl = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = bUrl;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(bUrl);
+              triggerBlobDownload(blob, filename);
           })
-          .catch(err => {
-              console.error(err);
-              // Fallback to direct link if fetch fails
-              window.open(url, '_blank');
+          .catch(() => {
+              // Fallback: try direct static URL download (no new tab)
+              triggerAnchorDownload(url, filename);
           });
           return;
       }
 
-      // Fallback for non-local (like old Google Drive links)
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Fallback for non-local URLs
+      triggerAnchorDownload(url, filename);
   };
 
   const getFileName = (f: any, fallback = ''): string => {
@@ -513,7 +541,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
 
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
             <div className="flex flex-col md:flex-row gap-8 items-start mb-8 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <div className="flex flex-col gap-3 flex-shrink-0 w-40 md:w-48">
+                <div className="flex flex-col gap-3 flex-shrink-0 w-32 md:w-36">
                     <div className="w-full aspect-square rounded-xl bg-gray-200 shadow-md overflow-hidden border border-gray-300 flex flex-col relative group">
                         <div className="flex-1 relative">
                             {release.coverArt ? (
@@ -583,14 +611,43 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         Wajib menggunakan format JPG/JPEG dengan resolusi tepat 3000x3000px.
                     </div>
                 </div>
-                <div className="flex-1">
-                    <div className="text-sm text-slate-600 mb-1 font-medium">
-                        {(release as any).ownerDisplayName || 'Unknown User'}
+                <div className="flex-1 w-full">
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                        <div>
+                            <div className="text-sm text-slate-600 mb-1 font-medium">
+                                {(release as any).ownerDisplayName || 'Unknown User'}
+                            </div>
+                            <h1 className="text-3xl font-bold text-slate-900 mb-1">{release.title}</h1>
+                            <p className="text-slate-600 font-medium text-lg mb-3">
+                                {release.primaryArtists.map(a => typeof a === 'string' ? a : a.name).join(", ")}
+                            </p>
+                        </div>
+                        
+                        {/* Edit and Delete Buttons */}
+                        <div className="flex items-center gap-2">
+                            {userRole === 'Admin' && onEdit && (
+                                <button
+                                    onClick={() => onEdit(release)}
+                                    disabled={!!isUpdatingCoverArt}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    title="Edit Release"
+                                >
+                                    <Edit3 size={14} />
+                                    Edit Release
+                                </button>
+                            )}
+                            {userRole === 'Admin' && onDelete && (
+                                <button
+                                    onClick={() => onDelete(release)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                                    title="Delete Release"
+                                >
+                                    <Trash2 size={14} />
+                                    Delete Release
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-1">{release.title}</h1>
-                    <p className="text-slate-600 font-medium text-lg mb-3">
-                        {release.primaryArtists.map(a => typeof a === 'string' ? a : a.name).join(", ")}
-                    </p>
                     
                     <div className="flex flex-wrap items-center gap-3 mb-4">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
@@ -638,89 +695,67 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         </div>
                     )}
 
-                    <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
-                        <div>
-                            <table className="w-full text-xs text-slate-700 border border-slate-200 rounded-lg overflow-hidden">
-                                <tbody>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Planned Release Date</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{formatDMY(release.plannedReleaseDate)}</td>
-                                    </tr>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Original Release Date</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{formatDMY(release.originalReleaseDate)}</td>
-                                    </tr>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Version</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{release.version || '-'}</td>
-                                    </tr>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Genre</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{release.genre || release.tracks[0]?.genre || '-'}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="w-40 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Subgenre</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{release.subGenre || release.tracks[0]?.subGenre || '-'}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div>
-                            <table className="w-full text-xs text-slate-700 border border-slate-200 rounded-lg overflow-hidden">
-                                <tbody>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="w-36 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Title Language</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{release.language || '-'}</td>
-                                    </tr>
-                                    <tr className="border-b border-slate-200">
-                                        <td className="w-36 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">UPC</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{upcDisplay || 'Not Assigned'}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="w-36 text-[11px] uppercase text-slate-500 px-3 py-1.5 align-top bg-slate-50">Record Label</td>
-                                        <td className="px-3 py-1.5 text-slate-700 align-top">{release.label || '-'}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div>
-                            <div className="text-[11px] uppercase text-slate-500 mb-1">Primary Artists</div>
-                            <ul className="text-sm text-slate-800 space-y-0.5">
-                                            {(release.primaryArtists || []).map((artist, idx) => (
-                                                <li key={idx} className="flex items-center gap-1">
-                                                    <span>{typeof artist === 'string' ? artist : artist.name}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                        </div>
-                    </div>
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                        <MetaItem label="Release Title" value={release.title} icon={<FileText size={10} />} />
+                        <MetaItem
+                            label="Primary Artist"
+                            value={
+                                <div className="flex flex-col gap-1">
+                                    {(release.primaryArtists || []).map((a, idx) => {
+                                        const name = typeof a === 'string' ? a : a.name;
+                                        const link = typeof a === 'object' && (a as any).spotifyLink ? (a as any).spotifyLink : null;
+                                        return (
+                                            <div key={idx} className="flex items-center gap-1.5">
+                                                <span>{name}</span>
+                                                {link && (
+                                                    <a
+                                                        href={link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-green-500 hover:text-green-600 inline-flex items-center"
+                                                        title="Spotify Artist Link"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Globe size={12} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            }
+                            icon={<User size={10} />}
+                        />
+                        <MetaItem label="Version" value={release.version} icon={<Tag size={10} />} />
 
-                    <div className="mt-5 flex flex-wrap gap-2">
-                        {userRole === 'Admin' && onEdit && (
-                            <button
-                                onClick={() => onEdit(release)}
-                                disabled={!!isUpdatingCoverArt}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                title="Edit Release"
-                            >
-                                <Edit3 size={14} />
-                                Edit Release
-                            </button>
+                        <MetaItem label="Genre" value={release.genre || release.tracks[0]?.genre} icon={<Music2 size={10} />} />
+                        <MetaItem label="Sub Genre" value={release.subGenre || release.tracks[0]?.subGenre} icon={<Music2 size={10} />} />
+                        <MetaItem label="Language" value={release.language} icon={<Globe size={10} />} />
+
+                        <MetaItem label="UPC" value={upcDisplay || "Auto-Generated"} icon={<FileAudio size={10} />} />
+                        {!isAlbumRelease && (
+                            <MetaItem label="ISRC" value={isrcInputs[release.tracks[0]?.id] || primaryIsrc || "Auto-Generated"} icon={<FileAudio size={10} />} />
                         )}
+                        <MetaItem label="Record Label" value={release.label} icon={<Users size={10} />} />
+                        <MetaItem label="Release Date" value={formatDMY(release.plannedReleaseDate) || "TBD"} icon={<Calendar size={10} />} />
 
-
+                        <MetaItem label="Original Release Date" value={formatDMY(release.originalReleaseDate) || "-"} icon={<Calendar size={10} />} />
                         
-                        {userRole === 'Admin' && onDelete && (
-                            <button
-                                onClick={() => onDelete(release)}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
-                                title="Delete Release"
-                            >
-                                <Trash2 size={14} />
-                                Delete Release
-                            </button>
+                        {((release as any).preReleaseSocialMedia || (release as any).pre_release_social_media) && (
+                            <MetaItem label="Pre-Release Social Media" value={formatDMY((release as any).preReleaseSocialMedia || (release as any).pre_release_social_media)} icon={<Calendar size={10} />} />
                         )}
+                        {((release as any).preReleaseYoutubeMusic || (release as any).pre_release_youtube_music) && (
+                            <MetaItem label="Pre-Release YouTube Music" value={formatDMY((release as any).preReleaseYoutubeMusic || (release as any).pre_release_youtube_music)} icon={<Calendar size={10} />} />
+                        )}
+
+                        <MetaItem
+                            label="Distribution Type"
+                            value={release.isNewRelease ? "New Release" : `Re-release (Orig: ${formatDMY(release.originalReleaseDate)})`}
+                            icon={<Disc size={10} />}
+                        />
+
                     </div>
+
                 </div>
             </div>
 
@@ -752,201 +787,339 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                  <h3 className="font-bold text-slate-700 text-xl">Tracklist & Metadata (Detailed)</h3>
                             </div>
 
-                            <div className="space-y-4">
-                                {release.tracks.map((track) => {
-                                    const isExpanded = expandedTrackId === track.id;
+                            <div className="space-y-6">
+                                {release.tracks.length === 1 ? (() => {
+                                    const track = release.tracks[0];
+                                    const isInstrumental = track.isInstrumental === 'Yes';
                                     
                                     return (
-                                        <div key={track.id} className={`bg-white rounded-xl border overflow-hidden transition-all shadow-sm ${isExpanded ? 'border-blue-300 ring-1 ring-blue-100' : 'border-gray-200 hover:border-blue-200'}`}>
-                                            {/* Track Header (Clickable for Accordion) */}
-                                            <div 
-                                                className={`px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'bg-slate-50 hover:bg-slate-100'}`}
-                                                onClick={() => toggleTrackExpand(track.id)}
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-sm transition-colors ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-gray-200'}`}>
-                                                        {track.trackNumber}
+                                        <div className="space-y-4">
+                                            {/* A: Audio Files */}
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">A. Audio Files</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Master Audio</p>
+                                                        <div className="bg-white p-2.5 rounded-lg border border-gray-200">
+                                                            <div className="text-xs font-bold text-slate-700 truncate mb-1" title={getFileName((track as any).audioFile)}>
+                                                                {getFileName((track as any).audioFile) || "No file uploaded"}
+                                                            </div>
+                                                            <AudioPlayer track={track} type="full" />
+                                                        </div>
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-bold text-lg text-slate-800">{track.title}</h4>
-                                                        <div className="mt-1 space-y-0.5">
-                                                            {track.artists.map((a, idx) => (
-                                                                <div key={idx} className="text-xs text-slate-600 flex items-center gap-2">
-                                                                    <span>{a.name}</span>
-                                                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[9px] font-bold uppercase text-slate-600">
-                                                                        {a.role === 'MainArtist' ? 'Primary' : a.role === 'FeaturedArtist' ? 'Featured' : a.role}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Social Media Clip</p>
+                                                        <div className="bg-white p-2.5 rounded-lg border border-gray-200">
+                                                            {track.audioClip ? (
+                                                                <>
+                                                                    <div className="text-xs font-bold text-slate-700 truncate mb-1" title={getFileName(track.audioClip)}>
+                                                                        {getFileName(track.audioClip)}
+                                                                    </div>
+                                                                    <AudioPlayer track={track} type="clip" />
+                                                                </>
+                                                            ) : (
+                                                                <div className="text-xs text-slate-400 italic py-1.5 font-medium">No clip generated</div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-slate-400">
-                                                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                {(isrcInputs[track.id] || track.isrc) && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-200">
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">ISRC</p>
+                                                        <p className="text-xs font-mono font-bold text-slate-800">{isrcInputs[track.id] || track.isrc}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* C: Artists */}
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">C. Artists</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Primary Artists</p>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            {track.artists.filter(a => a.role === 'MainArtist').map((a, idx) => (
+                                                                <span key={idx} className="text-slate-700 text-xs font-bold">{a.name}</span>
+                                                            )) || <span className="text-slate-400 italic">-</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Featured Artists</p>
+                                                        {renderList(track.artists.filter(a => a.role === 'FeaturedArtist'), 'name')}
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Track Details Grid (Conditionally Rendered) */}
-                                            {isExpanded && (
-                                                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in border-t border-gray-100">
-                                                    {/* Column 1: Audio Files & Actions */}
-                                                    <div className="space-y-6">
-                                                        {/* Full Audio */}
-                                                        <div>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-1">
-                                                                <FileAudio size={12} /> Full Audio File
-                                                            </span>
-                                                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                                <div className="text-xs font-bold text-slate-700 truncate mb-2" title={getFileName((track as any).audioFile)}>
-                                                                    {getFileName((track as any).audioFile) || "No file uploaded"}
-                                                                </div>
-                                                                <AudioPlayer track={track} type="full" />
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Audio Clip */}
-                                                        <div>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-1">
-                                                                <Scissors size={12} /> Audio Clip (Trim)
-                                                            </span>
-                                                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                                {track.audioClip ? (
-                                                                    <>
-                                                                        <div className="text-xs font-bold text-slate-700 truncate mb-2" title={track.audioClip.name}>
-                                                                            {track.audioClip.name}
-                                                                        </div>
-                                                                        <AudioPlayer track={track} type="clip" />
-                                                                    </>
-                                                                ) : (
-                                                                    <div className="text-xs text-slate-400 italic py-1">No clip generated</div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex gap-4">
-                                                            <div>
-                                                                <span className="text-[10px] uppercase font-bold text-slate-400">Genre</span>
-                                                                <div className="text-sm font-medium text-slate-700">{track.genre}</div>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[10px] uppercase font-bold text-slate-400">Sub Genre</span>
-                                                                <div className="text-sm font-medium text-slate-700">{track.subGenre}</div>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[10px] uppercase font-bold text-slate-400">Explicit</span>
-                                                                <div className={`text-sm font-bold ${track.explicitLyrics === 'Yes' ? 'text-red-500' : 'text-green-600'}`}>
-                                                                    {track.explicitLyrics}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Column 2: Artists, Credits & Contributors */}
-                                                    <div className="space-y-6">
-                                                        {/* Track Title (placed above Artists) */}
-                                                        <div>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400">Judul Track</span>
-                                                            <div className="mt-1 text-sm font-medium text-slate-800">
-                                                                {track.title || '-'}
-                                                            </div>
-                                                        </div>
-                                                        {/* Artists (moved above composer & lyrics) */}
-                                                        <div>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400">Artists</span>
-                                                            <div className="mt-1 space-y-0.5">
-                                                                {track.artists.map((a, idx) => (
-                                                                    <div key={idx} className="text-xs text-slate-600 flex items-center gap-2">
-                                                                        <span>{a.name}</span>
-                                                                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[9px] font-bold uppercase text-slate-600">
-                                                                            {a.role === 'MainArtist' ? 'Primary' : a.role === 'FeaturedArtist' ? 'Featured' : a.role}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                             <div>
-                                                                <span className="text-[10px] uppercase font-bold text-slate-400">Composer</span>
-                                                                <div className="text-sm font-medium text-slate-700">{track.composer}</div>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[10px] uppercase font-bold text-slate-400">Lyricist</span>
-                                                                <div className="text-sm font-medium text-slate-700">{track.lyricist}</div>
-                                                            </div>
-                                                        </div>
-            
-                                                        {/* Full Additional Contributors Display */}
-                                                        <div>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-2">
-                                                                <Users size={12} /> Additional Contributors
-                                                            </span>
-                                                            {track.contributors.length > 0 ? (
-                                                                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                                                                    <table className="w-full text-left text-xs">
-                                                                        <thead className="bg-gray-50 text-gray-500 font-bold">
-                                                                            <tr>
-                                                                                <th className="px-3 py-2">Name</th>
-                                                                                <th className="px-3 py-2">Role</th>
-                                                                                <th className="px-3 py-2">Type</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody className="divide-y divide-gray-100">
-                                                                            {track.contributors.map((c, idx) => (
-                                                                                <tr key={idx}>
-                                                                                    <td className="px-3 py-2 font-medium text-slate-700">{c.name}</td>
-                                                                                    <td className="px-3 py-2 text-slate-500">{c.role}</td>
-                                                                                    <td className="px-3 py-2 text-slate-500">{c.type}</td>
-                                                                                </tr>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-xs text-slate-400 italic">None added.</div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* ISRC Code (moved below Additional Contributors) */}
-                                                        <div>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400">ISRC Code</span>
-                                                            <div className="font-mono text-sm font-medium text-slate-700 bg-white px-2 py-1 rounded border border-gray-200 mt-1">
-                                                                {isrcInputs[track.id] || track.isrc || "N/A"}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Column 3: Lyrics & Extras */}
+                                            {/* D: Writers & Credits */}
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">D. Writers & Credits</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     <div>
-                                                         <div className="flex justify-between items-center mb-1">
-                                                             <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                                                                 <Mic2 size={10} /> Lyrics Preview
-                                                             </span>
-                                                             {track.lyrics && (
-                                                                 <button 
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriters / Composers</p>
+                                                        {renderList(track.songwriters || (track.composer ? [track.composer] : []))}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyricists</p>
+                                                        {renderList(track.lyricists || (track.lyricist ? [track.lyricist] : []))}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Additional Writers</p>
+                                                        {renderList(track.additionalWriters, 'name', 'role')}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Production Credits</p>
+                                                        {renderList(track.productionCredits, 'name', 'role')}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Contributors</p>
+                                                        {renderList(track.contributors, 'name', 'role')}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* E: Lyrics Info */}
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">E. Lyrics Information</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyrics Language</p>
+                                                            <p className="text-xs font-bold text-slate-800">{(track as any).lyricsLanguage || release.language || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Explicit Content</p>
+                                                            {(() => {
+                                                                const explicitVal = track.explicitLyrics;
+                                                                const isExplicit = (explicitVal as any) === 'YES' || (explicitVal as any) === 'Yes' || (explicitVal as any) === 1 || (explicitVal as any) === true;
+                                                                const explicitText = isExplicit ? 'Yes' : ((explicitVal as any) === 'CLEAN' || (explicitVal as any) === 'Clean') ? 'Clean' : 'No';
+                                                                return (
+                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${isExplicit ? 'bg-red-100 text-red-700' : explicitText === 'Clean' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                                                        {explicitText}
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Instrumental</p>
+                                                            <p className="text-xs font-bold text-slate-800">{isInstrumental ? 'Yes' : 'No'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Lyrics</span>
+                                                            {track.lyrics && (
+                                                                <button 
                                                                     onClick={(e) => { e.stopPropagation(); copyToClipboard(track.lyrics); }}
                                                                     className="text-blue-500 hover:text-blue-700 transition-colors"
                                                                     title="Copy Lyrics"
-                                                                 >
-                                                                     <Clipboard size={14} />
-                                                                 </button>
-                                                             )}
-                                                         </div>
-                                                         <div className="bg-gray-50 rounded-lg p-3 text-xs text-slate-600 italic h-48 overflow-y-auto border border-gray-100 whitespace-pre-line">
-                                                             {track.lyrics ? track.lyrics : "No lyrics provided."}
-                                                         </div>
+                                                                >
+                                                                    <Clipboard size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        {isInstrumental ? (
+                                                            <span className="text-xs text-slate-500 italic font-medium">Instrumental Track (No lyrics)</span>
+                                                        ) : track.lyrics ? (
+                                                            <div className="bg-white border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-semibold">
+                                                                {track.lyrics}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-500 italic font-medium">No lyrics provided</span>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            )}
+                                            </div>
+
+
                                         </div>
                                     );
-                                })}
+                                })() : (
+                                    <div className="space-y-3">
+                                        {release.tracks.map((track) => {
+                                            const isExpanded = expandedTrackId === track.id;
+                                            
+                                            return (
+                                                <div key={track.id} className={`bg-white rounded-xl border overflow-hidden transition-all shadow-sm ${isExpanded ? 'border-blue-300 ring-1 ring-blue-100' : 'border-gray-200 hover:border-blue-200'}`}>
+                                                    {/* Track Header (Clickable for Accordion) */}
+                                                    <div 
+                                                        className={`px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                                        onClick={() => toggleTrackExpand(track.id)}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-10 aspect-square rounded-full flex shrink-0 items-center justify-center font-bold text-lg shadow-sm transition-colors ${isExpanded ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-gray-200'}`}>
+                                                                {track.trackNumber}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-lg text-slate-800">{track.title}</h4>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-slate-400">
+                                                            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Track Details Grid (Conditionally Rendered) */}
+                                                    {isExpanded && (
+                                                        <div className="p-6 border-t border-gray-100 animate-fade-in bg-slate-50/30">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                                                {/* Audio File */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Audio File</div>
+                                                                    <div className="bg-white p-2.5 rounded-lg border border-gray-200">
+                                                                        <div className="text-xs font-bold text-slate-700 truncate mb-1" title={getFileName((track as any).audioFile)}>
+                                                                            {getFileName((track as any).audioFile) || "No file uploaded"}
+                                                                        </div>
+                                                                        <AudioPlayer track={track} type="full" />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Clip File */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Clip File</div>
+                                                                    <div className="bg-white p-2.5 rounded-lg border border-gray-200">
+                                                                        {track.audioClip ? (
+                                                                            <>
+                                                                                <div className="text-xs font-bold text-slate-700 truncate mb-1" title={getFileName(track.audioClip)}>
+                                                                                    {getFileName(track.audioClip)}
+                                                                                </div>
+                                                                                <AudioPlayer track={track} type="clip" />
+                                                                            </>
+                                                                        ) : (
+                                                                            <div className="text-xs text-slate-400 italic py-1 font-medium">No clip generated</div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Primary Artists */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Primary Artists</div>
+                                                                    <div className="flex flex-col gap-0.5 mt-0.5">
+                                                                        {getTrackArtists(track, ['MainArtist', 'PrimaryArtist', 'Primary Artist']).map((a: any, idx: number) => (
+                                                                            <span key={idx} className="text-slate-700 text-xs font-bold">{a.name}</span>
+                                                                        ))}
+                                                                        {getTrackArtists(track, ['MainArtist', 'PrimaryArtist', 'Primary Artist']).length === 0 && <span className="text-slate-400 italic">-</span>}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Track Number</div>
+                                                                    <div className="text-xs font-bold text-slate-800">{track.trackNumber || '-'}</div>
+                                                                </div>
+
+                                                                {/* Explicit Content */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Explicit Content</div>
+                                                                    {(() => {
+                                                                        const explicitVal = track.explicitLyrics;
+                                                                        const isExplicit = (explicitVal as any) === 'YES' || (explicitVal as any) === 'Yes' || (explicitVal as any) === 1 || (explicitVal as any) === true;
+                                                                        const explicitText = isExplicit ? 'Yes' : ((explicitVal as any) === 'CLEAN' || (explicitVal as any) === 'Clean') ? 'Clean' : 'No';
+                                                                        return (
+                                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block mt-0.5 ${isExplicit ? 'bg-red-100 text-red-700' : explicitText === 'Clean' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
+                                                                                {explicitText}
+                                                                            </span>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+
+                                                                {/* Genre & Sub Genre */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Genre & Sub Genre</div>
+                                                                    <div className="text-xs font-bold text-slate-800">
+                                                                        {formatGenreSubGenre(track)}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Lyrics Language */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyrics Language</div>
+                                                                    <div className="text-xs font-bold text-slate-800">{(track as any).lyricsLanguage || release.language || '-'}</div>
+                                                                </div>
+
+                                                                {/* Featured Artists */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Featured Artists</div>
+                                                                    {renderList(getTrackArtists(track, ['FeaturedArtist', 'Featured Artist']), 'name')}
+                                                                </div>
+
+                                                                {/* Songwriters / Composers */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriters / Composers</div>
+                                                                    {renderList(getNamedPeople((track as any).songwriters, track.composer), 'name')}
+                                                                </div>
+
+                                                                {/* Lyricist */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyricist</div>
+                                                                    {renderList(getNamedPeople((track as any).lyricists, track.lyricist), 'name')}
+                                                                </div>
+
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Instrumental</div>
+                                                                    <div className="text-xs font-bold text-slate-800">{track.isInstrumental || 'No'}</div>
+                                                                </div>
+
+                                                                {/* Additional Writers */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Additional Writers</div>
+                                                                    {renderList((track as any).additionalWriters, 'name', 'roleName')}
+                                                                </div>
+
+                                                                {/* Production Credits */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Production Credits</div>
+                                                                    {renderList((track as any).productionCredits, 'name', 'roleName')}
+                                                                </div>
+
+                                                                {/* Contributors */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Contributors</div>
+                                                                    {renderList(track.contributors, 'name', 'roleName')}
+                                                                </div>
+
+                                                                {/* ISRC Code */}
+                                                                <div>
+                                                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">ISRC Code</div>
+                                                                    <div className="font-mono text-xs font-bold text-slate-800">
+                                                                        {isrcInputs[track.id] || track.isrc || "N/A"}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Lyrics */}
+                                                                <div className="md:col-span-2">
+                                                                    <div className="flex justify-between items-center mb-1">
+                                                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1 font-bold">
+                                                                            <Mic2 size={10} /> Lyrics
+                                                                        </span>
+                                                                        {track.lyrics && (
+                                                                            <button 
+                                                                                onClick={(e) => { e.stopPropagation(); copyToClipboard(track.lyrics); }}
+                                                                                className="text-blue-500 hover:text-blue-700 transition-colors"
+                                                                                title="Copy Lyrics"
+                                                                            >
+                                                                                <Clipboard size={14} />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    {track.lyrics ? (
+                                                                        <div className="bg-white border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-semibold">
+                                                                            {track.lyrics}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-xs text-slate-500 italic font-medium">No lyrics provided</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 )}
-
-                {/* TAB 2: DISTRIBUTION ADMIN */}
                 {userRole === 'Admin' && activeTab === 'DISTRIBUTION' && (
                     <div className="max-w-4xl mx-auto">
                         <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm mb-8 animate-fade-in-up">
@@ -1095,3 +1268,12 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
     </div>
   );
 };
+
+const MetaItem: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode }> = ({ label, value, icon }) => (
+  <div className="flex flex-col border border-gray-200 rounded p-3 bg-slate-50/50">
+    <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+      {React.cloneElement(icon as React.ReactElement, { size: 14 } as any)} {label}
+    </span>
+    <div className="text-xs font-bold text-slate-900 break-words">{value || "-"}</div>
+  </div>
+);

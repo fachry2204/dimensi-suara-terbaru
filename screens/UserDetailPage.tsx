@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User } from '../types';
-import { api } from '../utils/api';
+import { User } from '@/types';
+import { api } from '@/utils/api';
 import { XCircle, Eye, Download, CheckCircle, Edit, User as UserIcon } from 'lucide-react';
 import { AlertModal } from '../components/AlertModal';
 
@@ -130,7 +130,7 @@ export const UserDetailPage: React.FC<Props> = ({ isImpersonating: propIsImperso
     try {
       setIsSaving(true);
       
-      const updatedData = { ...editFormData };
+      const updatedData: Partial<User> & Record<string, any> = { ...editFormData };
 
       // Upload new files if any
       const fileFields = [
@@ -146,7 +146,7 @@ export const UserDetailPage: React.FC<Props> = ({ isImpersonating: propIsImperso
           try {
             const res = await api.uploadUserDoc(token, field.type, newFiles[field.key]);
             if (res && res.path) {
-              updatedData[field.key as keyof User] = res.path as any;
+              updatedData[field.key] = res.path;
             }
           } catch (uploadErr) {
             console.error(`Failed to upload ${field.type}:`, uploadErr);

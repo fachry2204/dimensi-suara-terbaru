@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Loader, Search, Check, ChevronRight, FileText, Calendar, Trash2 } from 'lucide-react';
-import { api } from '../../utils/api';
-import { useBranding } from '../../contexts/BrandingContext';
+import { api } from '@/utils/api';
+import { useBranding } from '@/contexts/BrandingContext';
 
 const ImportReport = () => {
   const { getTextColor } = useBranding();

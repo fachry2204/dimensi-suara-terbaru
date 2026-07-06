@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ReleaseData } from '../types';
+import { ReleaseData } from '@/types';
 import { useNavigate, Link } from 'react-router-dom';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   releases: ReleaseData[];

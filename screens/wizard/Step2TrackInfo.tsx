@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ReleaseData, Track, TrackArtist, TrackContributor, ReleaseType } from '@/types';
 import { Music, Trash2, PlusCircle, Info, ChevronDown, ChevronUp, FileAudio, Mic2, User, UserPlus, Loader2, Scissors, Play, Pause, X, Check, UploadCloud, Download } from 'lucide-react';
 import { useGenres, useSubGenres } from '@/hooks/useGenres';
-import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS } from '@/constants';
+import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS, LANGUAGES } from '@/constants';
 import { processFullAudio, cropAndConvertAudio, getAudioDuration } from '@/utils/audioProcessing';
 import { api } from '@/utils/api';
 import { AlertModal } from '../../components/AlertModal';
+import { ChunkUploader } from '../../components/ChunkUploader';
 
 interface Props {
   data: ReleaseData;
@@ -48,64 +49,87 @@ const AudioPreview: React.FC<{ file: File | string }> = ({ file }) => {
     );
 };
 
+const PRODUCTION_ROLES = [
+  "Assistant Mastering Engineer", "Assistant Mixing Engineer", "Assistant Recording Engineer",
+  "Assistant Sound Engineer", "Co-Producer", "Creative Director", "Editing Engineer",
+  "Graphic Design", "Mastering Engineer", "Mixing Engineer", "Producer", "Recording Engineer",
+  "Studio", "Vocal Design", "Vocal Edited"
+];
+
+const WRITER_ROLES = [
+  "Adapter", "Arranger", "Orchestrator", "Publisher", "String Arranger", "Translator", "Vocal Director"
+];
+
+const TrackGenreSelectors = ({
+  track,
+  releaseData,
+  updateTrack,
+}: {
+  track: Track;
+  releaseData: ReleaseData;
+  updateTrack: (id: string, updates: Partial<Track>) => void;
+}) => {
+  const { genres } = useGenres();
+  const genreId = track.genreId || releaseData.genreId || "";
+  const { subgenres } = useSubGenres(genreId);
+  const selectedGenre = track.genre || releaseData.genre || "";
+  const selectedSubGenre = track.subGenre || releaseData.subGenre || "";
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Genre <span className="text-red-500">*</span></label>
+        <div className="relative">
+          <select
+            value={selectedGenre}
+            onChange={(e) => {
+              const val = e.target.value;
+              const g = genres.find(x => x.name === val);
+              updateTrack(track.id, { genre: val, genreId: g?.id, subGenre: "", subgenreId: undefined });
+            }}
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+          >
+            <option value="" className="text-black">Select Genre</option>
+            {genres.map(g => <option key={g.id} value={g.name} className="text-black">{g.name}</option>)}
+          </select>
+          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+            <ChevronDown size={16} />
+          </div>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Sub Genre</label>
+        <div className="relative">
+          <select
+            value={selectedSubGenre}
+            onChange={(e) => {
+              const val = e.target.value;
+              const sg = subgenres.find(x => x.name === val);
+              updateTrack(track.id, { subGenre: val, subgenreId: sg?.id });
+            }}
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+          >
+            <option value="" className="text-black">Select Sub Genre</option>
+            {subgenres.map(sg => (
+              <option key={sg.id} value={sg.name} className="text-black">{sg.name}</option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+            <ChevronDown size={16} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType, userRole }) => {
   const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
   
   // Track processing state
   const [processingState, setProcessingState] = useState<{ [key: string]: boolean }>({});
   const [showIsrcTooltip, setShowIsrcTooltip] = useState<{ [key: string]: boolean }>({});
-  
-  const TrackGenreSelectors = ({ track, updateTrack }: { track: Track; updateTrack: (id: string, updates: Partial<Track>) => void }) => {
-    const { genres } = useGenres();
-    const { subgenres } = useSubGenres(track.genreId || "");
-    
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Genre <span className="text-red-500">*</span></label>
-                <div className="relative">
-                    <select 
-                        value={track.genre || ""}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            const g = genres.find(x => x.name === val);
-                            updateTrack(track.id, { genre: val, genreId: g?.id, subGenre: "", subgenreId: undefined });
-                        }}
-                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
-                    >
-                        <option value="" className="text-black">Select Genre</option>
-                        {genres.map(g => <option key={g.id} value={g.name} className="text-black">{g.name}</option>)}
-                    </select>
-                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
-                        <ChevronDown size={16} />
-                    </div>
-                </div>
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Sub Genre</label>
-                <div className="relative">
-                    <select 
-                        value={track.subGenre || ""}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            const sg = subgenres.find(x => x.name === val);
-                            updateTrack(track.id, { subGenre: val, subgenreId: sg?.id });
-                        }}
-                        className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
-                    >
-                        <option value="" className="text-black">Select Sub Genre</option>
-                        {subgenres.map(sg => (
-                            <option key={sg.id} value={sg.name} className="text-black">{sg.name}</option>
-                        ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
-                        <ChevronDown size={16} />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-  };
+  const isUploadSessionId = (value: unknown) => typeof value === 'string' && /^[0-9a-f-]{36}$/i.test(value);
 
   // Trimmer State
   const [trimmerState, setTrimmerState] = useState<{
@@ -162,6 +186,23 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
     }
   }, [releaseType, data.tracks.length]);
 
+  useEffect(() => {
+    const handleFocusTrackSection = (event: Event) => {
+      const detail = (event as CustomEvent<{ trackId?: string; targetId?: string }>).detail;
+      if (!detail?.trackId) return;
+
+      setExpandedTrackId(detail.trackId);
+      window.setTimeout(() => {
+        document
+          .getElementById(detail.targetId || `track-card-${detail.trackId}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    };
+
+    window.addEventListener('focus-track-section', handleFocusTrackSection);
+    return () => window.removeEventListener('focus-track-section', handleFocusTrackSection);
+  }, []);
+
   // Sync Track Data for Single Release
   useEffect(() => {
     if (releaseType === 'SINGLE' && data.tracks.length > 0) {
@@ -198,6 +239,29 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
       }
     }
   }, [data.title, data.primaryArtists, releaseType]); // Only sync when Step 1 data changes
+
+  // Album tracks inherit release-level genre metadata from Step 1 when empty.
+  useEffect(() => {
+    if (releaseType !== 'ALBUM' || data.tracks.length === 0) return;
+
+    let changed = false;
+    const tracks = data.tracks.map(track => {
+      const updates: Partial<Track> = {};
+
+      if (!track.genre && data.genre) updates.genre = data.genre;
+      if (!track.genreId && data.genreId) updates.genreId = data.genreId;
+      if (!track.subGenre && data.subGenre) updates.subGenre = data.subGenre;
+      if (!track.subgenreId && data.subgenreId) updates.subgenreId = data.subgenreId;
+
+      if (Object.keys(updates).length === 0) return track;
+      changed = true;
+      return { ...track, ...updates };
+    });
+
+    if (changed) {
+      updateData({ tracks });
+    }
+  }, [releaseType, data.genre, data.genreId, data.subGenre, data.subgenreId, data.tracks]);
 
   // --- Trimmer Helpers ---
   const handleTrimmerPlayToggle = () => {
@@ -261,7 +325,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
       closeTrimmer(); // Close inline trimmer
 
       try {
-        const token = '';
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
         if (token) {
             const trackIndex = data.tracks.findIndex(t => t.id === trimmerState.trackId);
             if (trackIndex >= 0) {
@@ -375,7 +439,9 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
         releaseDate: prev.plannedReleaseDate || "",
         isrc: "",
         genre: prev.genre || "", // Inherit from Step 1
+        genreId: prev.genreId,
         subGenre: prev.subGenre || "", // Inherit from Step 1
+        subgenreId: prev.subgenreId,
         isInstrumental: "No",
         explicitLyrics: "No",
         composer: "",
@@ -390,6 +456,12 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
     
     // Set expanded outside the updater
     setExpandedTrackId(newTrackId);
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`track-audio-upload-${newTrackId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const removeTrack = (id: string) => {
@@ -438,7 +510,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
         setProcessingState(prev => ({ ...prev, [processKey]: true }));
         updateTrack(trackId, { processingAudio: true });
             try {
-            const token = '';
+            const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
             if (token) {
                 const trackIndex = data.tracks.findIndex(t => t.id === trackId);
                 if (trackIndex >= 0) {
@@ -496,7 +568,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
             const duration = await getAudioDuration(file);
             // If user uploads a ready 60s clip, accept it directly and upload to TMP
             if (duration >= 58 && duration <= 62) {
-                const token = '';
+                const token = typeof window !== 'undefined' ? (localStorage.getItem('cms_token') || '') : '';
                 if (token) {
                     const trackIndex = data.tracks.findIndex(t => t.id === trackId);
                     if (trackIndex >= 0) {
@@ -601,6 +673,48 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
     updateTrack(trackId, { contributors: track.contributors.filter((_, i) => i !== index) });
   };
 
+  const handleTrackArrayChange = (trackId: string, field: 'additionalWriters' | 'productionCredits', index: number, key: string, value: string) => {
+    const track = data.tracks.find(t => t.id === trackId) as any;
+    if (!track) return;
+    const list = [...(track[field] || [])];
+    list[index] = { ...(list[index] || {}), [key]: value, sequenceNumber: index + 1 };
+    updateTrack(trackId, { [field]: list } as any);
+  };
+
+  const addTrackArrayItem = (trackId: string, field: 'additionalWriters' | 'productionCredits') => {
+    const track = data.tracks.find(t => t.id === trackId) as any;
+    if (!track) return;
+    const list = [...(track[field] || [])];
+    updateTrack(trackId, { [field]: [...list, { roleName: '', name: '', sequenceNumber: list.length + 1 }] } as any);
+  };
+
+  const removeTrackArrayItem = (trackId: string, field: 'additionalWriters' | 'productionCredits', index: number) => {
+    const track = data.tracks.find(t => t.id === trackId) as any;
+    if (!track) return;
+    const list = [...(track[field] || [])].filter((_, i) => i !== index).map((item, i) => ({ ...item, sequenceNumber: i + 1 }));
+    updateTrack(trackId, { [field]: list } as any);
+  };
+
+  const getNamedList = (track: Track, field: 'songwriters' | 'lyricists', fallback: string) => {
+    const list = ((track as any)[field] || []) as any[];
+    if (list.length > 0) {
+      return list.map((item, idx) => ({
+        name: typeof item === 'string' ? item : item?.name || '',
+        sequenceNumber: item?.sequenceNumber || idx + 1,
+      }));
+    }
+    return fallback ? [{ name: fallback, sequenceNumber: 1 }] : [{ name: '', sequenceNumber: 1 }];
+  };
+
+  const updateNamedList = (trackId: string, field: 'songwriters' | 'lyricists', list: any[]) => {
+    const normalized = list.map((item, idx) => ({ ...item, sequenceNumber: idx + 1 }));
+    const names = normalized.map(item => item.name || '').filter(Boolean);
+    updateTrack(trackId, {
+      [field]: normalized,
+      [field === 'songwriters' ? 'composer' : 'lyricist']: names.join(', '),
+    } as any);
+  };
+
   return (
     <div className="w-full max-w-5xl mx-auto relative">
        <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-4">
@@ -630,14 +744,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
             const isTrimmerActive = trimmerState.isOpen && trimmerState.trackId === track.id && trimmerState.rawFile;
 
             return (
-                <div key={track.id} className={`bg-white rounded-xl border transition-all duration-300 ${isExpanded ? 'border-blue-200 shadow-sm ring-1 ring-blue-50' : 'border-gray-200 hover:border-blue-300'}`}>
+                <div id={`track-card-${track.id}`} key={track.id} className={`bg-white rounded-xl border transition-all duration-300 ${isExpanded ? 'border-blue-200 shadow-sm ring-1 ring-blue-50' : 'border-gray-200 hover:border-blue-300'}`}>
                     {/* Header */}
                     <div 
                         className={`flex items-center justify-between p-4 ${releaseType === 'SINGLE' ? '' : 'cursor-pointer'}`}
                         onClick={() => releaseType !== 'SINGLE' && toggleExpand(track.id)}
                     >
                         <div className="flex items-center gap-4">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-xs ${isExpanded ? 'bg-blue-500 text-white' : 'bg-gray-100 text-slate-500'}`}>
+                            <div className={`w-8 aspect-square rounded-full flex shrink-0 items-center justify-center font-medium text-xs ${isExpanded ? 'bg-blue-500 text-white' : 'bg-gray-100 text-slate-500'}`}>
                                 {track.trackNumber}
                             </div>
                             <div>
@@ -684,10 +798,54 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                         <div className="p-6 pt-2 border-t border-gray-100 animate-fade-in">
                             
                             {/* 1. File Uploads */}
-                            <div className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-100">
+                            <div id={`track-audio-upload-${track.id}`} className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-100 scroll-mt-24">
+                            <span id={`track-audio-${track.id}`} className="block scroll-mt-24" />
                                 <h4 className="text-base font-medium text-slate-700 mb-3 uppercase tracking-wider flex items-center gap-2">
                                     <FileAudio size={20} /> Files
                                 </h4>
+                                {releaseType === 'ALBUM' && (
+                                <div className="grid grid-cols-1 gap-6 max-w-xl">
+                                    <ChunkUploader
+                                        label="Master Audio File"
+                                        accept=".wav,.flac"
+                                        filePurpose="MASTER_AUDIO"
+                                        required={userRole !== 'Admin'}
+                                        existingUploadId={isUploadSessionId(track.audioFile) ? track.audioFile as string : null}
+                                        onUploadComplete={(id) => updateTrack(track.id, { audioFile: id, tempAudioPath: id })}
+                                        onRemove={() => updateTrack(track.id, { audioFile: null as any, tempAudioPath: undefined })}
+                                    />
+                                    <ChunkUploader
+                                        label="Clip Audio / Social Media Audio"
+                                        accept=".wav,.flac"
+                                        filePurpose="SOCIAL_MEDIA_AUDIO"
+                                        required={userRole !== 'Admin'}
+                                        existingUploadId={isUploadSessionId(track.audioClip) ? track.audioClip as string : null}
+                                        onUploadComplete={(id) => updateTrack(track.id, { audioClip: id, tempClipPath: id, previewStart: 0 })}
+                                        onRemove={() => updateTrack(track.id, { audioClip: null as any, tempClipPath: undefined, previewStart: undefined })}
+                                    />
+
+                                    {/* IPL Document (if required by version) */}
+                                    {['Cover','Remix','Remastered'].includes(data.version) && (
+                                      <div className="space-y-3">
+                                        <label className="text-xs font-medium text-slate-600 flex items-center justify-between">
+                                            <span>IPL Document (Izin Penggunaan Lagu)</span>
+                                            <Info size={20} className="text-slate-400" />
+                                        </label>
+                                        <input 
+                                            type="file"
+                                            onChange={(e) => handleFileChange(track.id, 'iplFile', e.target.files?.[0] || null)}
+                                            className="block w-full text-xs text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-xs file:font-medium cursor-pointer border border-gray-200 rounded-lg bg-white file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
+                                        />
+                                        {track.iplFile && (
+                                          <p className="text-xs text-amber-600 font-medium mt-2 truncate">
+                                            Attached: {typeof track.iplFile === 'string' ? 'Existing Document' : track.iplFile.name}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                </div>
+                                )}
+                                {releaseType !== 'ALBUM' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* FULL AUDIO */}
                                     <div className="md:col-span-2 space-y-3">
@@ -984,10 +1142,11 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                       </div>
                                     )}
                                 </div>
+                                )}
                             </div>
 
                             {/* 2. Basic Metadata */}
-                            <div className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6">
+                            <div id={`track-metadata-${track.id}`} className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6 scroll-mt-24">
                                 <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Track Metadata</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {releaseType === 'ALBUM' && (
@@ -1029,7 +1188,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                             </div>
 
                             {/* 3. Artists */}
-                            <div className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6">
+                            <div id={`track-artists-${track.id}`} className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6 scroll-mt-24">
                                 <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Artists</h4>
                                 <div className="space-y-3">
                                     <label className="block text-sm font-bold text-black mb-2 flex items-center gap-2">
@@ -1151,32 +1310,176 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             </div>
                                         </div>
                                     )}
+                                    {track.isInstrumental !== 'Yes' && (
+                                        <div className="transition-all duration-300 opacity-100">
+                                            <label className="block text-sm font-bold text-black mb-1">Lyrics Language <span className="text-red-500">*</span></label>
+                                            <div className="relative">
+                                                <select
+                                                    value={(track as any).lyricsLanguage || data.language || ''}
+                                                    onChange={(e) => updateTrack(track.id, { lyricsLanguage: e.target.value } as any)}
+                                                    className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
+                                                >
+                                                    <option value="">Select Language...</option>
+                                                    {LANGUAGES.map(opt => (
+                                                        <option key={opt} value={opt} className="text-black">{opt}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+                                                    <ChevronDown size={16} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <TrackGenreSelectors track={track} updateTrack={updateTrack} />
+                                <TrackGenreSelectors track={track} releaseData={data} updateTrack={updateTrack} />
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-sm font-bold text-black mb-1">Composer <span className="text-red-500">*</span></label>
-                                        <input 
-                                            value={track.composer}
-                                            onChange={(e) => updateTrack(track.id, { composer: e.target.value })}
-                                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                            placeholder="Full Name"
-                                        />
+                                        <div className="space-y-2">
+                                            {getNamedList(track, 'songwriters', track.composer).map((composer, idx, list) => (
+                                                <div key={idx} className="flex gap-2">
+                                                    <input
+                                                        value={composer.name}
+                                                        onChange={(e) => {
+                                                            const next = [...list];
+                                                            next[idx] = { ...next[idx], name: e.target.value };
+                                                            updateNamedList(track.id, 'songwriters', next);
+                                                        }}
+                                                        className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                        placeholder="Full Name"
+                                                    />
+                                                    {list.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateNamedList(track.id, 'songwriters', list.filter((_, i) => i !== idx))}
+                                                            className="p-1.5 text-red-500 bg-white border border-gray-200 hover:bg-red-50 rounded transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateNamedList(track.id, 'songwriters', [...getNamedList(track, 'songwriters', track.composer), { name: '' }])}
+                                            className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-2"
+                                        >
+                                            <PlusCircle size={16} /> Add Composer
+                                        </button>
                                     </div>
                                     {track.isInstrumental !== 'Yes' && (
                                     <div>
                                         <label className="block text-sm font-bold text-black mb-1">Lyricist <span className="text-red-500">*</span></label>
-                                        <input 
-                                            value={track.lyricist}
-                                            onChange={(e) => updateTrack(track.id, { lyricist: e.target.value })}
-                                            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                            placeholder="Full Name"
-                                        />
+                                        <div className="space-y-2">
+                                            {getNamedList(track, 'lyricists', track.lyricist).map((lyricist, idx, list) => (
+                                                <div key={idx} className="flex gap-2">
+                                                    <input
+                                                        value={lyricist.name}
+                                                        onChange={(e) => {
+                                                            const next = [...list];
+                                                            next[idx] = { ...next[idx], name: e.target.value };
+                                                            updateNamedList(track.id, 'lyricists', next);
+                                                        }}
+                                                        className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                        placeholder="Full Name"
+                                                    />
+                                                    {list.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateNamedList(track.id, 'lyricists', list.filter((_, i) => i !== idx))}
+                                                            className="p-1.5 text-red-500 bg-white border border-gray-200 hover:bg-red-50 rounded transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateNamedList(track.id, 'lyricists', [...getNamedList(track, 'lyricists', track.lyricist), { name: '' }])}
+                                            className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-2"
+                                        >
+                                            <PlusCircle size={16} /> Add Lyricist
+                                        </button>
                                     </div>
                                     )}
                                 </div>
+                            </div>
+
+                            <div id={`track-details-${track.id}`} className="border border-gray-200 rounded-lg p-3 mb-4 relative scroll-mt-24">
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Additional Writers</h4>
+                                <div className="space-y-2">
+                                    {((track as any).additionalWriters || []).map((writer: any, idx: number) => (
+                                        <div key={idx} className="flex flex-col md:flex-row gap-2">
+                                            <select
+                                                value={writer.roleName || ''}
+                                                onChange={(e) => handleTrackArrayChange(track.id, 'additionalWriters', idx, 'roleName', e.target.value)}
+                                                className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white text-black font-semibold"
+                                            >
+                                                <option value="">Select Role...</option>
+                                                {WRITER_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
+                                            </select>
+                                            <input
+                                                value={writer.name || ''}
+                                                onChange={(e) => handleTrackArrayChange(track.id, 'additionalWriters', idx, 'name', e.target.value)}
+                                                className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                placeholder="Writer Name"
+                                            />
+                                            <button
+                                                onClick={() => removeTrackArrayItem(track.id, 'additionalWriters', idx)}
+                                                className="p-1.5 text-red-500 bg-white border border-gray-200 hover:bg-red-50 rounded transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => addTrackArrayItem(track.id, 'additionalWriters')}
+                                    className="mt-2 text-xs font-medium text-slate-500 hover:text-blue-600 flex items-center gap-2 px-3 py-1.5 border border-dashed border-gray-300 rounded hover:border-blue-400 transition-all bg-white"
+                                >
+                                    <UserPlus size={16} /> Add Additional Writer
+                                </button>
+                            </div>
+
+                            <div id={`track-production-${track.id}`} className="border border-gray-200 rounded-lg p-3 mb-4 relative scroll-mt-24">
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Production & Additional Production</h4>
+                                <div className="space-y-2">
+                                    {((track as any).productionCredits || []).map((credit: any, idx: number) => (
+                                        <div key={idx} className="flex flex-col md:flex-row gap-2">
+                                            <select
+                                                value={credit.roleName || ''}
+                                                onChange={(e) => handleTrackArrayChange(track.id, 'productionCredits', idx, 'roleName', e.target.value)}
+                                                className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white text-black font-semibold"
+                                            >
+                                                <option value="">Select Role...</option>
+                                                {PRODUCTION_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
+                                            </select>
+                                            <input
+                                                value={credit.name || ''}
+                                                onChange={(e) => handleTrackArrayChange(track.id, 'productionCredits', idx, 'name', e.target.value)}
+                                                className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                placeholder="Name"
+                                            />
+                                            <button
+                                                onClick={() => removeTrackArrayItem(track.id, 'productionCredits', idx)}
+                                                className="p-1.5 text-red-500 bg-white border border-gray-200 hover:bg-red-50 rounded transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => addTrackArrayItem(track.id, 'productionCredits')}
+                                    className="mt-2 text-xs font-medium text-slate-500 hover:text-blue-600 flex items-center gap-2 px-3 py-1.5 border border-dashed border-gray-300 rounded hover:border-blue-400 transition-all bg-white"
+                                >
+                                    <UserPlus size={16} /> Add Production
+                                </button>
                             </div>
 
                             {/* 5. Lyrics & Contributors */}
@@ -1192,6 +1495,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                               </div>
                             )}
 
+                            {releaseType !== 'ALBUM' && (
                             <div className="border border-gray-200 rounded-lg p-3 mb-4 relative">
                                 <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Additional Contributors</h4>
                                 
@@ -1238,6 +1542,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     <UserPlus size={16} /> Add Contributor
                                 </button>
                             </div>
+                            )}
 
                         </div>
                     )}

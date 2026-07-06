@@ -1,6 +1,7 @@
+/// <reference types="vite/client" />
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useBranding } from './contexts/BrandingContext';
+import { useBranding } from './src/contexts/BrandingContext';
 import { Sidebar } from './components/Sidebar';
 import { Footer } from './components/Footer';
 import { ReleaseTypeSelection } from './screens/ReleaseTypeSelection';
@@ -37,15 +38,15 @@ import { ReleaseDetailModal } from './components/ReleaseDetailModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AlertModal } from './components/AlertModal';
 import { FloatingSupportBubble } from './components/FloatingSupportBubble';
-import { ReleaseType, ReleaseData, ReportData, Notification } from './types';
+import { ReleaseType, ReleaseData, ReportData, Notification } from './src/types';
 import { Menu, Bell, User, LogOut, ChevronDown, AlertTriangle, CheckCircle, Info, X, Loader2, Shield } from 'lucide-react';
-import { api, API_BASE_URL } from './utils/api';
+import { api, API_BASE_URL } from './src/utils/api';
 import socialLogo from './assets/platforms/social.svg';
 import youtubeMusicLogo from './assets/platforms/youtube-music.svg';
 import allDspLogo from './assets/platforms/alldsp.svg';
 import PublishingWriterDetail from './screens/publishing/PublishingWriterDetail';
-import { getProfileImageUrl } from './utils/imageUtils';
-import { getTextColorClass } from './utils/colorUtils';
+import { getProfileImageUrl } from './src/utils/imageUtils';
+import { getTextColorClass } from './src/utils/colorUtils';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Artists } from './screens/Artists';
 import { ArtistDetail } from './screens/ArtistDetail';
@@ -205,7 +206,7 @@ const App: React.FC = () => {
         setDataFetchError(null);
 
         const p1 = api.getReleases(token)
-            .then(data => {
+            .then((data: any[]) => {
                 const mapped = data.map((r: any) => ({ ...r, id: String(r.id), ownerDisplayName: resolveOwnerName(r) }));
                 setAllReleases(mapped);
                 // Initialize status tracking ref
@@ -222,24 +223,24 @@ const App: React.FC = () => {
 
         // Fetch Songs for status tracking
         const pSongs = api.publishing.getSongs(token)
-            .then(data => {
+            .then((data: any) => {
                 if (Array.isArray(data)) {
                      data.forEach((s: any) => {
                          prevSongStatusRef.current[String(s.id)] = s.status;
                      });
                 }
             })
-            .catch(err => console.warn('Failed to fetch songs for status tracking', err));
+            .catch((err: any) => console.warn('Failed to fetch songs for status tracking', err));
 
         const p2 = api.getReports(token)
-            .then(data => setReportData(data))
+            .then((data: any) => setReportData(data))
             .catch((err: any) => {
                 if (err?.message === 'AUTH') return handleAuthExpired();
                 console.warn('Failed to fetch reports:', err);
             });
 
         const p4 = api.getAggregators(token)
-            .then(aggs => {
+            .then((aggs: any) => {
                 if (aggs && Array.isArray(aggs) && aggs.length > 0) {
                     setAggregators(aggs);
                 }
@@ -251,7 +252,7 @@ const App: React.FC = () => {
         const promises: Promise<any>[] = [p1, p2, p4];
         if (userRole === 'Admin' || userRole === 'Operator') {
           const p3 = api.getUsers(token)
-              .then(users => {
+              .then((users: any) => {
                   setAllUsers(users || []);
                   const map: Record<string, any> = {};
                   (users || []).forEach((u: any) => { if (u.id !== undefined) map[String(u.id)] = u; });
@@ -422,7 +423,7 @@ const App: React.FC = () => {
   // Profile fetch isolated (avoid retriggering notification interval)
   useEffect(() => {
     if (!isAuthenticated || !token) return;
-    api.getProfile(token).then(user => {
+    api.getProfile(token).then((user: any) => {
         setCurrentUserData(user);
         if (user.role && user.role !== userRole) {
             setUserRole(user.role);
@@ -432,7 +433,7 @@ const App: React.FC = () => {
             setUserStatus(user.status);
             localStorage.setItem('cms_status', user.status);
         }
-    }).catch(err => {
+    }).catch((err: any) => {
         if (err?.message === 'AUTH') return handleAuthExpired();
         console.error("Failed to fetch profile", err);
     });
@@ -595,7 +596,7 @@ const App: React.FC = () => {
       try {
           await api.deleteRelease(token, releaseToDelete.id);
           setAllReleases(prev => prev.filter(r => r.id !== releaseToDelete.id));
-          setViewingRelease(prev => (prev && prev.id === releaseToDelete.id ? null : prev));
+          setViewingRelease((prev: any) => (prev && prev.id === releaseToDelete.id ? null : prev));
           navigate('/releases');
       } catch (err: any) {
           setAlertState({
@@ -636,12 +637,12 @@ const App: React.FC = () => {
 
           // Force re-fetch to ensure data consistency
            if (token) {
-               api.getReleases(token).then(freshData => {
+               api.getReleases(token).then((freshData: any) => {
                    if (Array.isArray(freshData)) {
                        const mapped = freshData.map((r: any) => ({ ...r, id: String(r.id), ownerDisplayName: resolveOwnerName(r) }));
                        setAllReleases(mapped);
                    }
-               }).catch(err => console.warn("Background refresh failed", err));
+               }).catch((err: any) => console.warn("Background refresh failed", err));
            }
 
           navigate('/releases');
@@ -665,12 +666,12 @@ const App: React.FC = () => {
      
      // Re-fetch to ensure consistency (especially for status changes that might trigger other backend updates)
       if (token) {
-         api.getReleases(token).then(freshData => {
+         api.getReleases(token).then((freshData: any) => {
              if (Array.isArray(freshData)) {
                  const mapped = freshData.map((r: any) => ({ ...r, id: String(r.id), ownerDisplayName: resolveOwnerName(r) }));
                  setAllReleases(mapped);
              }
-         }).catch(err => console.warn("Background refresh failed", err));
+         }).catch((err: any) => console.warn("Background refresh failed", err));
       }
   };
 
@@ -871,7 +872,7 @@ const App: React.FC = () => {
     if (path === '/login' || path.startsWith('/login/')) {
          return (
             <Routes>
-                <Route path="/login" element={<LoginScreen onLogin={handleLogin} initialMode="login" />} />
+                <Route path="/login" element={<LoginScreen onLogin={handleLogin} />} />
                 <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
          );
@@ -892,7 +893,7 @@ const App: React.FC = () => {
     return (
       <ErrorBoundary>
         <Routes>
-            <Route path="/login" element={<LoginScreen onLogin={handleLogin} initialMode="login" />} />
+            <Route path="/login" element={<LoginScreen onLogin={handleLogin} />} />
             <Route path="/register" element={<RegisterScreen onLogin={handleLogin} />} />
             <Route path="/user-status" element={<UserStatusScreen username={''} status={'Pending'} />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -1189,6 +1190,7 @@ const App: React.FC = () => {
                     onSave={handleSaveRelease}
                     initialData={editingRelease || undefined}
                     userRole={userRole}
+                    token={token}
                 />
             } />
             <Route path="/new-release/album" element={
@@ -1206,6 +1208,7 @@ const App: React.FC = () => {
                     onSave={handleSaveRelease}
                     initialData={editingRelease || undefined}
                     userRole={userRole}
+                    token={token}
                 />
             } />
             <Route path="/releases" element={
@@ -1227,7 +1230,7 @@ const App: React.FC = () => {
             <Route path="/user/reports/analytics" element={<UserAnalytics releases={allReleases} reportData={reportData} currentUserData={currentUserData} token={token} onAuthExpired={handleAuthExpired} />} />
             <Route path="/user/reports/payments" element={<UserPayments reportData={reportData} currentUserData={currentUserData} token={token} onAuthExpired={handleAuthExpired} />} />
             
-            <Route path="/tickets" element={<Tickets token={token} userRole={userRole} onAuthExpired={handleAuthExpired} />} />
+            <Route path="/tickets" element={<Tickets token={token} userRole={userRole} />} />
             <Route path="/tickets/:id" element={<TicketDetail token={token} userRole={userRole} onAuthExpired={handleAuthExpired} />} />
 
             <Route path="/me/profile" element={<MyProfile currentUserData={currentUserData} />} />
@@ -1278,6 +1281,24 @@ const App: React.FC = () => {
             <Route path="/roles/user" element={<RoleUserPage />} />
             <Route path="/users/:id" element={<UserDetailPage isImpersonating={isImpersonating} />} />
             <Route path="/users/:id/edit" element={<UserEditPage />} />
+            
+            <Route path="/statistics/aggregator" element={
+                <Statistics 
+                    releases={allReleases}
+                    reportData={reportData}
+                    token={token}
+                    defaultTab="aggregator"
+                />
+            } />
+            <Route path="/statistics/publishing" element={
+                <Statistics 
+                    releases={allReleases}
+                    reportData={reportData}
+                    token={token}
+                    defaultTab="publishing"
+                />
+            } />
+
             <Route path="/reports" element={
                 <ReportScreen 
                     mode="view" 

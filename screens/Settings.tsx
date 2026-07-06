@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Plus, Trash2, Globe, Edit2, X, Image as ImageIcon, Upload, Shield, Server, Database, GitBranch, RefreshCw, Play, AlertTriangle, CheckCircle, Terminal, Loader2 } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   aggregators: string[];
@@ -59,6 +59,30 @@ interface SystemLog {
 export const Settings: React.FC<Props> = ({ aggregators, onSaveAggregators }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'login_page' | 'system' | 'security' | 'gateway'>('general');
   const [token] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      if (['general', 'login_page', 'system', 'security', 'gateway'].includes(hash)) {
+        setActiveTab(hash as any);
+      }
+      
+      const handleHashChange = () => {
+        const newHash = window.location.hash.replace('#', '');
+        if (['general', 'login_page', 'system', 'security', 'gateway'].includes(newHash)) {
+          setActiveTab(newHash as any);
+        }
+      };
+      window.addEventListener('hashchange', handleHashChange);
+      return () => window.removeEventListener('hashchange', handleHashChange);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash !== `#${activeTab}`) {
+      window.history.replaceState(null, '', `#${activeTab}`);
+    }
+  }, [activeTab]);
 
   // --- AGGREGATOR LOGIC ---
   const [newAgg, setNewAgg] = useState('');
@@ -911,7 +935,7 @@ export const Settings: React.FC<Props> = ({ aggregators, onSaveAggregators }) =>
                         <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
                             <input 
                                 type="checkbox"
-                                checked={branding.enable_registration === 'true' || branding.enable_registration === true}
+                                checked={branding.enable_registration === 'true'}
                                 onChange={(e) => setBranding({...branding, enable_registration: e.target.checked ? 'true' : 'false'})}
                                 className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                             />

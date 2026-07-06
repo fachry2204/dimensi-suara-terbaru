@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Users, User as UserIcon, Shield, Search, CheckCircle, XCircle } from 'lucide-react';
-import { User } from '../types';
-import { api } from '../utils/api';
+import { User } from '@/types';
+import { api } from '@/utils/api';
 import { useNavigate } from 'react-router-dom';
 import { AlertModal, AlertState } from '../components/AlertModal';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ReportData } from '../types';
+import { ReportData } from '@/types';
 import { DollarSign, Loader2, Music } from 'lucide-react';
-import { api } from '../utils/api';
+import { api } from '@/utils/api';
 
 interface Props {
   reportData: ReportData[];

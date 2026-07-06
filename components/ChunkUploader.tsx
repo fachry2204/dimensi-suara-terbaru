@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { assetUrl } from '@/utils/url';
 
 interface ChunkUploaderProps {
   label: string;
@@ -9,9 +10,26 @@ interface ChunkUploaderProps {
   onUploadComplete: (uploadId: string) => void;
   onRemove: () => void;
   required?: boolean;
+  /** Pass the already-uploaded ID so state is restored when navigating back between wizard steps */
+  existingUploadId?: string | null;
 }
 
-const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks
+const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for proxy stability
+
+const readJsonResponse = async (res: Response) => {
+  const text = await res.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    const isHtml = text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html');
+    const message = isHtml
+      ? `Server mengembalikan halaman error (${res.status}). Silakan ulangi upload.`
+      : text.slice(0, 200);
+    throw new Error(message);
+  }
+};
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -20,15 +38,25 @@ function formatDuration(seconds: number) {
 }
 
 export const ChunkUploader: React.FC<ChunkUploaderProps> = ({ 
-  label, accept, filePurpose, onUploadComplete, onRemove, required 
+  label, accept, filePurpose, onUploadComplete, onRemove, required, existingUploadId 
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
-  const [uploadId, setUploadId] = useState<string | null>(null);
-  const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'VALIDATING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [uploadId, setUploadId] = useState<string | null>(existingUploadId || null);
+  const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'VALIDATING' | 'SUCCESS' | 'ERROR'>(
+    existingUploadId ? 'SUCCESS' : 'IDLE'
+  );
   const [errorMessage, setErrorMessage] = useState('');
   const [duration, setDuration] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Restore SUCCESS state if parent still holds an uploadId (e.g., user navigated back)
+  useEffect(() => {
+    if (existingUploadId && status === 'IDLE') {
+      setUploadId(existingUploadId);
+      setStatus('SUCCESS');
+    }
+  }, [existingUploadId]);
 
   const reset = async () => {
     if (uploadId) {
@@ -87,6 +115,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       const initRes = await fetch('/api/uploads/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           filePurpose,
           fileName: selectedFile.name,
@@ -96,7 +125,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
         })
       });
 
-      const initData = await initRes.json();
+      const initData = await readJsonResponse(initRes);
       if (!initRes.ok || !initData.success) throw new Error(initData.message || 'Failed to initialize upload');
       
       const currentUploadId = initData.uploadId;
@@ -104,6 +133,11 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
       // 2. Upload chunks
       for (let i = 0; i < totalChunks; i++) {
+        // Delay 100ms antar chunk untuk mencegah kemacetan socket/proxy pada server lokal
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         const start = i * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
         const chunk = selectedFile.slice(start, end);
@@ -114,10 +148,22 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
         const chunkRes = await fetch(`/api/uploads/${currentUploadId}/chunk`, {
           method: 'POST',
+          credentials: 'include',
           body: formData
         });
 
-        if (!chunkRes.ok) throw new Error('Failed to upload file chunk');
+        if (!chunkRes.ok) {
+          let errMsg = 'Terjadi kesalahan saat upload, silakan ulangi.';
+          try {
+            const errData = await readJsonResponse(chunkRes);
+            if (errData && errData.message) {
+              errMsg = `${errData.message}. Silakan ulangi.`;
+            }
+          } catch (jsonErr: any) {
+            errMsg = jsonErr.message || errMsg;
+          }
+          throw new Error(errMsg);
+        }
         
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
@@ -125,12 +171,13 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       // 3. Complete and Validate
       setStatus('VALIDATING');
       const completeRes = await fetch(`/api/uploads/${currentUploadId}/complete`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include'
       });
 
-      const completeData = await completeRes.json();
+      const completeData = await readJsonResponse(completeRes);
       if (!completeRes.ok || !completeData.success) {
-        throw new Error(completeData.message || 'Invalid file');
+        throw new Error(completeData.message || 'File tidak valid atau rusak');
       }
 
       setDuration(completeData.data?.duration || null);
@@ -138,12 +185,11 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       onUploadComplete(currentUploadId);
 
     } catch (err: any) {
-      console.error(err);
       setStatus('ERROR');
-      setErrorMessage(err.message || 'An error occurred during upload');
+      setErrorMessage(err.message || 'Terjadi kesalahan saat upload, silakan ulangi.');
       Swal.fire({
-        title: 'Upload Failed',
-        text: err.message || 'An error occurred during upload',
+        title: 'Upload Gagal',
+        text: err.message || 'Terjadi kesalahan saat upload, silakan ulangi.',
         icon: 'error',
         confirmButtonColor: '#d33'
       });
@@ -206,9 +252,11 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           <div className="flex items-center">
             <CheckCircle className="text-green-500 mr-2" size={20} />
             <div className="truncate flex-1">
-              <p className="text-sm font-medium text-green-800 truncate pr-6">{file?.name}</p>
+              <p className="text-sm font-medium text-green-800 truncate pr-6">
+                {file?.name || `File uploaded (ID: ${uploadId?.slice(0, 8)}...)`}
+              </p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded font-medium">Successfully verified</span>
+                <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded font-medium">✓ Uploaded &amp; verified</span>
                 {duration && (
                   <span className="text-xs text-green-700 bg-green-200/50 border border-green-200 px-2 py-0.5 rounded font-semibold tracking-wide">
                     ⏱ {formatDuration(duration)}
@@ -224,6 +272,17 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           >
             <X size={16} />
           </button>
+          {/* Audio Preview */}
+          {(file || (uploadId && typeof uploadId === 'string')) && (
+            <div className="mt-2 w-full pr-10">
+              <audio 
+                controls 
+                className="w-full h-8 outline-none" 
+                controlsList="nodownload"
+                src={file ? URL.createObjectURL(file) : assetUrl(uploadId as string)} 
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -238,17 +297,20 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           </button>
           <div className="flex items-center text-red-600 mb-1">
             <AlertCircle size={18} className="mr-1.5" />
-            <span className="text-sm font-bold">Upload Failed</span>
+            <span className="text-sm font-bold">Upload Gagal</span>
           </div>
           <p className="text-xs text-red-600">{errorMessage}</p>
           <button 
             type="button"
-            onClick={() => {
-              if (fileInputRef.current) fileInputRef.current.click();
+            onClick={async () => {
+              await reset();
+              setTimeout(() => {
+                fileInputRef.current?.click();
+              }, 100);
             }}
             className="mt-3 text-xs font-medium bg-white px-3 py-1.5 border border-red-200 rounded text-red-600 hover:bg-red-50 shadow-sm"
           >
-            Try Again
+            Ulangi Upload
           </button>
         </div>
       )}

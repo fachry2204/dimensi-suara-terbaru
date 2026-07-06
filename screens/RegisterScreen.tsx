@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Building2, CheckCircle2, ChevronLeft } from 'lucide-react';
-import { api } from '../utils/api';
-import { COUNTRIES_WITH_DIAL_CODES } from '../constants';
-import { getShadowColor } from '../utils/colorUtils';
+import { api } from '@/utils/api';
+import { COUNTRIES_WITH_DIAL_CODES } from '@/constants';
+import { getShadowColor } from '@/utils/colorUtils';
 
 type Props = {
   onLogin: (user: any, token: string) => void;

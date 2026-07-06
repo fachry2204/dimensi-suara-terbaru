@@ -43,14 +43,63 @@ export const SidebarMenu = [
             }
         ]
     },
+    {
+        group: 'Publishing',
+        contents: [
+            {
+                id: 'aggregator_publishing',
+                name: 'Publishing',
+                icon: <Icons.Book2 />,
+                path: '/publishing',
+                childrens: [
+                    {
+                        name: 'Data Pencipta',
+                        path: '/publishing/writer',
+                    },
+                    {
+                        name: 'Data Lagu',
+                        path: '/publishing/songs',
+                    },
+                    {
+                        name: 'Analitik',
+                        path: '/publishing/analytics',
+                    },
+                    {
+                        name: 'Laporan',
+                        path: '/publishing/reports',
+                    }
+                ]
+            }
+        ]
+    },
 
     {
         group: 'Settings',
         contents: [
             {
-                name: 'Users',
+                name: 'Data User',
                 icon: <Icons.UserPlus />,
                 path: '/users',
+            },
+            {
+                id: 'settings_menu',
+                name: 'Setting',
+                icon: <Icons.Settings />,
+                path: '/settings',
+                childrens: [
+                    {
+                        name: 'Setting System',
+                        path: '/settings#system',
+                    },
+                    {
+                        name: 'Setting Aggregator',
+                        path: '/settings#general',
+                    },
+                    {
+                        name: 'Setting Email',
+                        path: '/settings#gateway',
+                    }
+                ]
             }
         ]
     }
