@@ -32,12 +32,13 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
   const preReleaseYTRef = React.useRef<HTMLInputElement>(null);
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-none">
       <div className="text-center mb-8">
         <h2 className="text-sm font-bold text-slate-900 mb-1">Release Specifics</h2>
         <p className="text-xs text-slate-600">Distribution details and dates.</p>
       </div>
 
+      {releaseType !== 'ALBUM' && (
       <div className="border border-gray-200 rounded-lg p-6 relative mt-6 mb-8">
         <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Distribution History</h3>
         
@@ -81,7 +82,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
             <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-in-down space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-bold text-slate-900 mb-1">Original Release Date</label>
+                        <label className="block text-sm font-bold text-slate-900 mb-1">Tanggal Rilis Asli</label>
                         <div className="relative group max-w-xs">
                             <input 
                                ref={originalDateInputRef}
@@ -133,6 +134,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
             </div>
         )}
       </div>
+      )}
 
       <div className="border border-gray-200 rounded-lg p-6 relative mt-6 mb-8">
         <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Distribution Channels</h3>
@@ -190,7 +192,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
           <div className="border border-gray-200 rounded-lg p-6 relative mt-6">
             <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Schedule</h3>
             <div>
-                <label className="block text-sm font-bold text-slate-900 mb-1">Planned Release Date</label>
+                <label className="block text-sm font-bold text-slate-900 mb-1">Tanggal Rilis Direncanakan</label>
                 <div className="relative group max-w-xs">
                     <input 
                         ref={dateInputRef}

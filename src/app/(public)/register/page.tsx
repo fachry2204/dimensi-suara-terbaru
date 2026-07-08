@@ -6,6 +6,7 @@ import { AlertCircle, Building2, CheckCircle2, ChevronLeft } from 'lucide-react'
 import { api } from '@/utils/api';
 import { COUNTRIES_WITH_DIAL_CODES } from '@/constants';
 import { getShadowColor } from '@/utils/colorUtils';
+import { assetUrl } from '@/utils/url';
 
 
 
@@ -32,7 +33,7 @@ export default function RegisterScreen() {
       logo: null,
       login_background: null,
       login_title: 'Agregator & Publishing Musik',
-      login_footer: 'Protected CMS Area. Authorized personnel only.',
+      login_footer: 'Area CMS Terlindungi. Hanya untuk personel yang berwenang.',
       login_button_color: 'linear-gradient(to right, #2563eb, #0891b2)',
       login_form_bg_color: '#ffffff',
       enable_registration: 'true',
@@ -51,7 +52,7 @@ export default function RegisterScreen() {
     }, 3000);
 
     // Check if registration is enabled & fetch branding
-    fetch('/api/settings/branding')
+    fetch('/api/settings/branding', { cache: 'no-store' })
       .then(res => {
         return res.json();
       })
@@ -174,7 +175,7 @@ export default function RegisterScreen() {
         setIsWilayahLoading(true);
         setWilayahError('');
         const res = await fetch('/api/wilayah/provinces');
-        if (!res.ok) throw new Error('Failed to load provinces');
+        if (!res.ok) throw new Error('Gagal memuat provinsi');
         const json = await res.json();
         const data = (json && json.data) || [];
         setProvinces(data);
@@ -318,7 +319,7 @@ export default function RegisterScreen() {
         setIsWilayahLoading(true);
         setWilayahError('');
         const res = await fetch(`/api/wilayah/regencies/${provinceCode}`);
-        if (!res.ok) throw new Error('Failed to load regencies');
+        if (!res.ok) throw new Error('Gagal memuat kota/kabupaten');
         const json = await res.json();
         const data = (json && json.data) || [];
         setRegencies(data);
@@ -344,7 +345,7 @@ export default function RegisterScreen() {
         setIsWilayahLoading(true);
         setWilayahError('');
         const res = await fetch(`/api/wilayah/districts/${regencyCode}`);
-        if (!res.ok) throw new Error('Failed to load districts');
+        if (!res.ok) throw new Error('Gagal memuat kecamatan');
         const json = await res.json();
         const data = (json && json.data) || [];
         setDistricts(data);
@@ -368,7 +369,7 @@ export default function RegisterScreen() {
         setIsWilayahLoading(true);
         setWilayahError('');
         const res = await fetch(`/api/wilayah/villages/${districtCode}`);
-        if (!res.ok) throw new Error('Failed to load villages');
+        if (!res.ok) throw new Error('Gagal memuat kelurahan');
         const json = await res.json();
         const data = (json && json.data) || [];
         setVillages(data);
@@ -384,10 +385,10 @@ export default function RegisterScreen() {
   // Early return is moved here to ensure all hooks are called first
   if (checkingRegistration) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="min-h-screen flex items-center justify-center bg-black">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-slate-600">Memeriksa status pendaftaran...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <p className="text-slate-200">Memeriksa status pendaftaran...</p>
             </div>
         </div>
     );
@@ -547,7 +548,7 @@ export default function RegisterScreen() {
       const pwd = regPassword || '';
       const strong = pwd.length >= 8 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd);
       if (!strong) {
-        setRegError('Password kurang kuat. Gunakan ≥8 char, huruf besar, kecil, angka, simbol.');
+        setRegError('Password kurang kuat. Gunakan minimal 8 karakter, huruf besar, kecil, angka, dan simbol.');
         setRegErrorModalOpen(true);
         return false;
       }
@@ -762,16 +763,16 @@ export default function RegisterScreen() {
         <button
           type="button"
           onClick={() => handleSelectAccountType('PERSONAL')}
-          className={`flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium
-            ${accountType === 'PERSONAL' ? 'bg-green-100 text-green-700 ring-2 ring-green-300' : ''}`}
+          className={`account-type-option account-type-personal flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-medium
+            ${accountType === 'PERSONAL' ? 'account-type-active' : ''}`}
         >
           Personal
         </button>
         <button
           type="button"
           onClick={() => handleSelectAccountType('COMPANY')}
-          className={`flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium
-            ${accountType === 'COMPANY' ? 'bg-green-100 text-green-700 ring-2 ring-green-300' : ''}`}
+          className={`account-type-option account-type-company flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-medium
+            ${accountType === 'COMPANY' ? 'account-type-active' : ''}`}
         >
           <Building2 size={14} />
           Perusahaan
@@ -1081,7 +1082,7 @@ export default function RegisterScreen() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Retype Password</label>
+          <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Ulangi Password</label>
           <input
             type="password"
             value={regPasswordConfirm}
@@ -1229,12 +1230,12 @@ export default function RegisterScreen() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
+    <div className="register-screen min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
       {/* Background Layer with Opacity */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-500 bg-gradient-to-br from-blue-50 via-white to-blue-100"
+        className="absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-500 bg-black"
         style={{ 
-            backgroundImage: branding.login_background ? `url(${branding.login_background})` : undefined,
+            backgroundImage: branding.login_background ? `url(${assetUrl(branding.login_background)})` : undefined,
             opacity: (branding.login_bg_opacity ?? 100) / 100
         }}
       />
@@ -1329,7 +1330,7 @@ export default function RegisterScreen() {
                 isRegistering ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:brightness-110'
               }`}
             >
-              {isRegistering ? 'Memproses...' : 'Submit Pendaftaran'}
+              {isRegistering ? 'Memproses...' : 'Kirim Pendaftaran'}
             </button>
           )}
         </div>

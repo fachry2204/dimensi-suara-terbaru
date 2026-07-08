@@ -9,7 +9,7 @@ const PageFooter = () => {
                 <Row>
                     <Col xl={8}>
                         <p className="footer-text">
-                            <span className="copy-text">Dimensi Suara © 2026 All rights reserved.</span> </p>
+                            <span className="copy-text">Dimensi Suara © 2026 Hak cipta dilindungi.</span> </p>
                     </Col>
                     <Col xl={4}>
                         <Link href="#" className="footer-extr-link link-default">

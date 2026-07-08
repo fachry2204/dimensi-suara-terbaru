@@ -54,7 +54,7 @@ export const RevenueScreen: React.FC<Props> = ({ data, token, defaultTab = 'aggr
   const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-fade-in space-y-8">
+    <div className="p-8 w-full max-w-none animate-fade-in space-y-8">
       {/* <div className="flex items-center gap-4">
           <button 
             onClick={() => setActiveTab('aggregator')}

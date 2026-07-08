@@ -3,6 +3,9 @@ export default {
   content: [
     "./index.html",
     "./*.{js,ts,jsx,tsx}",
+    "./src/app/**/*.{js,ts,jsx,tsx}",
+    "./src/components/**/*.{js,ts,jsx,tsx}",
+    "./src/layout/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./screens/**/*.{js,ts,jsx,tsx}",
   ],

@@ -6,6 +6,13 @@ import { ReleaseData } from '@/types';
 import { api } from '@/utils/api';
 import { ReleaseWizard } from '../../../../../../screens/ReleaseWizard';
 
+function normalizeInstrumental(value: any) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return value === true || value === 1 || normalized === '1' || normalized === 'yes' || normalized === 'true'
+    ? 'Yes'
+    : 'No';
+}
+
 export default function EditReleasePage() {
   const params = useParams();
   const id = params?.id as string;
@@ -28,7 +35,7 @@ export default function EditReleasePage() {
 
   useEffect(() => {
     const fetchDetail = async () => {
-      if (!id) { setError('Invalid release id'); setLoading(false); return; }
+      if (!id) { setError('ID rilis tidak valid'); setLoading(false); return; }
       try {
         const raw: any = await api.getRelease(token, id);
         const mapArtists = (arr: any) => {
@@ -42,7 +49,26 @@ export default function EditReleasePage() {
           }
           return [];
         };
+        const mapContributors = (arr: any) => {
+          const items = Array.isArray(arr) ? arr : [];
+          return items.map((item: any) => {
+            const roleName = item?.roleName || item?.role_name || item?.role || '';
+            return {
+              ...item,
+              type: item?.type || 'Performer',
+              role: roleName,
+              roleName
+            };
+          });
+        };
         const primaryArtists = mapArtists(raw.primaryArtists);
+        const pickTrackFile = (track: any, keys: string[]) => {
+          for (const key of keys) {
+            const value = track?.[key];
+            if (typeof value === 'string' && value.trim()) return value;
+          }
+          return null;
+        };
 
         const ownerDisplayName = raw.ownerDisplayName || '';
 
@@ -71,12 +97,13 @@ export default function EditReleasePage() {
             const f = mapArtists(t.featuredArtists ?? t.featured_artists);
             return {
               id: String(t.id ?? `${raw.id}_${t.track_number}`),
-              audioFile: t.audio_file || null,
-              audioClip: t.audio_clip || null,
+              audioFile: pickTrackFile(t, ['audioFile', 'audio_file', 'resolved_audio_file', 'tempAudioPath', 'temp_audio_path']),
+              audioClip: pickTrackFile(t, ['audioClip', 'audio_clip', 'resolved_audio_clip', 'tempClipPath', 'temp_clip_path']),
               videoFile: null,
               trackNumber: String(t.track_number ?? ''),
               releaseDate: '',
               isrc: t.isrc || '',
+              isNewRelease: !t.isrc,
               title: t.title || '',
               duration: t.duration || '',
               artists: [
@@ -87,12 +114,13 @@ export default function EditReleasePage() {
               genreId: t.genre_id || t.genreId,
               subGenre: t.sub_genre || '',
               subgenreId: t.subgenre_id || t.subgenreId,
-              isInstrumental: t.is_instrumental ? 'Yes' : 'No',
+              isInstrumental: normalizeInstrumental(t.isInstrumental ?? t.is_instrumental),
               explicitLyrics: t.explicit_lyrics || 'No',
+              lyricsLanguage: t.lyricsLanguage || t.lyrics_language || t.language || raw.language || '',
               composer: t.composer || '',
               lyricist: t.lyricist || '',
               lyrics: t.lyrics || '',
-              contributors: Array.isArray(t.contributors) ? t.contributors : [],
+              contributors: mapContributors(t.contributors),
               primaryArtists: p,
               featuredArtists: f,
               songwriters: Array.isArray(t.songwriters) ? t.songwriters : [],
@@ -113,6 +141,7 @@ export default function EditReleasePage() {
         if (mapped.type === 'SINGLE' && mapped.tracks.length > 0) {
             const t0 = mapped.tracks[0];
             const t0Raw = raw.tracks[0];
+            const singleInstrumental = normalizeInstrumental(t0Raw?.isInstrumental ?? t0Raw?.is_instrumental ?? t0.isInstrumental);
             (mapped as any).songwriters = t0.songwriters;
             (mapped as any).lyricists = t0.lyricists;
             (mapped as any).additionalWriters = t0.additionalWriters;
@@ -122,17 +151,17 @@ export default function EditReleasePage() {
             (mapped as any).lyricsLanguage = raw.language || t0Raw.lyrics_language || t0Raw.lyricsLanguage || '';
             (mapped as any).explicitType = (t0.explicitLyrics || 'No').toUpperCase();
             (mapped as any).lyrics = t0.lyrics;
-            (mapped as any).isInstrumental = t0.isInstrumental === 'Yes';
-            (mapped as any).masterUploadId = (t0Raw as any).audio_file || null;
-            (mapped as any).socialMediaUploadId = (t0Raw as any).audio_clip || null;
+            (mapped as any).isInstrumental = singleInstrumental === 'Yes';
+            (mapped as any).masterUploadId = (t0Raw as any).audioFile || (t0Raw as any).audio_file || (t0Raw as any).resolved_audio_file || null;
+            (mapped as any).socialMediaUploadId = (t0Raw as any).audioClip || (t0Raw as any).audio_clip || (t0Raw as any).resolved_audio_clip || null;
             (mapped as any).isrc = t0.isrc || '';
         }
         
         let distributionTargets: any[] = [];
         const E: Record<string, any> = {
-            SOCIAL: { id: "SOCIAL", label: "Social Media", logo: "" },
+            SOCIAL: { id: "SOCIAL", label: "Media Sosial", logo: "" },
             YOUTUBE_MUSIC: { id: "YOUTUBE_MUSIC", label: "YouTube Music", logo: "" },
-            ALL_DSP: { id: "ALL_DSP", label: "All DSP", logo: "" }
+            ALL_DSP: { id: "ALL_DSP", label: "Semua DSP", logo: "" }
         };
         if (Array.isArray(raw.distributionTargets)) {
             distributionTargets = typeof raw.distributionTargets[0] === 'string' 
@@ -163,7 +192,7 @@ export default function EditReleasePage() {
         (mapped as any).ownerDisplayName = ownerDisplayName;
         setRelease(mapped);
       } catch (e: any) {
-        setError(e?.message || 'Failed to load release detail');
+        setError(e?.message || 'Gagal memuat detail rilis');
       } finally {
         setLoading(false);
       }
@@ -174,9 +203,9 @@ export default function EditReleasePage() {
   if (loading) return null;
   if (error) {
     return (
-      <div className="p-8 max-w-3xl mx-auto">
+      <div className="p-8 w-full max-w-none">
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl">{error}</div>
-        <button onClick={() => router.push('/releases')} className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg font-medium">Back to Releases</button>
+        <button onClick={() => router.push('/releases')} className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg font-medium">Kembali ke Rilis</button>
       </div>
     );
   }

@@ -72,12 +72,6 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
     return fallback ? fallback.split(',').map(name => ({ name: name.trim() })).filter(item => item.name) : [];
   };
 
-  const formatGenreSubGenre = (track: any) => {
-    const genre = track.genre || data.genre || resolvedGenreName || '';
-    const subGenre = track.subGenre || track.sub_genre || data.subGenre || (data as any).sub_genre || resolvedSubGenreName || '';
-    return genre ? `${genre}${subGenre ? ` / ${subGenre}` : ''}` : '-';
-  };
-
   React.useEffect(() => {
     if (isSubmitting && uploadTotal > 0) {
       const id = setInterval(() => setNowTs(Date.now()), 1000);
@@ -93,31 +87,31 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
     if (userRole !== 'Admin') {
       // 1. Validate Release Level
       if (!data.coverArt) {
-        errors.push("Cover Art is required.");
+        errors.push("Cover Art wajib diisi.");
       }
-      if (!data.title) errors.push("Release Title is required.");
+      if (!data.title) errors.push("Judul rilis wajib diisi.");
       if (!data.primaryArtists || data.primaryArtists.length === 0 || !data.primaryArtists[0]) {
-        errors.push("Primary Artist is required.");
+        errors.push("Artis utama wajib diisi.");
       } else {
         const firstArtist = data.primaryArtists[0];
         const name = typeof firstArtist === 'string' ? firstArtist : firstArtist.name;
         if (!name || name.trim() === '') {
-          errors.push("Primary Artist Name is required.");
+          errors.push("Nama artis utama wajib diisi.");
         }
       }
       // Genre is only required for ALBUM/EP, not Single
       if (data.type !== 'SINGLE') {
-        if (!data.genre) errors.push("Release Genre is required.");
+        if (!data.genre) errors.push("Genre rilis wajib diisi.");
       }
-      if (data.type === 'SINGLE' && !data.language) errors.push("Language / Territory is required.");
-      if (!data.version && !(data as any).releaseVersion) errors.push("Release Version is required.");
+      if (data.type === 'SINGLE' && !data.language) errors.push("Bahasa / wilayah wajib diisi.");
+      if (!data.version && !(data as any).releaseVersion) errors.push("Versi rilis wajib diisi.");
 
       // Lyrics Language is required for SINGLE (non-instrumental)
       if (data.type === 'SINGLE') {
         const d = data as any;
         if (!d.isInstrumental) {
           if (!d.lyricsLanguage && !data.language) {
-            errors.push("Lyrics Language is required.");
+            errors.push("Bahasa lirik wajib diisi.");
           }
         }
       }
@@ -126,36 +120,36 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
       // For Personal, it defaults to 'Dimensi Suara' in the backend/Step 1, 
       // but we double check here to satisfy validation.
       if (userType === 'Company' && !data.label) {
-        errors.push("Record Label is required.");
+        errors.push("Label rekaman wajib diisi.");
       }
 
-      if (data.type === 'SINGLE' && !data.plannedReleaseDate) errors.push("Release Date is required.");
+      if (data.type === 'SINGLE' && !data.plannedReleaseDate) errors.push("Tanggal rilis wajib diisi.");
 
       // 2. Validate Track Level
       // For SINGLE: data is stored at release level, not in tracks array — skip track-level checks
       if (data.type !== 'SINGLE') {
         if (!data.tracks || data.tracks.length === 0) {
-          errors.push("At least one track is required.");
+          errors.push("Minimal satu track wajib diisi.");
         } else {
           data.tracks.forEach((track, idx) => {
             const trackNum = idx + 1;
-            if (!track.title) errors.push(`Track ${trackNum}: Title is required.`);
+            if (!track.title) errors.push(`Track ${trackNum}: Judul wajib diisi.`);
             const hasAudio = (typeof (track as any).audioFile === 'string' && (track as any).audioFile.trim().length > 0)
               || (typeof (track as any).tempAudioPath === 'string' && (track as any).tempAudioPath.trim().length > 0)
               || ((track as any).audioFile instanceof File);
-            if (!hasAudio) errors.push(`Track ${trackNum}: Audio file is required (server TMP or URL).`);
+            if (!hasAudio) errors.push(`Track ${trackNum}: File audio wajib diisi (TMP server atau URL).`);
             const hasClip = (typeof (track as any).audioClip === 'string' && (track as any).audioClip.trim().length > 0)
               || (typeof (track as any).tempClipPath === 'string' && (track as any).tempClipPath.trim().length > 0)
               || ((track as any).audioClip instanceof File);
-            if (!hasClip) errors.push(`Track ${trackNum}: Audio clip is required (server TMP or URL).`);
-            if (!track.genre) errors.push(`Track ${trackNum}: Genre is required.`);
-            if (!track.composer) errors.push(`Track ${trackNum}: Composer is required.`);
+            if (!hasClip) errors.push(`Track ${trackNum}: Clip audio wajib diisi (TMP server atau URL).`);
+            if (!track.genre) errors.push(`Track ${trackNum}: Genre wajib diisi.`);
+            if (!track.composer) errors.push(`Track ${trackNum}: Komposer wajib diisi.`);
 
             // Conditional Validation based on Instrumental
             if (track.isInstrumental !== 'Yes') {
-              if (!track.lyricist) errors.push(`Track ${trackNum}: Lyricist is required (since it's not Instrumental).`);
-              if (!track.explicitLyrics) errors.push(`Track ${trackNum}: Explicit Lyrics status is required.`);
-              if (!(track as any).lyricsLanguage) errors.push(`Track ${trackNum}: Lyrics Language is required.`);
+              if (!track.lyricist) errors.push(`Track ${trackNum}: Penulis lirik wajib diisi karena bukan instrumental.`);
+              if (!track.explicitLyrics) errors.push(`Track ${trackNum}: Status lirik eksplisit wajib diisi.`);
+              if (!(track as any).lyricsLanguage) errors.push(`Track ${trackNum}: Bahasa lirik wajib diisi.`);
             }
           });
         }
@@ -249,10 +243,10 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
           if (candidate) {
             prepped.coverArt = candidate;
           } else {
-            uploadErrors.push('Cover Art upload failed: Invalid response from server.');
+          uploadErrors.push('Upload Cover Art gagal: respons server tidak valid.');
           }
         } catch (e: any) { 
-          uploadErrors.push('Cover Art upload error: ' + (e?.message || 'Unknown error'));
+          uploadErrors.push('Error upload Cover Art: ' + (e?.message || 'Error tidak diketahui'));
         }
         finally {
           setUploadDone(prev => prev + 1);
@@ -285,10 +279,10 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
             if (candidate) {
               prepped.tracks[i].iplFile = candidate;
             } else {
-              uploadErrors.push(`Track ${i + 1} IPL upload failed: Invalid response.`);
+              uploadErrors.push(`Track ${i + 1} upload IPL gagal: respons tidak valid.`);
             }
           } catch (e: any) { 
-            uploadErrors.push(`Track ${i + 1} IPL upload error: ` + (e?.message || 'Unknown error'));
+            uploadErrors.push(`Track ${i + 1} error upload IPL: ` + (e?.message || 'Error tidak diketahui'));
           }
           finally {
             setUploadDone(prev => prev + 1);
@@ -324,10 +318,10 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
               prepped.tracks[i].tempAudioPath = candidate;
               prepped.tracks[i].audioFile = candidate;
             } else {
-              uploadErrors.push(`Track ${i + 1} Audio upload failed: Invalid response.`);
+              uploadErrors.push(`Track ${i + 1} upload audio gagal: respons tidak valid.`);
             }
           } catch (e: any) { 
-            uploadErrors.push(`Track ${i + 1} Audio upload error: ` + (e?.message || 'Unknown error'));
+            uploadErrors.push(`Track ${i + 1} error upload audio: ` + (e?.message || 'Error tidak diketahui'));
           }
           finally {
             setUploadDone(prev => prev + 1);
@@ -366,10 +360,10 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 prepped.tracks[i].previewStart = 0;
               }
             } else {
-              uploadErrors.push(`Track ${i + 1} Clip upload failed: Invalid response.`);
+              uploadErrors.push(`Track ${i + 1} upload clip gagal: respons tidak valid.`);
             }
           } catch (e: any) { 
-            uploadErrors.push(`Track ${i + 1} Clip upload error: ` + (e?.message || 'Unknown error'));
+            uploadErrors.push(`Track ${i + 1} error upload clip: ` + (e?.message || 'Error tidak diketahui'));
           }
           finally {
             setUploadDone(prev => prev + 1);
@@ -427,7 +421,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         type: data.type
       };
       onSave(finalizedData);
-      setSuccessMsg(result.message || 'Release submitted successfully');
+      setSuccessMsg(result.message || 'Rilis berhasil dikirim');
       try {
         // Backend now handles object-based primaryArtists correctly
         await api.cleanupTmp(token, { title: prepped.title, primaryArtists: prepped.primaryArtists });
@@ -438,7 +432,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
     } catch (error: any) {
       console.error("Submission failed:", error);
       // Prioritize payload error message from server if available
-      let message = error?.payload?.error || error?.message || "Please try again.";
+      let message = error?.payload?.error || error?.message || "Silakan coba lagi.";
 
       if (error?.status === 413 || message === 'UPLOAD_TOO_LARGE' || /content too large|payload too large|413/i.test(message)) {
         message = "Total ukuran file (cover + audio + clip) terlalu besar untuk dikirim. Coba kompres atau perkecil ukuran file, atau kurangi jumlah track per sekali upload.";
@@ -451,7 +445,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
       setAlertState({
         isOpen: true,
-        title: 'Upload Failed',
+        title: 'Upload Gagal',
         message: message,
         type: 'error'
       });
@@ -466,41 +460,41 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
           <CheckCircle size={40} className="text-green-500" />
         </div>
-        <h2 className="text-2xl font-medium text-slate-800 mb-2">Submission Successful!</h2>
-        <p className="text-slate-500 mt-1 text-sm">Your release has been submitted for review.</p>
+        <h2 className="text-2xl font-medium text-slate-800 mb-2">Pengiriman Berhasil!</h2>
+        <p className="text-slate-500 mt-1 text-sm">Rilis Anda sudah dikirim untuk direview.</p>
 
         <div className="mt-8 p-6 bg-slate-50 rounded-lg border border-slate-200 text-left text-sm max-w-lg shadow-inner w-full">
           <p className="font-medium text-slate-700 mb-3 flex items-center gap-2">
-            <AlertCircle size={18} /> Status Summary:
+            <AlertCircle size={18} /> Ringkasan Status:
           </p>
           <ul className="space-y-2 text-slate-600">
             <li className="flex items-start gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></span>
-              Files uploaded to Server
+              File berhasil diupload ke server
             </li>
             <li className="flex items-start gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></span>
-              Metadata saved to Database
+              Metadata tersimpan ke database
             </li>
             <li className="flex items-start gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></span>
-              Status: Pending Review
+              Status: Menunggu Review
             </li>
           </ul>
         </div>
 
         <div className="mt-8">
-          <p className="text-slate-400 text-sm mb-4">You can view this in the "All Releases" tab.</p>
+          <p className="text-slate-400 text-sm mb-4">Anda dapat melihatnya di tab "Semua Rilis".</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="w-full max-w-none">
       <div className="text-center mb-6">
-        <h2 className="text-sm font-bold text-slate-900 mb-1">Final Review</h2>
-        <p className="text-xs text-slate-600">Please verify all information before submitting your release.</p>
+        <h2 className="text-sm font-bold text-slate-900 mb-1">Review Akhir</h2>
+        <p className="text-xs text-slate-600">Periksa semua informasi sebelum mengirim rilis.</p>
       </div>
 
       {/* SECTION 1: RELEASE METADATA SUMMARY */}
@@ -508,7 +502,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         <div className="border border-gray-200 rounded-lg p-6 relative mt-4">
           <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-3 bg-white px-2 flex items-center gap-2">
             <FileText size={20} className="text-blue-500" />
-            Release Information
+            Informasi Rilis
           </h3>
 
           <div className="flex flex-col md:flex-row gap-6">
@@ -537,7 +531,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-2.5 bg-white text-blue-600 rounded-full shadow-lg hover:bg-blue-50 transition-all transform hover:scale-110"
-                          title="Download Cover Art"
+                          title="Unduh Cover Art"
                         >
                           <Download size={24} />
                         </a>
@@ -547,7 +541,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                     <Disc size={40} className="mb-2" />
-                    <span className="text-xs">No Cover</span>
+                    <span className="text-xs">Tidak Ada Cover</span>
                   </div>
                 )}
               </div>
@@ -560,9 +554,9 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
             {/* Metadata Grid */}
             <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-2.5">
-              <MetaItem label="Release Title" value={data.title} icon={<FileText size={10} />} />
+              <MetaItem label="Judul Rilis" value={data.title} icon={<FileText size={10} />} />
               <MetaItem
-                label="Primary Artist"
+                label="Artis Utama"
                 value={
                   <div className="flex flex-col gap-1">
                     {data.primaryArtists.map((a, idx) => {
@@ -577,7 +571,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-green-500 hover:text-green-600 inline-flex items-center"
-                              title="Spotify Artist Link"
+                              title="Link Spotify Artis"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <ExternalLink size={12} />
@@ -592,17 +586,17 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
               />
               <MetaItem label="Label" value={data.label} icon={<Users size={10} />} />
 
-              <MetaItem label="Language" value={data.language || (data as any).lyricsLanguage} icon={<Globe size={10} />} />
+              <MetaItem label="Bahasa" value={data.language || (data as any).lyricsLanguage} icon={<Globe size={10} />} />
               <MetaItem label="Genre" value={resolvedGenreName} icon={<Music2 size={10} />} />
-              <MetaItem label="Sub Genre" value={resolvedSubGenreName} icon={<Music2 size={10} />} />
-              <MetaItem label="Version" value={data.version || data.releaseVersion} icon={<Tag size={10} />} />
+              <MetaItem label="Subgenre" value={resolvedSubGenreName} icon={<Music2 size={10} />} />
+              <MetaItem label="Versi" value={data.version || data.releaseVersion} icon={<Tag size={10} />} />
 
-              <MetaItem label="Release Date" value={data.plannedReleaseDate || "TBD"} icon={<Calendar size={10} />} />
-              <MetaItem label="UPC" value={data.upc || "Auto-Generated"} icon={<FileAudio size={10} />} />
-              <MetaItem label="ISRC" value={data.isrc || "Auto-Generated"} icon={<FileAudio size={10} />} />
+              <MetaItem label="Tanggal Rilis" value={data.plannedReleaseDate || "Belum Ditentukan"} icon={<Calendar size={10} />} />
+              <MetaItem label="UPC" value={data.upc || "Otomatis"} icon={<FileAudio size={10} />} />
+              <MetaItem label="ISRC" value={data.isrc || "Otomatis"} icon={<FileAudio size={10} />} />
               <MetaItem
-                label="Distribution Type"
-                value={data.isNewRelease ? "New Release" : `Re-release (Orig: ${data.originalReleaseDate})`}
+                label="Tipe Distribusi"
+                value={data.isNewRelease ? "Rilis Baru" : `Rilis Ulang (Asli: ${data.originalReleaseDate})`}
                 icon={<Disc size={10} />}
               />
 
@@ -616,7 +610,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         <div className="border border-gray-200 rounded-lg p-6 relative mt-4">
           <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-3 bg-white px-2 flex items-center gap-2">
             <Music2 size={20} className="text-blue-500" />
-            Track Metadata Details
+            Detail Metadata Track
           </h3>
 
           {/* SINGLE: comprehensive card layout */}
@@ -638,23 +632,23 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
               <div className="space-y-4">
                 {/* A: Audio Files */}
                 <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">A. Audio Files</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">A. File Audio</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="flex items-center gap-2">
                       <FileAudio size={16} className={hasMaster ? 'text-green-500' : 'text-orange-400'} />
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">Master Audio</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">Audio Master</p>
                         <p className={`text-xs font-medium ${hasMaster ? 'text-green-700' : 'text-orange-500'}`}>
-                          {hasMaster ? `Uploaded ✓` : 'Not uploaded'}
+                          {hasMaster ? `Terupload` : 'Belum diupload'}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <PlayCircle size={16} className={hasSocialClip ? 'text-green-500' : 'text-orange-400'} />
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">Social Media Clip (30-60s)</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">Clip Media Sosial (30-60 detik)</p>
                         <p className={`text-xs font-medium ${hasSocialClip ? 'text-green-700' : 'text-orange-500'}`}>
-                          {hasSocialClip ? `Uploaded ✓` : 'Not uploaded'}
+                          {hasSocialClip ? `Terupload` : 'Belum diupload'}
                         </p>
                       </div>
                     </div>
@@ -669,14 +663,14 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
                 {/* C: Artists */}
                 <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">C. Artists</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">C. Artis</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Primary Artists</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Artis Utama</p>
                       {renderList(data.primaryArtists)}
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Featured Artists</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Artis Featuring</p>
                       {renderList(featuredArtists)}
                     </div>
                   </div>
@@ -684,26 +678,26 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
                 {/* D: Writers & Credits */}
                 <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">D. Writers & Credits</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">D. Penulis & Kredit</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriters / Composers</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriter / Komposer</p>
                       {renderList(songwriters)}
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyricists</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Penulis Lirik</p>
                       {renderList(lyricists)}
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Additional Writers</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Penulis Tambahan</p>
                       {renderList(additionalWriters, 'name', 'role')}
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Production Credits</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Kredit Produksi</p>
                       {renderList(productionCredits, 'name', 'role')}
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Contributors</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Kontributor</p>
                       {renderList(contributors, 'name', 'role')}
                     </div>
                   </div>
@@ -711,31 +705,31 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
                 {/* E: Lyrics Info */}
                 <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">E. Lyrics Information</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">E. Informasi Lirik</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-3">
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyrics Language</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Bahasa Lirik</p>
                         <p className="text-xs font-bold text-slate-800">{d.lyricsLanguage || data.language || '-'}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Explicit Content</p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Konten Eksplisit</p>
                         <span className={`px-2 py-1 rounded text-xs font-medium border inline-block ${explicit === 'YES' ? 'bg-red-50 text-red-600 border-red-100' :
                             explicit === 'CLEAN' ? 'bg-green-50 text-green-600 border-green-100' :
                               'bg-slate-100 text-slate-600 border-slate-200'
                           }`}>
-                          {explicit === 'YES' ? 'Explicit' : explicit === 'CLEAN' ? 'Clean' : 'No'}
+                          {explicit === 'YES' ? 'Eksplisit' : explicit === 'CLEAN' ? 'Bersih' : 'Tidak'}
                         </span>
                       </div>
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Instrumental</p>
-                        <p className="text-xs font-bold text-slate-800">{isInstrumental ? 'Yes' : 'No'}</p>
+                        <p className="text-xs font-bold text-slate-800">{isInstrumental ? 'Ya' : 'Tidak'}</p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyrics</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lirik</p>
                       {isInstrumental ? (
-                        <p className="text-xs text-slate-500 italic">Instrumental Track (No lyrics)</p>
+                        <p className="text-xs text-slate-500 italic">Track instrumental (tanpa lirik)</p>
                       ) : (
                         <p className="text-xs text-slate-700">{d.lyrics ? `${d.lyrics.substring(0, 60)}${d.lyrics.length > 60 ? '…' : ''}` : '-'}</p>
                       )}
@@ -763,13 +757,15 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                   (typeof anyTrack.tempClipPath === 'string' && anyTrack.tempClipPath.trim().length > 0);
                 
                 return (
-                  <div key={track.id} className="bg-slate-50 border border-slate-100 rounded-lg p-3 sm:p-4 transition-all hover:shadow-md">
+                  <div key={track.id} className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 sm:p-3 transition-all hover:shadow-md">
                     <div 
                       className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 cursor-pointer group"
                       onClick={() => setExpandedTrackId(expandedTrackId === track.id ? null : track.id)}
                     >
-                      <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2 flex-wrap group-hover:text-blue-600 transition-colors">
-                        <span className="bg-blue-100 text-blue-700 w-6 aspect-square rounded-full flex items-center justify-center text-xs shrink-0">{track.trackNumber}</span>
+                      <h4 className="font-bold text-slate-800 text-sm flex items-center gap-3 flex-wrap group-hover:text-blue-600 transition-colors">
+                        <span className="bg-blue-100 text-blue-700 min-w-7 h-7 px-1.5 rounded-md flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">
+                          {track.trackNumber}
+                        </span>
                         <span>{track.title}</span>
                         {track.isrc && (
                           <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded border border-gray-200 ml-1 mt-0.5">
@@ -780,12 +776,12 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                       <div className="flex items-center gap-3 self-start sm:self-auto">
                         <div className="flex gap-2">
                           {typeof track.audioFile === 'string' && track.audioFile.startsWith('http') && (
-                            <a href={track.audioFile} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center justify-center" title="Download Audio">
+                            <a href={track.audioFile} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center justify-center" title="Unduh Audio">
                               <Download size={14} />
                             </a>
                           )}
                           {typeof track.audioClip === 'string' && track.audioClip.startsWith('http') && (
-                            <a href={track.audioClip} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors flex items-center justify-center" title="Download Clip">
+                            <a href={track.audioClip} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors flex items-center justify-center" title="Unduh Clip">
                               <Download size={14} />
                             </a>
                           )}
@@ -801,79 +797,81 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                       <div className="mt-4 pt-4 border-t border-slate-200 animate-fade-in-down">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Audio File</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">File Audio</div>
                             {typeof track.audioFile === 'string' && track.audioFile.startsWith('http') ? (
                               <a href={track.audioFile} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-xs font-bold hover:bg-blue-200 transition-colors">
-                                <Download size={14} /> Download Audio
+                                <Download size={14} /> Unduh Audio
                               </a>
                             ) : track.audioFile instanceof File ? (
                               <span className="text-xs text-slate-500">{track.audioFile.name} (Ready)</span>
                             ) : (
-                              <span className="text-xs text-slate-500">Not Available</span>
+                              <span className="text-xs text-slate-500">Tidak Tersedia</span>
                             )}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Clip File</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">File Clip</div>
                             {typeof track.audioClip === 'string' && track.audioClip.startsWith('http') ? (
                               <a href={track.audioClip} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-md text-xs font-bold hover:bg-orange-200 transition-colors">
-                                <Download size={14} /> Download Clip
+                                <Download size={14} /> Unduh Clip
                               </a>
                             ) : track.audioClip instanceof File ? (
                               <span className="text-xs text-slate-500">{track.audioClip.name} (Ready)</span>
                             ) : (
-                              <span className="text-xs text-slate-500">Not Available</span>
+                              <span className="text-xs text-slate-500">Tidak Tersedia</span>
                             )}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Primary Artists</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Artis Utama</div>
                             {renderList(getTrackArtists(anyTrack, ['MainArtist', 'PrimaryArtist', 'Primary Artist']), 'name')}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Track Number</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Nomor Track</div>
                             <div className="text-xs font-bold text-slate-800">{track.trackNumber || '-'}</div>
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Explicit Content</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Konten Eksplisit</div>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${track.explicitLyrics === 'Yes' ? 'bg-red-100 text-red-700' : track.explicitLyrics === 'Clean' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
-                              {track.explicitLyrics === 'Yes' ? 'Yes' : track.explicitLyrics === 'Clean' ? 'Clean' : 'No'}
+                              {track.explicitLyrics === 'Yes' ? 'Ya' : track.explicitLyrics === 'Clean' ? 'Bersih' : 'Tidak'}
                             </span>
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Genre & Sub Genre</div>
-                            <div className="text-xs font-bold text-slate-800">
-                              {formatGenreSubGenre(track)}
-                            </div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Genre</div>
+                            <div className="text-xs font-bold text-slate-800">{track.genre || data.genre || resolvedGenreName || '-'}</div>
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyrics Language</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Subgenre</div>
+                            <div className="text-xs font-bold text-slate-800">{(track as any).subGenre || (track as any).sub_genre || data.subGenre || (data as any).sub_genre || resolvedSubGenreName || '-'}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Bahasa Lirik</div>
                             <div className="text-xs font-bold text-slate-800">{(track as any).lyricsLanguage || data.language || '-'}</div>
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Featured Artists</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Artis Featuring</div>
                             {renderList(getTrackArtists(anyTrack, ['FeaturedArtist', 'Featured Artist']), 'name')}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriters / Composers</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriter / Komposer</div>
                             {renderList(getNamedPeople(anyTrack.songwriters, track.composer), 'name')}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Lyricist</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Penulis Lirik</div>
                             {renderList(getNamedPeople(anyTrack.lyricists, track.lyricist), 'name')}
                           </div>
                           <div>
                             <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Instrumental</div>
-                            <div className="text-xs font-bold text-slate-800">{track.isInstrumental || 'No'}</div>
+                            <div className="text-xs font-bold text-slate-800">{track.isInstrumental === 'Yes' ? 'Ya' : 'Tidak'}</div>
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Additional Writers</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Penulis Tambahan</div>
                             {renderList(anyTrack.additionalWriters, 'name', 'roleName')}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Production Credits</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Kredit Produksi</div>
                             {renderList(anyTrack.productionCredits, 'name', 'roleName')}
                           </div>
                           <div>
-                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Contributors</div>
+                            <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Kontributor</div>
                             {renderList(anyTrack.contributors, 'name', 'roleName')}
                           </div>
                           <div>
@@ -908,7 +906,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         {isSubmitting && uploadTotal > 0 && (
           <div className="w-full md:w-[400px] mb-4 bg-white border border-slate-200 rounded p-5 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-medium text-slate-700">Uploading Files</div>
+              <div className="text-xs font-medium text-slate-700">Mengupload File</div>
               <div className="text-xs text-slate-500">{uploadDone}/{uploadTotal}</div>
             </div>
             <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -918,7 +916,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
               ></div>
             </div>
             {uploadLabel && (
-              <div className="mt-2 text-xs text-slate-500">Current: {uploadLabel}</div>
+              <div className="mt-2 text-xs text-slate-500">Saat ini: {uploadLabel}</div>
             )}
             <div className="mt-2">
               <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -940,7 +938,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                       <span className={`px-2 py-0.5 rounded-full border text-xs font-medium ${item.status === 'Done' ? 'bg-green-50 text-green-700 border-green-200' :
                           item.status === 'Uploading' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                             'bg-slate-50 text-slate-600 border-slate-200'
-                        }`}>{item.status}</span>
+                        }`}>{item.status === 'Done' ? 'Selesai' : item.status === 'Uploading' ? 'Mengupload' : 'Antrean'}</span>
                       <span className="text-slate-400">{Math.round(item.progress)}%</span>
                     </div>
                   </div>
@@ -958,9 +956,9 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 if (uploadDone > 0) {
                   const avg = elapsed / uploadDone;
                   const remaining = Math.max(0, Math.round(avg * (uploadTotal - uploadDone)));
-                  return `Elapsed: ${fmt(elapsed)} · ETA: ${fmt(remaining)}`;
+                  return `Berjalan: ${fmt(elapsed)} · Sisa waktu: ${fmt(remaining)}`;
                 }
-                return `Elapsed: ${fmt(elapsed)} · ETA: estimating...`;
+                return `Berjalan: ${fmt(elapsed)} · Sisa waktu: menghitung...`;
               })()}
             </div>
           </div>
@@ -972,7 +970,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
             className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm hover:shadow-lg hover:shadow-orange-400/30 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft size={20} />
-            Back
+            Kembali
           </button>
 
           <button
@@ -983,11 +981,11 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
             {isSubmitting ? (
               <>
                 <Loader2 size={20} className="animate-spin" />
-                Processing...
+                Memproses...
               </>
             ) : (
               <>
-                Submit Release
+                Kirim Rilis
                 <Check size={20} />
               </>
             )}
@@ -1004,8 +1002,8 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 <AlertCircle className="text-red-500" size={28} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-red-700">Incomplete Data</h3>
-                <p className="text-xs text-red-600">Please fix the following issues before submitting:</p>
+                <h3 className="text-sm font-medium text-red-700">Data Belum Lengkap</h3>
+                <p className="text-xs text-red-600">Perbaiki masalah berikut sebelum mengirim:</p>
               </div>
               <button
                 onClick={() => setShowValidationModal(false)}
@@ -1031,7 +1029,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 onClick={() => setShowValidationModal(false)}
                 className="px-6 py-2.5 bg-slate-800 text-white text-xs font-medium rounded hover:bg-slate-700 transition-colors shadow-lg shadow-slate-200"
               >
-                Understood
+                Mengerti
               </button>
             </div>
           </div>
@@ -1047,8 +1045,8 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 <AlertCircle className="text-orange-500" size={28} />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-orange-800">Duplicate Release</h3>
-                <p className="text-xs text-orange-700">This release already exists.</p>
+                <h3 className="text-sm font-medium text-orange-800">Rilis Duplikat</h3>
+                <p className="text-xs text-orange-700">Rilis ini sudah ada.</p>
               </div>
               <button
                 onClick={() => setShowDuplicateModal(false)}
@@ -1060,10 +1058,10 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
 
             <div className="p-6">
               <p className="text-sm text-slate-600 mb-4 leading-relaxed">
-                A release with the title <strong>"{data.title}"</strong> and version <strong>"{data.version}"</strong> has already been submitted.
+                Rilis dengan judul <strong>"{data.title}"</strong> dan versi <strong>"{data.version}"</strong> sudah pernah dikirim.
               </p>
               <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded border border-slate-100">
-                Please change the <strong>Version</strong> (e.g., to "Remix" or "Radio Edit") or the <strong>Title</strong> to differentiate it from the existing release.
+                Ubah <strong>Versi</strong> (misalnya menjadi "Remix" atau "Radio Edit") atau <strong>Judul</strong> agar berbeda dari rilis yang sudah ada.
               </p>
             </div>
 
@@ -1072,7 +1070,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
                 onClick={() => setShowDuplicateModal(false)}
                 className="px-6 py-2.5 bg-orange-500 text-white text-xs font-medium rounded hover:bg-orange-600 transition-colors shadow-lg shadow-orange-200"
               >
-                Okay, I'll Change It
+                Oke, Saya Ubah
               </button>
             </div>
           </div>

@@ -140,7 +140,7 @@ export const ContractDetail: React.FC<Props> = ({ token }) => {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto min-h-screen animate-fade-in">
+    <div className="p-8 w-full max-w-none min-h-screen animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button 

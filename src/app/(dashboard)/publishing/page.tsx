@@ -50,10 +50,10 @@ export default function PublishingPage() {
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
-      pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: <Clock size={12} />, label: 'Pending' },
+      pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: <Clock size={12} />, label: 'Menunggu' },
       review: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', icon: <Loader2 size={12} />, label: 'Review' },
-      accepted: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: <CheckCircle size={12} />, label: 'Accepted' },
-      rejected: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', icon: <AlertTriangle size={12} />, label: 'Rejected' },
+      accepted: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: <CheckCircle size={12} />, label: 'Diterima' },
+      rejected: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', icon: <AlertTriangle size={12} />, label: 'Ditolak' },
     };
     const s = map[status] || map.pending;
     return (
@@ -92,10 +92,10 @@ export default function PublishingPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: 'Total Lagu', value: stats.total, icon: <Music size={20} />, color: 'from-indigo-500 to-purple-600', bgLight: 'bg-indigo-50' },
-          { label: 'Pending', value: stats.pending, icon: <Clock size={20} />, color: 'from-amber-400 to-orange-500', bgLight: 'bg-amber-50' },
+          { label: 'Menunggu', value: stats.pending, icon: <Clock size={20} />, color: 'from-amber-400 to-orange-500', bgLight: 'bg-amber-50' },
           { label: 'Review', value: stats.review, icon: <Loader2 size={20} />, color: 'from-blue-400 to-cyan-500', bgLight: 'bg-blue-50' },
-          { label: 'Accepted', value: stats.accepted, icon: <CheckCircle size={20} />, color: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50' },
-          { label: 'Rejected', value: stats.rejected, icon: <AlertTriangle size={20} />, color: 'from-red-400 to-rose-500', bgLight: 'bg-red-50' },
+          { label: 'Diterima', value: stats.accepted, icon: <CheckCircle size={20} />, color: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50' },
+          { label: 'Ditolak', value: stats.rejected, icon: <AlertTriangle size={20} />, color: 'from-red-400 to-rose-500', bgLight: 'bg-red-50' },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all duration-300">
             <div className="flex items-center justify-between mb-3">

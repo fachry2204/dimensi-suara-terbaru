@@ -114,7 +114,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({ token, userRole, onAuthExpi
     if (!ticket) return <div className="p-8 text-center text-gray-500">Tiket tidak ditemukan.</div>;
 
     return (
-        <div className="p-6 max-w-4xl mx-auto h-[calc(100vh-80px)] flex flex-col">
+        <div className="p-6 w-full max-w-none h-[calc(100vh-80px)] flex flex-col">
             <div className="flex items-center gap-4 mb-6">
                 <button 
                     onClick={() => navigate('/tickets')}

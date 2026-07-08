@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { assetUrl } from '@/utils/url';
 
 interface BrandingSettings {
     login_button_color?: string;
@@ -26,10 +27,10 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const fetchBranding = async () => {
         try {
-            const res = await fetch('/api/settings/branding');
+            const res = await fetch('/api/settings/branding', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
-                setBranding(data);
+                setBranding(data?.branding || data);
             }
         } catch (error) {
             console.error("Failed to fetch branding:", error);
@@ -47,11 +48,11 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (branding.favicon_url) {
             const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
             if (link) {
-                link.href = branding.favicon_url;
+                link.href = assetUrl(branding.favicon_url);
             } else {
                 const newLink = document.createElement('link');
                 newLink.rel = 'icon';
-                newLink.href = branding.favicon_url;
+                newLink.href = assetUrl(branding.favicon_url);
                 document.head.appendChild(newLink);
             }
         }

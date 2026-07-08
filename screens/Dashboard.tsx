@@ -102,10 +102,10 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
   );
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
         <div className="mb-8">
             <h1 className="text-lg font-bold text-white tracking-tight">Dashboard Overview</h1>
-            <p className="text-slate-400 mt-1 text-xs">Welcome back, here is your catalog and publishing overview.</p>
+            <p className="text-slate-400 mt-1 text-xs">Selamat datang kembali, berikut ringkasan katalog dan publishing Anda.</p>
        </div>
 
        {/* AGGREGATOR / RELEASES SECTION */}
@@ -121,30 +121,30 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     style={{ backgroundColor: getButtonColor() }}
                 >
                     <Plus size={14} />
-                    New Release
+                    Rilis Baru
                 </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
-                    title="Pending Review" 
+                    title="Menunggu Review" 
                     count={releaseStats.pending} 
                     icon={<Clock size={20} />} 
                     colorClass="text-yellow-600" 
                     bgClass="bg-yellow-50"
-                    subtext="Waiting for approval"
+                    subtext="Menunggu persetujuan"
                     cardClass="bg-yellow-500/10 border-yellow-500/20"
                 />
                 <StatCard 
-                    title="Processing" 
+                    title="Diproses" 
                     count={releaseStats.processing} 
                     icon={<Loader2 size={20} className={releaseStats.processing > 0 ? "animate-spin-slow" : ""} />} 
                     colorClass="text-blue-600" 
                     bgClass="bg-blue-50"
-                    subtext="Sent to stores"
+                    subtext="Dikirim ke toko"
                     cardClass="bg-blue-500/10 border-blue-500/20"
                 />
                 <StatCard 
-                    title="Released" 
+                    title="Rilis" 
                     count={releaseStats.live} 
                     icon={<CheckCircle size={20} />} 
                     colorClass="text-green-600" 
@@ -153,12 +153,12 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     cardClass="bg-green-500/10 border-green-500/20"
                 />
                 <StatCard 
-                    title="Rejected" 
+                    title="Ditolak" 
                     count={releaseStats.rejected} 
                     icon={<AlertTriangle size={20} />} 
                     colorClass="text-red-600" 
                     bgClass="bg-red-50"
-                    subtext="Requires attention"
+                    subtext="Perlu diperhatikan"
                     cardClass="bg-red-500/10 border-red-500/20"
                 />
             </div>
@@ -192,7 +192,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     isLoading={isLoadingSongs}
                 />
                 <StatCard 
-                    title="Accepted Songs" 
+                    title="Lagu Diterima" 
                     count={publishingStats.accepted} 
                     icon={<CheckCircle size={20} />} 
                     colorClass="text-teal-600" 
@@ -202,7 +202,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     isLoading={isLoadingSongs}
                 />
                 <StatCard 
-                    title="Rejected Songs" 
+                    title="Lagu Ditolak" 
                     count={publishingStats.rejected} 
                     icon={<AlertTriangle size={20} />} 
                     colorClass="text-rose-600" 
@@ -216,7 +216,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Clock className="text-blue-500" size={18} />
-                        <h3 className="text-sm font-bold text-slate-200">Release Pending/Review</h3>
+                        <h3 className="text-sm font-bold text-slate-200">Rilis Menunggu/Review</h3>
                     </div>
                 </div>
                 <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -225,7 +225,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                             <tr>
                                 <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider w-12">No</th>
                                 <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Judul</th>
-                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Artist</th>
+                                <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Artis</th>
                                 <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Tanggal</th>
                                 <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-[11px] font-normal text-slate-500 uppercase tracking-wider text-right">Aksi</th>
@@ -304,7 +304,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                 disabled={pendingPage === totalPendingPages}
                                 className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-slate-300 font-bold hover:bg-blue-600 transition-colors"
                             >
-                                Next
+                                Berikutnya
                             </button>
                         </div>
                     </div>
@@ -401,7 +401,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                 disabled={publishingPage === totalPublishingPages}
                                 className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-slate-300 font-bold hover:bg-blue-600 transition-colors"
                             >
-                                Next
+                                Berikutnya
                             </button>
                         </div>
                     </div>

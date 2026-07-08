@@ -115,7 +115,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, tok
                 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
-                    <h3 className="text-white font-bold text-lg">Edit Profile</h3>
+                    <h3 className="text-white font-bold text-lg">Edit Profil</h3>
                     <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
                         <X size={20} />
                     </button>
@@ -133,7 +133,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, tok
                                         <>
                                             <img 
                                                 src={previewUrl} 
-                                                alt="Profile" 
+                                                alt="Profil" 
                                                 className="w-full h-full object-cover relative z-10" 
                                                 onError={(e) => {
                                                     e.currentTarget.style.display = 'none';
@@ -181,13 +181,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, tok
                                         value={userData.email}
                                         onChange={(e) => setUserData({...userData, email: e.target.value})}
                                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-black font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                                        placeholder="Email Address"
+                                        placeholder="Alamat Email"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">New Password (Optional)</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Password Baru (Opsional)</label>
                                 <div className="relative">
                                     <Lock size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                     <input 
@@ -208,7 +208,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, tok
                                 onClick={onClose}
                                 className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
                             >
-                                Cancel
+                                Batal
                             </button>
                             <button 
                                 type="submit" 
@@ -218,7 +218,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, tok
                                 {loading ? 'Saving...' : (
                                     <>
                                         <Save size={18} />
-                                        Save Changes
+                                        Simpan Perubahan
                                     </>
                                 )}
                             </button>

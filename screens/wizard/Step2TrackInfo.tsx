@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ReleaseData, Track, TrackArtist, TrackContributor, ReleaseType } from '@/types';
 import { Music, Trash2, PlusCircle, Info, ChevronDown, ChevronUp, FileAudio, Mic2, User, UserPlus, Loader2, Scissors, Play, Pause, X, Check, UploadCloud, Download } from 'lucide-react';
 import { useGenres, useSubGenres } from '@/hooks/useGenres';
-import { ARTIST_ROLES, CONTRIBUTOR_TYPES, EXPLICIT_OPTIONS, LANGUAGES } from '@/constants';
+import { ARTIST_ROLES, EXPLICIT_OPTIONS, LANGUAGES } from '@/constants';
 import { processFullAudio, cropAndConvertAudio, getAudioDuration } from '@/utils/audioProcessing';
 import { api } from '@/utils/api';
 import { AlertModal } from '../../components/AlertModal';
@@ -60,6 +60,16 @@ const WRITER_ROLES = [
   "Adapter", "Arranger", "Orchestrator", "Publisher", "String Arranger", "Translator", "Vocal Director"
 ];
 
+const CONTRIBUTOR_ROLES = [
+  "Accordion", "Acoustic Guitar", "Alto Saxophone", "Background Vocals", "Banjo", "Bass Guitar",
+  "Bass Saxophone", "Bassoon", "Bells", "Cello", "Choir", "Clarinet", "Conductor", "Double Bass",
+  "Drums", "Ensemble", "Fiddle", "Flugelhorn", "Flute", "Guitar", "Harmonica", "Harp", "Horns",
+  "Keyboards", "Lute", "Oboe", "Orchestra", "Organ", "Percussion", "Piano", "Programmer", "Rap",
+  "Recorder", "Remixer", "Sampled Artist", "Saxophone", "Soprano Saxophone", "Synthesizer",
+  "Tambourine", "Tenor Saxophone", "Trombone", "Trumpet", "Viola", "Viola da gamba", "Violin",
+  "Vocalist", "Whistle", "Xylophone"
+];
+
 const TrackGenreSelectors = ({
   track,
   releaseData,
@@ -89,7 +99,7 @@ const TrackGenreSelectors = ({
             }}
             className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
           >
-            <option value="" className="text-black">Select Genre</option>
+            <option value="" className="text-black">Pilih Genre</option>
             {genres.map(g => <option key={g.id} value={g.name} className="text-black">{g.name}</option>)}
           </select>
           <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
@@ -98,7 +108,7 @@ const TrackGenreSelectors = ({
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Sub Genre</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Subgenre</label>
         <div className="relative">
           <select
             value={selectedSubGenre}
@@ -109,7 +119,7 @@ const TrackGenreSelectors = ({
             }}
             className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
           >
-            <option value="" className="text-black">Select Sub Genre</option>
+            <option value="" className="text-black">Pilih Subgenre</option>
             {subgenres.map(sg => (
               <option key={sg.id} value={sg.name} className="text-black">{sg.name}</option>
             ))}
@@ -438,6 +448,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
         duration: "",
         releaseDate: prev.plannedReleaseDate || "",
         isrc: "",
+        isNewRelease: true,
         genre: prev.genre || "", // Inherit from Step 1
         genreId: prev.genreId,
         subGenre: prev.subGenre || "", // Inherit from Step 1
@@ -661,10 +672,23 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
     updateTrack(trackId, { contributors: newContribs });
   };
 
+  const handleContributorRoleChange = (trackId: string, index: number, value: string) => {
+    const track = data.tracks.find(t => t.id === trackId);
+    if (!track) return;
+    const newContribs = [...track.contributors];
+    newContribs[index] = {
+      ...newContribs[index],
+      type: newContribs[index]?.type || "Performer",
+      role: value,
+      roleName: value
+    };
+    updateTrack(trackId, { contributors: newContribs });
+  };
+
   const addContributor = (trackId: string) => {
     const track = data.tracks.find(t => t.id === trackId);
     if (!track) return;
-    updateTrack(trackId, { contributors: [...track.contributors, { name: "", type: "Performer", role: "" }] });
+    updateTrack(trackId, { contributors: [...track.contributors, { name: "", type: "Performer", role: "", roleName: "" }] });
   };
 
   const removeContributor = (trackId: string, index: number) => {
@@ -716,7 +740,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto relative">
+    <div className="w-full max-w-none relative">
        <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-4">
         <div>
             <h2 className="text-sm font-bold text-slate-900 mb-1">Tracklist</h2>
@@ -751,26 +775,26 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                         onClick={() => releaseType !== 'SINGLE' && toggleExpand(track.id)}
                     >
                         <div className="flex items-center gap-4">
-                            <div className={`w-8 aspect-square rounded-full flex shrink-0 items-center justify-center font-medium text-xs ${isExpanded ? 'bg-blue-500 text-white' : 'bg-gray-100 text-slate-500'}`}>
+                            <div className={`min-w-7 h-7 px-1.5 rounded-md flex shrink-0 items-center justify-center font-bold text-xs shadow-sm ${isExpanded ? 'bg-blue-500 text-white' : 'bg-gray-100 text-slate-500'}`}>
                                 {track.trackNumber}
                             </div>
                             <div>
                                 <h3 className={`font-medium text-xs ${track.title ? 'text-slate-800' : 'text-slate-400 italic'}`}>
-                                {track.title || "Untitled Track"}
+                                {track.title || "Track Tanpa Judul"}
                             </h3>
                                 <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
                                     {isProcessingAudio ? (
                                         <span className="flex items-center gap-1 text-blue-600 font-medium">
-                                            <Loader2 size={16} className="animate-spin" /> Uploading...
+                                            <Loader2 size={16} className="animate-spin" /> Mengupload...
                                         </span>
                                     ) : track.audioFile ? (
                                         typeof track.audioFile === 'string' ? (
                                             <span className="flex items-center gap-1 text-green-600 font-medium">
-                                                <FileAudio size={16} /> Uploaded
+                                                <FileAudio size={16} /> Terupload
                                             </span>
                                         ) : (
                                             <span className="flex items-center gap-1 text-yellow-600 font-medium">
-                                                <UploadCloud size={16} /> Local (will upload)
+                                                <UploadCloud size={16} /> Lokal (akan diupload)
                                             </span>
                                         )
                                     ) : null}
@@ -801,32 +825,34 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                             <div id={`track-audio-upload-${track.id}`} className="bg-slate-50 rounded-xl p-6 mb-6 border border-slate-100 scroll-mt-24">
                             <span id={`track-audio-${track.id}`} className="block scroll-mt-24" />
                                 <h4 className="text-base font-medium text-slate-700 mb-3 uppercase tracking-wider flex items-center gap-2">
-                                    <FileAudio size={20} /> Files
+                                    <FileAudio size={20} /> File
                                 </h4>
                                 {releaseType === 'ALBUM' && (
-                                <div className="grid grid-cols-1 gap-6 max-w-xl">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <ChunkUploader
-                                        label="Master Audio File"
+                                        label="File Audio Master"
                                         accept=".wav,.flac"
                                         filePurpose="MASTER_AUDIO"
                                         required={userRole !== 'Admin'}
                                         existingUploadId={isUploadSessionId(track.audioFile) ? track.audioFile as string : null}
+                                        existingFileRef={typeof track.audioFile === 'string' && !isUploadSessionId(track.audioFile) ? track.audioFile : null}
                                         onUploadComplete={(id) => updateTrack(track.id, { audioFile: id, tempAudioPath: id })}
                                         onRemove={() => updateTrack(track.id, { audioFile: null as any, tempAudioPath: undefined })}
                                     />
                                     <ChunkUploader
-                                        label="Clip Audio / Social Media Audio"
+                                        label="Clip Audio / Audio Media Sosial"
                                         accept=".wav,.flac"
                                         filePurpose="SOCIAL_MEDIA_AUDIO"
                                         required={userRole !== 'Admin'}
                                         existingUploadId={isUploadSessionId(track.audioClip) ? track.audioClip as string : null}
+                                        existingFileRef={typeof track.audioClip === 'string' && !isUploadSessionId(track.audioClip) ? track.audioClip : null}
                                         onUploadComplete={(id) => updateTrack(track.id, { audioClip: id, tempClipPath: id, previewStart: 0 })}
                                         onRemove={() => updateTrack(track.id, { audioClip: null as any, tempClipPath: undefined, previewStart: undefined })}
                                     />
 
                                     {/* IPL Document (if required by version) */}
                                     {['Cover','Remix','Remastered'].includes(data.version) && (
-                                      <div className="space-y-3">
+                                      <div className="space-y-3 lg:col-span-2">
                                         <label className="text-xs font-medium text-slate-600 flex items-center justify-between">
                                             <span>IPL Document (Izin Penggunaan Lagu)</span>
                                             <Info size={20} className="text-slate-400" />
@@ -838,7 +864,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                         />
                                         {track.iplFile && (
                                           <p className="text-xs text-amber-600 font-medium mt-2 truncate">
-                                            Attached: {typeof track.iplFile === 'string' ? 'Existing Document' : track.iplFile.name}
+                                            Terlampir: {typeof track.iplFile === 'string' ? 'Dokumen Tersimpan' : track.iplFile.name}
                                           </p>
                                         )}
                                       </div>
@@ -850,11 +876,11 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     {/* FULL AUDIO */}
                                     <div className="md:col-span-2 space-y-3">
                                         <label className="block text-xs font-medium text-slate-700 mb-2 flex items-center justify-between">
-                                            <span>Full Audio (WAV 24-bit / 48kHz) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</span>
+                                            <span>Audio Penuh (WAV 24-bit / 48kHz) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</span>
                                             {isProcessingAudio && (
                                               <span className="text-xs text-blue-500 flex items-center gap-2">
                                                 <Loader2 size={14} className="animate-spin"/>
-                                                <span>Uploading {Math.round(convertProgress[track.id]?.audio || 0)}%</span>
+                                                <span>Mengupload {Math.round(convertProgress[track.id]?.audio || 0)}%</span>
                                               </span>
                                             )}
                                         </label>
@@ -873,10 +899,10 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
                                                             <p className="text-sm font-bold text-blue-900 truncate">
-                                                                {typeof track.audioFile === 'string' ? 'Existing Audio' : track.audioFile.name}
+                                                                {typeof track.audioFile === 'string' ? 'Audio Tersimpan' : track.audioFile.name}
                                                             </p>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-xs text-blue-600 font-bold bg-blue-100/50 px-2 py-0.5 rounded">Uploaded</span>
+                                                                <span className="text-xs text-blue-600 font-bold bg-blue-100/50 px-2 py-0.5 rounded">Terupload</span>
                                                                 <div className="scale-75 origin-left w-32">
                                                                     <AudioPreview file={track.audioFile} />
                                                                 </div>
@@ -889,7 +915,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                             <FileAudio size={20} />
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <p className="text-xs font-medium text-gray-600 group-hover:text-blue-600 transition-colors">Click to upload Full Audio</p>
+                                                            <p className="text-xs font-medium text-gray-600 group-hover:text-blue-600 transition-colors">Klik untuk upload audio penuh</p>
                                                             <p className="text-xs text-gray-400">WAV 24-bit / 48kHz</p>
                                                         </div>
                                                     </>
@@ -905,7 +931,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                               target="_blank" 
                                                               rel="noopener noreferrer"
                                                               className="p-2 bg-blue-100 text-blue-600 rounded-lg border border-blue-200 hover:bg-blue-200 transition-colors"
-                                                              title="Download Audio"
+                                                              title="Unduh Audio"
                                                               onClick={(e) => e.stopPropagation()}
                                                             >
                                                               <Download size={16} />
@@ -921,7 +947,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             
                                             {!track.audioFile && (
                                                 <div className="hidden sm:block">
-                                                    <span className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded text-xs font-medium border border-gray-200">Select File</span>
+                                                    <span className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded text-xs font-medium border border-gray-200">Pilih File</span>
                                                 </div>
                                             )}
 
@@ -942,7 +968,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             {isProcessingClip && (
                                               <span className="text-xs text-orange-500 flex items-center gap-2">
                                                 <Loader2 size={14} className="animate-spin"/>
-                                                <span>Processing {Math.round(convertProgress[track.id]?.clip || 0)}%</span>
+                                                <span>Memproses {Math.round(convertProgress[track.id]?.clip || 0)}%</span>
                                               </span>
                                             )}
                                         </label>
@@ -961,10 +987,10 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
                                                             <p className="text-sm font-bold text-orange-900 truncate">
-                                                                {typeof track.audioClip === 'string' ? 'Existing Clip' : track.audioClip.name}
+                                                                {typeof track.audioClip === 'string' ? 'Clip Tersimpan' : track.audioClip.name}
                                                             </p>
                                                             <div className="flex items-center gap-2 w-full">
-                                                                <span className="text-xs text-orange-600 font-bold bg-orange-100/50 px-2 py-0.5 rounded whitespace-nowrap">Ready</span>
+                                                                <span className="text-xs text-orange-600 font-bold bg-orange-100/50 px-2 py-0.5 rounded whitespace-nowrap">Siap</span>
                                                                 <div className="scale-75 origin-left w-[133%]">
                                                                     <AudioPreview file={track.audioClip} />
                                                                 </div>
@@ -977,8 +1003,8 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                             <Scissors size={20} />
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <p className="text-xs font-medium text-gray-600 group-hover:text-orange-600 transition-colors">Click to upload Audio Clip</p>
-                                                            <p className="text-xs text-gray-400">Opens Trimmer Tool on upload or use Trim Online</p>
+                                                            <p className="text-xs font-medium text-gray-600 group-hover:text-orange-600 transition-colors">Klik untuk upload clip audio</p>
+                                                            <p className="text-xs text-gray-400">Buka alat trim saat upload atau gunakan Trim Online</p>
                                                         </div>
                                                     </>
                                                 )}
@@ -993,7 +1019,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                               target="_blank" 
                                                               rel="noopener noreferrer"
                                                               className="p-2 bg-orange-100 text-orange-600 rounded-lg border border-orange-200 hover:bg-orange-200 transition-colors"
-                                                              title="Download Clip"
+                                                              title="Unduh Clip"
                                                               onClick={(e) => e.stopPropagation()}
                                                             >
                                                               <Download size={16} />
@@ -1036,7 +1062,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                 )}
                                                 {!track.audioClip && (
                                                     <div className="hidden sm:block">
-                                                        <span className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded text-xs font-medium border border-gray-200">Select File</span>
+                                                        <span className="px-3 py-1.5 bg-gray-100 text-gray-500 rounded text-xs font-medium border border-gray-200">Pilih File</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1056,7 +1082,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                 <div className="flex justify-between items-center mb-6">
                                                     <h3 className="text-xs font-medium text-slate-800 flex items-center gap-2">
                                                         <Scissors size={20} className="text-blue-500" />
-                                                        Trim Audio Clip
+                                                        Trim Clip Audio
                                                     </h3>
                                                     <button onClick={closeTrimmer} className="text-slate-400 hover:text-slate-600">
                                                         <X size={20} />
@@ -1068,7 +1094,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         <div className="text-xs font-mono font-medium text-blue-600">
                                                             {new Date(trimmerState.startTime * 1000).toISOString().substr(14, 5)} - {new Date((trimmerState.startTime + 59) * 1000).toISOString().substr(14, 5)}
                                                         </div>
-                                                        <p className="text-xs text-slate-400 mt-1">Duration: 59 Seconds</p>
+                                                        <p className="text-xs text-slate-400 mt-1">Durasi: 59 Detik</p>
                                                     </div>
 
                                                     <div className="flex items-center gap-4">
@@ -1108,14 +1134,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         onClick={closeTrimmer}
                                                         className="px-6 py-2.5 text-slate-500 font-medium text-xs hover:bg-slate-100 rounded-lg transition-colors"
                                                     >
-                                                        Cancel
+                                                        Batal
                                                     </button>
                                                     <button 
                                                         onClick={saveTrimmedAudio}
                                                         className="px-6 py-2.5 bg-blue-600 text-white font-medium text-xs rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                                                     >
                                                         <Check size={20} />
-                                                        Crop 59s Clip
+                                                        Potong Clip 59 Detik
                                                     </button>
                                                 </div>
                                             </div>
@@ -1136,7 +1162,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                         />
                                         {track.iplFile && (
                                           <p className="text-xs text-amber-600 font-medium mt-2 truncate">
-                                            📄 Attached: {typeof track.iplFile === 'string' ? 'Existing Document' : track.iplFile.name}
+                                            Terlampir: {typeof track.iplFile === 'string' ? 'Dokumen Tersimpan' : track.iplFile.name}
                                           </p>
                                         )}
                                       </div>
@@ -1147,11 +1173,11 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
                             {/* 2. Basic Metadata */}
                             <div id={`track-metadata-${track.id}`} className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6 scroll-mt-24">
-                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Track Metadata</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Metadata Track</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {releaseType === 'ALBUM' && (
                                       <div>
-                                          <label className="block text-sm font-bold text-black mb-2">Track Number <span className="text-red-500">*</span></label>
+                                          <label className="block text-sm font-bold text-black mb-2">Nomor Track <span className="text-red-500">*</span></label>
                                           <input 
                                               value={track.trackNumber}
                                               onChange={(e) => updateTrack(track.id, { trackNumber: e.target.value })}
@@ -1161,19 +1187,8 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                       </div>
                                     )}
                                     {/* Release Date Field Removed as per request */}
-                                    {releaseType === 'ALBUM' && (
-                                    <div>
-                                        <label className="block text-sm font-bold text-black mb-2">ISRC Code (Jika sudah rilis sebelumnya)</label>
-                                        <input 
-                                            value={track.isrc}
-                                            onChange={(e) => updateTrack(track.id, { isrc: e.target.value })}
-                                            className="w-full px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-gray-50 placeholder-gray-400 text-black font-semibold"
-                                            placeholder="e.g. USABC1234567"
-                                        />
-                                    </div>
-                                    )}
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-bold text-black mb-2">Track Title <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-2">Judul Track <span className="text-red-500">*</span></label>
                                         <input 
                                             value={track.title}
                                             onChange={(e) => updateTrack(track.id, { title: e.target.value })}
@@ -1189,10 +1204,10 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
                             {/* 3. Artists */}
                             <div id={`track-artists-${track.id}`} className="border border-gray-200 rounded-lg p-6 mb-6 relative mt-6 scroll-mt-24">
-                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Artists</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4 absolute -top-3 left-4 bg-white px-2">Artis</h4>
                                 <div className="space-y-3">
                                     <label className="block text-sm font-bold text-black mb-2 flex items-center gap-2">
-                                        Primary Artists <span className="text-red-500">*</span>
+                                        Artis Utama <span className="text-red-500">*</span>
                                     </label>
                                     {track.artists.map((artist, idx) => (
                                         <div key={idx} className="bg-gray-50/50 p-3 rounded-lg border border-gray-100">
@@ -1201,7 +1216,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                     value={artist.name}
                                                     onChange={(e) => handleArtistChange(track.id, idx, 'name', e.target.value)}
                                                     className="flex-[2] px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                    placeholder="Artist Name"
+                                                    placeholder="Nama Artis"
                                                 />
                                                 <div className="flex-1 relative">
                                                     <select 
@@ -1231,7 +1246,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                             value={artist.spotifyLink || ''}
                                                             onChange={(e) => handleArtistChange(track.id, idx, 'spotifyLink', e.target.value)}
                                                             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white placeholder:text-gray-400 text-black"
-                                                            placeholder="Spotify Artist Link (Optional)"
+                                                            placeholder="Link Spotify Artis (Opsional)"
                                                         />
                                                         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-green-500">
                                                             <Music size={14} />
@@ -1243,12 +1258,12 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-green-200 text-green-700 bg-green-50 hover:bg-green-100 text-[11px]"
-                                                        aria-label="Open Spotify Artist Page"
+                                                        aria-label="Buka Halaman Spotify Artis"
                                                       >
                                                         <svg viewBox="0 0 168 168" className="w-4 h-4 fill-green-600">
                                                           <path d="M84,0a84,84,0,1,0,84,84A84,84,0,0,0,84,0Zm38.4,121.5a6.5,6.5,0,0,1-9,2.1c-24.6-15-55.6-18.4-92-10.2a6.5,6.5,0,1,1-2.8-12.7c39.1-8.7,73.1-4.8,100.7,11.6A6.5,6.5,0,0,1,122.4,121.5Zm12.8-28.7a8.1,8.1,0,0,1-11.2,2.6c-28.2-17.3-71.2-22.3-104.5-12.3a8.1,8.1,0,1,1-4.7-15.6c36.7-11,84.6-5.5,116,13.3A8.1,8.1,0,0,1,135.2,92.8Zm1.8-30.3c-33.8-20-89.8-21.8-121.8-12.1a9.7,9.7,0,0,1-5.5-18.6c36.3-10.8,98.3-8.6,135.7,13.5a9.7,9.7,0,1,1-8.4,17.2Z"/>
                                                         </svg>
-                                                        <span>Page Artist</span>
+                                                        <span>Halaman Artis</span>
                                                       </a>
                                                     )}
                                                 </div>
@@ -1260,7 +1275,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     onClick={() => addArtist(track.id)}
                                     className="mt-3 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-2"
                                 >
-                                    <PlusCircle size={20} /> Add Artist
+                                    <PlusCircle size={20} /> Tambah Artis
                                 </button>
                             </div>
 
@@ -1268,7 +1283,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
                             {/* 4. Details */}
                             <div className="border border-gray-200 rounded-lg p-3 mb-4 relative">
-                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Track Details</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Detail Track</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                     <div>
                                         <label className="block text-sm font-bold text-black mb-1">Instrumental <span className="text-red-500">*</span></label>
@@ -1295,7 +1310,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     </div>
                                     {track.isInstrumental !== 'Yes' && (
                                         <div className="transition-all duration-300 opacity-100">
-                                            <label className="block text-sm font-bold text-black mb-1">Explicit Lyrics <span className="text-red-500">*</span></label>
+                                            <label className="block text-sm font-bold text-black mb-1">Lirik Eksplisit <span className="text-red-500">*</span></label>
                                             <div className="relative">
                                                 <select 
                                                     value={track.explicitLyrics}
@@ -1312,14 +1327,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     )}
                                     {track.isInstrumental !== 'Yes' && (
                                         <div className="transition-all duration-300 opacity-100">
-                                            <label className="block text-sm font-bold text-black mb-1">Lyrics Language <span className="text-red-500">*</span></label>
+                                            <label className="block text-sm font-bold text-black mb-1">Bahasa Lirik <span className="text-red-500">*</span></label>
                                             <div className="relative">
                                                 <select
                                                     value={(track as any).lyricsLanguage || data.language || ''}
                                                     onChange={(e) => updateTrack(track.id, { lyricsLanguage: e.target.value } as any)}
                                                     className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                                 >
-                                                    <option value="">Select Language...</option>
+                                                    <option value="">Pilih Bahasa...</option>
                                                     {LANGUAGES.map(opt => (
                                                         <option key={opt} value={opt} className="text-black">{opt}</option>
                                                     ))}
@@ -1336,7 +1351,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-sm font-bold text-black mb-1">Composer <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-1">Komposer <span className="text-red-500">*</span></label>
                                         <div className="space-y-2">
                                             {getNamedList(track, 'songwriters', track.composer).map((composer, idx, list) => (
                                                 <div key={idx} className="flex gap-2">
@@ -1348,7 +1363,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                             updateNamedList(track.id, 'songwriters', next);
                                                         }}
                                                         className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                        placeholder="Full Name"
+                                                        placeholder="Nama Lengkap"
                                                     />
                                                     {list.length > 1 && (
                                                         <button
@@ -1367,12 +1382,12 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             onClick={() => updateNamedList(track.id, 'songwriters', [...getNamedList(track, 'songwriters', track.composer), { name: '' }])}
                                             className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-2"
                                         >
-                                            <PlusCircle size={16} /> Add Composer
+                                            <PlusCircle size={16} /> Tambah Komposer
                                         </button>
                                     </div>
                                     {track.isInstrumental !== 'Yes' && (
                                     <div>
-                                        <label className="block text-sm font-bold text-black mb-1">Lyricist <span className="text-red-500">*</span></label>
+                                        <label className="block text-sm font-bold text-black mb-1">Penulis Lirik <span className="text-red-500">*</span></label>
                                         <div className="space-y-2">
                                             {getNamedList(track, 'lyricists', track.lyricist).map((lyricist, idx, list) => (
                                                 <div key={idx} className="flex gap-2">
@@ -1384,7 +1399,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                             updateNamedList(track.id, 'lyricists', next);
                                                         }}
                                                         className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                        placeholder="Full Name"
+                                                        placeholder="Nama Lengkap"
                                                     />
                                                     {list.length > 1 && (
                                                         <button
@@ -1403,7 +1418,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                             onClick={() => updateNamedList(track.id, 'lyricists', [...getNamedList(track, 'lyricists', track.lyricist), { name: '' }])}
                                             className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-2"
                                         >
-                                            <PlusCircle size={16} /> Add Lyricist
+                                            <PlusCircle size={16} /> Tambah Penulis Lirik
                                         </button>
                                     </div>
                                     )}
@@ -1411,7 +1426,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                             </div>
 
                             <div id={`track-details-${track.id}`} className="border border-gray-200 rounded-lg p-3 mb-4 relative scroll-mt-24">
-                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Additional Writers</h4>
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Penulis Tambahan</h4>
                                 <div className="space-y-2">
                                     {((track as any).additionalWriters || []).map((writer: any, idx: number) => (
                                         <div key={idx} className="flex flex-col md:flex-row gap-2">
@@ -1420,14 +1435,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                 onChange={(e) => handleTrackArrayChange(track.id, 'additionalWriters', idx, 'roleName', e.target.value)}
                                                 className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white text-black font-semibold"
                                             >
-                                                <option value="">Select Role...</option>
+                                                <option value="">Pilih Peran...</option>
                                                 {WRITER_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
                                             </select>
                                             <input
                                                 value={writer.name || ''}
                                                 onChange={(e) => handleTrackArrayChange(track.id, 'additionalWriters', idx, 'name', e.target.value)}
                                                 className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                placeholder="Writer Name"
+                                                placeholder="Nama Penulis"
                                             />
                                             <button
                                                 onClick={() => removeTrackArrayItem(track.id, 'additionalWriters', idx)}
@@ -1442,12 +1457,15 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     onClick={() => addTrackArrayItem(track.id, 'additionalWriters')}
                                     className="mt-2 text-xs font-medium text-slate-500 hover:text-blue-600 flex items-center gap-2 px-3 py-1.5 border border-dashed border-gray-300 rounded hover:border-blue-400 transition-all bg-white"
                                 >
-                                    <UserPlus size={16} /> Add Additional Writer
+                                    <UserPlus size={16} /> Tambah Penulis Tambahan
                                 </button>
                             </div>
 
-                            <div id={`track-production-${track.id}`} className="border border-gray-200 rounded-lg p-3 mb-4 relative scroll-mt-24">
-                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Production & Additional Production</h4>
+                            <div
+                                id={`track-production-${track.id}`}
+                                className="border border-gray-200 rounded-lg p-3 relative scroll-mt-24 mb-5"
+                            >
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Produksi & Produksi Tambahan</h4>
                                 <div className="space-y-2">
                                     {((track as any).productionCredits || []).map((credit: any, idx: number) => (
                                         <div key={idx} className="flex flex-col md:flex-row gap-2">
@@ -1456,14 +1474,14 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                                 onChange={(e) => handleTrackArrayChange(track.id, 'productionCredits', idx, 'roleName', e.target.value)}
                                                 className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white text-black font-semibold"
                                             >
-                                                <option value="">Select Role...</option>
+                                                <option value="">Pilih Peran...</option>
                                                 {PRODUCTION_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
                                             </select>
                                             <input
                                                 value={credit.name || ''}
                                                 onChange={(e) => handleTrackArrayChange(track.id, 'productionCredits', idx, 'name', e.target.value)}
                                                 className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                placeholder="Name"
+                                                placeholder="Nama"
                                             />
                                             <button
                                                 onClick={() => removeTrackArrayItem(track.id, 'productionCredits', idx)}
@@ -1478,53 +1496,47 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     onClick={() => addTrackArrayItem(track.id, 'productionCredits')}
                                     className="mt-2 text-xs font-medium text-slate-500 hover:text-blue-600 flex items-center gap-2 px-3 py-1.5 border border-dashed border-gray-300 rounded hover:border-blue-400 transition-all bg-white"
                                 >
-                                    <UserPlus size={16} /> Add Production
+                                    <UserPlus size={16} /> Tambah Produksi
                                 </button>
                             </div>
 
-                            {/* 5. Lyrics & Contributors */}
+                            {/* 5. Lyrics */}
                             {track.isInstrumental !== 'Yes' && (
                               <div className="border border-gray-200 rounded-lg p-3 mb-4 relative">
-                                  <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Lyrics</h4>
+                                  <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Lirik</h4>
                                   <textarea 
                                       value={track.lyrics}
                                       onChange={(e) => updateTrack(track.id, { lyrics: e.target.value })}
                                       className="w-full px-2.5 py-1.5 text-sm font-['Arial'] border border-gray-300 rounded focus:border-blue-500 focus:outline-none h-24 resize-y text-black font-semibold"
-                                      placeholder="Enter song lyrics here..."
+                                      placeholder="Masukkan lirik lagu di sini..."
                                   />
                               </div>
                             )}
 
-                            {releaseType !== 'ALBUM' && (
-                            <div className="border border-gray-200 rounded-lg p-3 mb-4 relative">
-                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Additional Contributors</h4>
+                            <div className="border border-gray-200 rounded-lg p-3 mt-6 mb-4 relative">
+                                <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Kontributor</h4>
                                 
                                 <div className="space-y-2">
                                     {track.contributors.map((contrib, idx) => (
                                         <div key={idx} className="flex flex-col md:flex-row gap-2">
-                                            <input 
-                                                value={contrib.name}
-                                                onChange={(e) => handleContributorChange(track.id, idx, 'name', e.target.value)}
-                                                className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                placeholder="Name"
-                                            />
                                             <div className="flex-1 relative">
                                                 <select 
-                                                    value={contrib.type}
-                                                    onChange={(e) => handleContributorChange(track.id, idx, 'type', e.target.value)}
+                                                    value={contrib.roleName || contrib.role_name || contrib.role || ''}
+                                                    onChange={(e) => handleContributorRoleChange(track.id, idx, e.target.value)}
                                                     className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none appearance-none bg-white text-black font-semibold"
                                                 >
-                                                    {CONTRIBUTOR_TYPES.map(type => <option key={type} value={type} className="text-black">{type}</option>)}
+                                                    <option value="" className="text-black">Pilih Kontributor</option>
+                                                    {CONTRIBUTOR_ROLES.map(role => <option key={role} value={role} className="text-black">{role}</option>)}
                                                 </select>
                                                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
                                                     <ChevronDown size={16} />
                                                 </div>
                                             </div>
                                             <input 
-                                                value={contrib.role}
-                                                onChange={(e) => handleContributorChange(track.id, idx, 'role', e.target.value)}
-                                                className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
-                                                placeholder="Role (e.g. Drums)"
+                                                value={contrib.name}
+                                                onChange={(e) => handleContributorChange(track.id, idx, 'name', e.target.value)}
+                                                className="flex-[2] px-2.5 py-1.5 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-black font-semibold"
+                                                placeholder="Nama"
                                             />
                                             <button 
                                                 onClick={() => removeContributor(track.id, idx)}
@@ -1539,9 +1551,62 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     onClick={() => addContributor(track.id)}
                                     className="mt-2 text-xs font-medium text-slate-500 hover:text-blue-600 flex items-center gap-2 px-3 py-1.5 border border-dashed border-gray-300 rounded hover:border-blue-400 transition-all bg-white"
                                 >
-                                    <UserPlus size={16} /> Add Contributor
+                                    <UserPlus size={16} /> Tambah Kontributor
                                 </button>
                             </div>
+
+                            {releaseType === 'ALBUM' && (
+                              <div id={`track-distribution-${track.id}`} className="border border-gray-200 rounded-lg p-3 mt-6 mb-4 relative scroll-mt-24">
+                                  <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 absolute -top-2 left-3 bg-white px-1">Riwayat Distribusi</h4>
+
+                                  <div className="space-y-3">
+                                      <label className={`flex items-center p-4 rounded-lg border cursor-pointer select-none transition-all ${(track as any).isNewRelease !== false ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
+                                          <div
+                                              style={{ minWidth: '20px', minHeight: '20px', width: '20px', height: '20px', borderRadius: '50%' }}
+                                              className={`border flex items-center justify-center mr-4 shrink-0 pointer-events-none ${(track as any).isNewRelease !== false ? 'border-blue-500' : 'border-gray-300'}`}
+                                          >
+                                              {(track as any).isNewRelease !== false && <div style={{ width: '10px', height: '10px', borderRadius: '50%' }} className="bg-blue-500 pointer-events-none" />}
+                                          </div>
+                                          <input
+                                              type="radio"
+                                              name={`trackDistributionHistory-${track.id}`}
+                                              checked={(track as any).isNewRelease !== false}
+                                              onChange={() => updateTrack(track.id, { isNewRelease: true, isrc: '' } as any)}
+                                              className="hidden"
+                                          />
+                                          <span className={`text-xs font-medium select-none ${(track as any).isNewRelease !== false ? 'text-blue-900' : 'text-slate-600'}`}>Tidak, ini track baru</span>
+                                      </label>
+
+                                      <label className={`flex items-center p-4 rounded-lg border cursor-pointer select-none transition-all ${(track as any).isNewRelease === false ? 'border-blue-500 bg-blue-50/50' : 'border-gray-200 hover:border-blue-200'}`}>
+                                          <div
+                                              style={{ minWidth: '20px', minHeight: '20px', width: '20px', height: '20px', borderRadius: '50%' }}
+                                              className={`border flex items-center justify-center mr-4 shrink-0 pointer-events-none ${(track as any).isNewRelease === false ? 'border-blue-500' : 'border-gray-300'}`}
+                                          >
+                                              {(track as any).isNewRelease === false && <div style={{ width: '10px', height: '10px', borderRadius: '50%' }} className="bg-blue-500 pointer-events-none" />}
+                                          </div>
+                                          <input
+                                              type="radio"
+                                              name={`trackDistributionHistory-${track.id}`}
+                                              checked={(track as any).isNewRelease === false}
+                                              onChange={() => updateTrack(track.id, { isNewRelease: false } as any)}
+                                              className="hidden"
+                                          />
+                                          <span className={`text-xs font-medium select-none ${(track as any).isNewRelease === false ? 'text-blue-900' : 'text-slate-600'}`}>Ya, track ini pernah dirilis sebelumnya</span>
+                                      </label>
+                                  </div>
+
+                                  {(track as any).isNewRelease === false && (
+                                      <div className="mt-4 pt-4 border-t border-gray-100">
+                                          <label className="block text-sm font-bold text-black mb-2">ISRC Code (Jika sudah rilis sebelumnya)</label>
+                                          <input
+                                              value={track.isrc}
+                                              onChange={(e) => updateTrack(track.id, { isrc: e.target.value })}
+                                              className="w-full px-4 py-2 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-gray-50 placeholder-gray-400 text-black font-semibold"
+                                              placeholder="contoh: USABC1234567"
+                                          />
+                                      </div>
+                                  )}
+                              </div>
                             )}
 
                         </div>
@@ -1557,7 +1622,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
             className="w-full mt-4 py-2.5 border-2 border-dashed border-blue-200 rounded-xl text-blue-500 text-xs font-medium hover:bg-blue-50 hover:border-blue-400 transition-all flex items-center justify-center gap-2"
         >
             <PlusCircle size={16} />
-            Add Another Track
+            Tambah Track Lain
         </button>
       )}
       

@@ -31,7 +31,7 @@ export const SelectInput: React.FC<SelectProps> = ({ label, options, ...props })
         className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white shadow-sm appearance-none text-black focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-200 hover:border-blue-400 cursor-pointer"
         {...props}
       >
-        <option value="" className="text-gray-500">Select an option...</option>
+        <option value="" className="text-gray-500">Pilih opsi...</option>
         {options.map((opt: any, i: number) => {
           if (typeof opt === 'object' && opt !== null && 'label' in opt) {
             return <option key={`${opt.value}-${i}`} value={opt.value} className="text-black">{opt.label}</option>;

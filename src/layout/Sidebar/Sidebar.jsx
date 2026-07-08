@@ -25,6 +25,16 @@ const Sidebar = () => {
         setActiveMenu(menuName);
     }
 
+    useEffect(() => {
+        for (const routes of SidebarMenu) {
+            const matchedMenu = routes.contents.find((menu) => menu.childrens && pathname.startsWith(menu.path));
+            if (matchedMenu) {
+                setActiveMenu(matchedMenu.name);
+                return;
+            }
+        }
+    }, [pathname]);
+
 
     return (
         <>
@@ -47,7 +57,11 @@ const Sidebar = () => {
                                                     menus.childrens
                                                         ?
                                                         <>
-                                                            <Nav.Link data-bs-toggle="collapse" data-bs-target={`#${menus.id}`} aria-expanded={activeMenu === menus.name ? "true" : "false"} onClick={() => setActiveMenu(menus.name)} >
+                                                            {(() => {
+                                                                const isOpen = activeMenu === menus.name || pathname.startsWith(menus.path);
+                                                                return (
+                                                                <>
+                                                            <Nav.Link aria-expanded={isOpen ? "true" : "false"} onClick={() => setActiveMenu(prev => prev === menus.name ? undefined : menus.name)} >
                                                                 <span className={classNames("nav-icon-wrap", { "position-relative": menus.iconBadge })}>
                                                                     {menus.iconBadge && menus.iconBadge}
                                                                     <span className="svg-icon">
@@ -62,7 +76,7 @@ const Sidebar = () => {
                                                             </Nav.Link>
 
                                                             {/* <Collapse in={open}> */}
-                                                            <ul id={menus.id} className={classNames("nav flex-column nav-children", { "collapse": activeMenu !== menus.name })}>
+                                                            <ul id={menus.id} className={classNames("nav flex-column nav-children", { "collapse": !isOpen, "show": isOpen })}>
                                                                 <li className="nav-item">
                                                                     <ul className="nav flex-column">
                                                                         {menus.childrens.map((subMenu, indx) => (
@@ -94,7 +108,7 @@ const Sidebar = () => {
                                                                                 </li>
                                                                                 :
                                                                                 <li className="nav-item" key={indx}>
-                                                                                    <Link href={subMenu.path} onClick={handleClick} className={classNames("nav-link", { "active": pathname === subMenu.path })}>
+                                                                                    <Link href={subMenu.path} onClick={() => handleClick(menus.name)} className={classNames("nav-link", { "active": pathname === subMenu.path })}>
                                                                                         <span className="nav-link-text">
                                                                                             {subMenu.name}
                                                                                         </span>
@@ -105,6 +119,9 @@ const Sidebar = () => {
                                                                 </li>
                                                             </ul>
                                                             {/* </Collapse> */}
+                                                                </>
+                                                                );
+                                                            })()}
 
                                                         </>
                                                         :

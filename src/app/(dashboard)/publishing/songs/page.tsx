@@ -5,7 +5,7 @@ import { useBranding } from '@/contexts/BrandingContext';
 import { api } from '@/utils/api';
 import {
   ListMusic, Search, Loader2, Music, Clock, CheckCircle, AlertTriangle,
-  ChevronLeft, ChevronRight, Eye
+  ChevronLeft, ChevronRight, Eye, Plus, X, Save
 } from 'lucide-react';
 
 interface Song {
@@ -29,6 +29,18 @@ export default function SongsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    performer: '',
+    writerName: '',
+    writerRole: 'Composer',
+    genre: '',
+    language: 'Indonesia',
+    duration: '',
+    isrc: '',
+  });
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
@@ -46,12 +58,55 @@ export default function SongsPage() {
     }
   };
 
+  const handleFormChange = (field: string, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateSong = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.title.trim() || !form.performer.trim()) return;
+
+    try {
+      setIsSaving(true);
+      const formData = new FormData();
+      formData.append('title', form.title.trim());
+      formData.append('performer', form.performer.trim());
+      formData.append('writer_name', form.writerName.trim());
+      formData.append('writer_role', form.writerRole);
+      formData.append('writer_share', '100');
+      formData.append('genre', form.genre.trim());
+      formData.append('language', form.language.trim() || 'Indonesia');
+      formData.append('duration', form.duration || '0');
+      formData.append('isrc', form.isrc.trim());
+      formData.append('authorized_rights', '100');
+      formData.append('region', 'Indonesia');
+
+      await api.publishing.createSong('', formData);
+      setShowAddModal(false);
+      setForm({
+        title: '',
+        performer: '',
+        writerName: '',
+        writerRole: 'Composer',
+        genre: '',
+        language: 'Indonesia',
+        duration: '',
+        isrc: '',
+      });
+      await fetchSongs();
+    } catch (err) {
+      console.error('Failed to create song:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const statusTabs = [
     { id: 'ALL', label: 'Semua' },
-    { id: 'pending', label: 'Pending' },
+    { id: 'pending', label: 'Menunggu' },
     { id: 'review', label: 'Review' },
-    { id: 'accepted', label: 'Accepted' },
-    { id: 'rejected', label: 'Rejected' },
+    { id: 'accepted', label: 'Diterima' },
+    { id: 'rejected', label: 'Ditolak' },
   ];
 
   const filtered = songs.filter(s => {
@@ -71,10 +126,10 @@ export default function SongsPage() {
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
-      pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: <Clock size={12} />, label: 'Pending' },
+      pending: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: <Clock size={12} />, label: 'Menunggu' },
       review: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', icon: <Eye size={12} />, label: 'Review' },
-      accepted: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: <CheckCircle size={12} />, label: 'Accepted' },
-      rejected: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', icon: <AlertTriangle size={12} />, label: 'Rejected' },
+      accepted: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: <CheckCircle size={12} />, label: 'Diterima' },
+      rejected: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', icon: <AlertTriangle size={12} />, label: 'Ditolak' },
     };
     const s = map[status] || map.pending;
     return (
@@ -108,6 +163,14 @@ export default function SongsPage() {
           </h1>
           <p className="text-slate-500 text-sm mt-1">Kelola data lagu dan hak cipta publishing</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-pink-500 hover:bg-pink-600 shadow-lg shadow-pink-500/20 transition-all"
+        >
+          <Plus size={18} />
+          Tambah Lagu
+        </button>
       </div>
 
       {/* Search & Filter */}
@@ -116,7 +179,7 @@ export default function SongsPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Cari judul, performer, atau Song ID..."
+            placeholder="Cari judul, performer, atau ID Lagu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-400 transition-all"
@@ -221,6 +284,119 @@ export default function SongsPage() {
           </>
         )}
       </div>
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <form onSubmit={handleCreateSong} className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Tambah Lagu</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Masukkan data dasar lagu publishing.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Judul Lagu *</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => handleFormChange('title', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Performer *</label>
+                <input
+                  value={form.performer}
+                  onChange={(e) => handleFormChange('performer', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Pencipta</label>
+                <input
+                  value={form.writerName}
+                  onChange={(e) => handleFormChange('writerName', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Peran Pencipta</label>
+                <select
+                  value={form.writerRole}
+                  onChange={(e) => handleFormChange('writerRole', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                >
+                  <option value="Composer">Komposer</option>
+                  <option value="Lyricist">Penulis Lirik</option>
+                  <option value="Composer & Lyricist">Komposer & Penulis Lirik</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Genre</label>
+                <input
+                  value={form.genre}
+                  onChange={(e) => handleFormChange('genre', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Bahasa</label>
+                <input
+                  value={form.language}
+                  onChange={(e) => handleFormChange('language', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Durasi Menit</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.duration}
+                  onChange={(e) => handleFormChange('duration', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">ISRC</label>
+                <input
+                  value={form.isrc}
+                  onChange={(e) => handleFormChange('isrc', e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-400"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-pink-500 hover:bg-pink-600 disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                Simpan Lagu
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

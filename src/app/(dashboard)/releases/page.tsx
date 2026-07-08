@@ -38,7 +38,7 @@ export default function ReleasesPage() {
         setReleases(Array.isArray(data) ? data : []);
       } catch (err: any) {
         console.error('Failed to fetch releases', err);
-        setError(err.message || 'Failed to load');
+        setError(err.message || 'Gagal memuat data');
       }
     };
     fetchReleases();
@@ -59,13 +59,29 @@ export default function ReleasesPage() {
 
   // Define Tabs
   const tabs = [
-    { id: 'ALL', label: 'All Release', statusMap: null },
-    { id: 'PENDING', label: 'Pending', statusMap: 'Pending' },
-    { id: 'REQUEST_EDIT', label: 'Request Edit', statusMap: 'Request Edit' },
+    { id: 'ALL', label: 'Semua Rilis', statusMap: null },
+    { id: 'PENDING', label: 'Menunggu', statusMap: 'Pending' },
+    { id: 'REQUEST_EDIT', label: 'Minta Revisi', statusMap: 'Request Edit' },
     { id: 'PROCESSING', label: 'Proses', statusMap: 'Processing' },
-    { id: 'RELEASED', label: 'Released', statusMap: 'Live' },
-    { id: 'REJECTED', label: 'Reject', statusMap: 'Rejected' },
+    { id: 'RELEASED', label: 'Rilis', statusMap: 'Live' },
+    { id: 'REJECTED', label: 'Ditolak', statusMap: 'Rejected' },
   ];
+
+  const getStatusLabel = (status?: string | null) => {
+    const normalized = status || 'Pending';
+    if (normalized === 'Live' || normalized === 'Released') return 'Rilis';
+    if (normalized === 'Processing') return 'Diproses';
+    if (normalized === 'Pending') return 'Menunggu';
+    if (normalized === 'Request Edit') return 'Minta Revisi';
+    if (normalized === 'Rejected') return 'Ditolak';
+    return normalized;
+  };
+
+  const getTypeLabel = (type: string) => {
+    if (type === 'Single') return 'Single';
+    if (type === 'Album/EP') return 'Album/EP';
+    return type;
+  };
 
   const getCount = (statusMap: string | null) => {
     if (statusMap === null) return releases.length;
@@ -207,7 +223,7 @@ export default function ReleasesPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
         {/* META COUNTS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard 
@@ -216,7 +232,7 @@ export default function ReleasesPage() {
                 icon={<Music size={16} />} 
                 colorClass="text-indigo-600" 
                 bgClass="bg-indigo-100"
-                subtext="Total single releases"
+                subtext="Total rilis single"
                 cardClass="bg-indigo-500/10 border-indigo-500/20"
             />
             <StatCard 
@@ -225,7 +241,7 @@ export default function ReleasesPage() {
                 icon={<Disc size={16} />} 
                 colorClass="text-purple-600" 
                 bgClass="bg-purple-100"
-                subtext="Total album releases"
+                subtext="Total rilis album"
                 cardClass="bg-purple-500/10 border-purple-500/20"
             />
             <StatCard 
@@ -234,7 +250,7 @@ export default function ReleasesPage() {
                 icon={<Music size={16} />} 
                 colorClass="text-blue-600" 
                 bgClass="bg-blue-100"
-                subtext="Tracks across catalog"
+                subtext="Total track katalog"
                 cardClass="bg-blue-500/10 border-blue-500/20"
             />
             <StatCard 
@@ -243,7 +259,7 @@ export default function ReleasesPage() {
                 icon={<Users size={16} />} 
                 colorClass="text-emerald-600" 
                 bgClass="bg-emerald-100"
-                subtext="Total unique artists"
+                subtext="Total artis unik"
                 cardClass="bg-emerald-500/10 border-emerald-500/20"
             />
             
@@ -253,13 +269,39 @@ export default function ReleasesPage() {
         {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 flex items-center gap-3">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <p className="font-medium">Connection Error: {error}</p>
-                <p className="text-sm ml-auto text-red-400">Please check your network or server logs.</p>
+                <p className="font-medium">Koneksi bermasalah: {error}</p>
+                <p className="text-sm ml-auto text-red-400">Periksa jaringan atau log server.</p>
             </div>
         )}
 
-        <div className="flex flex-row flex-wrap justify-between items-center gap-4 mb-6 w-full">
-            <div className="flex overflow-x-auto pb-0 gap-2 no-scrollbar flex-1 min-w-[300px]">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-6 w-full">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <div>
+                    <h2 className="text-sm font-bold text-slate-800">Kelola Rilis</h2>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Cari data rilis atau buat rilis baru.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                    <button
+                        onClick={() => router.push('/new-release')}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-xs font-bold shadow-md shadow-blue-100 whitespace-nowrap"
+                        title="Buat Rilis Baru"
+                    >
+                        <Plus size={14} />
+                        Rilis Baru
+                    </button>
+                    <div className="relative w-full sm:w-72">
+                        <input 
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={`Cari judul, artis, UPC${(userRole === 'Admin' || userRole === 'Operator') ? ', agregator' : ''}...`} 
+                            className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-white shadow-sm transition-all text-xs text-slate-800"
+                        />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                </div>
+            </div>
+            <div className="flex overflow-x-auto gap-2 no-scrollbar border-t border-slate-100 pt-4">
             {tabs.map((tab) => {
                 const isActive = activeStatusTab === tab.id;
                 const count = getCount(tab.statusMap);
@@ -334,29 +376,6 @@ export default function ReleasesPage() {
                 );
             })}
             </div>
-
-            <div className="flex justify-end flex-shrink-0">
-                <div className="flex flex-row items-center gap-3">
-                    <button
-                        onClick={() => router.push('/new-release')}
-                        className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-xs font-normal shadow-md shadow-blue-100 whitespace-nowrap justify-center"
-                        title="Create New Release"
-                    >
-                        <Plus size={14} />
-                        New Release
-                    </button>
-                    <div className="relative w-52">
-                        <input 
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={`Search Title, Artist, UPC${(userRole === 'Admin' || userRole === 'Operator') ? ', Aggregator' : ''}...`} 
-                            className="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-white shadow-sm transition-all text-[10px] text-slate-800"
-                        />
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
@@ -364,13 +383,13 @@ export default function ReleasesPage() {
                 <table className="w-full text-left bg-white">
                     <thead className="bg-[#f1f5f9] border-b-2 border-slate-200">
                         <tr>
-                            <ThSortable label="Release" sortKey="title" />
-                            <ThSortable label="Type" sortKey="type" />
-                            <ThSortable label="Release Date" sortKey="date" />
-                            <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider">Submit Date</th>
-                            {(userRole === 'Admin' || userRole === 'Operator') && <ThSortable label="Aggregator" sortKey="aggregator" />}
+                            <ThSortable label="Rilis" sortKey="title" />
+                            <ThSortable label="Tipe" sortKey="type" />
+                            <ThSortable label="Tanggal Rilis" sortKey="date" />
+                            <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider">Tanggal Submit</th>
+                            {(userRole === 'Admin' || userRole === 'Operator') && <ThSortable label="Agregator" sortKey="aggregator" />}
                             <ThSortable label="Status" sortKey="status" />
-                            <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider text-right">Action</th>
+                            <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -381,7 +400,7 @@ export default function ReleasesPage() {
                             // Date priority: Planned > Original > Submission
                             const displayDateRaw = release.plannedReleaseDate || release.originalReleaseDate || release.submissionDate || "N/A";
                             const status = release.status || "Pending";
-                            const ownerName = release.company_name || release.user_full_name || release.owner_name || release.owner || release.created_by || "Unknown User";
+                            const ownerName = release.company_name || release.user_full_name || release.owner_name || release.owner || release.created_by || "Pengguna Tidak Dikenal";
 
                             // Determine color based on status
                             let statusClass = "bg-gray-100 text-gray-600 border-gray-200";
@@ -395,11 +414,11 @@ export default function ReleasesPage() {
                             const isSingle = (release.tracks || []).length === 1;
                             const isrcDisplay = isSingle 
                                 ? (release.tracks?.[0]?.isrc || "-") 
-                                : ((release.tracks || []).length > 0 ? `${release.tracks.length} Tracks` : "-");
+                                : ((release.tracks || []).length > 0 ? `${release.tracks.length} Track` : "-");
 
                             // Rejection Tooltip Logic
                             const rejectionTooltip = status === 'Rejected' && release.rejectionReason 
-                                ? `Reason: ${release.rejectionReason}` 
+                                ? `Alasan: ${release.rejectionReason}` 
                                 : undefined;
 
                             return (
@@ -432,9 +451,9 @@ export default function ReleasesPage() {
                                                 )}
                                             </div>
                                             <div className="min-w-[150px]">
-                                                <div className="font-medium text-slate-800 truncate max-w-[200px] text-[13px]" title={release.title}>{release.title || "Untitled Release"}</div>
+                                                <div className="font-medium text-slate-800 truncate max-w-[200px] text-[13px]" title={release.title}>{release.title || "Rilis Tanpa Judul"}</div>
                                                 <div className="text-[13px] text-slate-500 truncate max-w-[200px] font-medium" title={(release.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).join(', ')}>
-                                                    {(release.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).join(', ') || "Unknown Artist"}
+                                                    {(release.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).join(', ') || "Artis Tidak Dikenal"}
                                                 </div>
                                                 <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5 truncate max-w-[200px]">
                                                     <Users size={10} />
@@ -450,7 +469,7 @@ export default function ReleasesPage() {
                                                 : "bg-green-100 text-green-700 border-green-200"
                                         }`}>
                                             <Music size={10} />
-                                            {type}
+                                            {getTypeLabel(type)}
                                         </span>
                                     </td>
                                 <td className="px-4 py-2 text-[13px] text-slate-600 whitespace-nowrap">
@@ -473,7 +492,7 @@ export default function ReleasesPage() {
                                                 {release.aggregator}
                                             </div>
                                         ) : (
-                                            <span className="text-[13px] text-slate-300 italic">Not set</span>
+                                            <span className="text-[13px] text-slate-300 italic">Belum diatur</span>
                                         )}
                                     </td>
                                     )}
@@ -483,7 +502,7 @@ export default function ReleasesPage() {
                                                 title={rejectionTooltip}
                                                 className={`inline-block px-2 py-0.5 rounded-full text-[13px] font-medium whitespace-nowrap border ${statusClass}`}
                                             >
-                                                {status === 'Live' || status === 'Released' ? 'Released' : status}
+                                                {getStatusLabel(status)}
                                             </span>
                                         </div>
                                     </td>
@@ -491,9 +510,9 @@ export default function ReleasesPage() {
                                         <div className="flex justify-end gap-2">
                                             <Link href={`/releases/${release.id}/view`}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all text-[14px] font-medium shadow-sm whitespace-nowrap"
-                                                title="View & Manage"
+                                                title="Lihat dan Kelola"
                                             >
-                                                <Eye size={12} /> View
+                                                <Eye size={12} /> Lihat
                                             </Link>
                                         </div>
                                     </td>
@@ -509,13 +528,13 @@ export default function ReleasesPage() {
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Filter size={24} className="text-slate-300" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-700 mb-1">{error ? "Connection Failed" : "No releases found"}</h3>
+                    <h3 className="text-lg font-bold text-slate-700 mb-1">{error ? "Koneksi Gagal" : "Data rilis tidak ditemukan"}</h3>
                     <p className="text-slate-400 text-xs">
                         {error 
-                            ? "We couldn't load your releases. Please check the error message above."
+                            ? "Data rilis belum bisa dimuat. Periksa pesan error di atas."
                             : (activeStatusTab === 'ALL' && searchQuery === ''
-                                ? "You haven't created any releases yet." 
-                                : `No results found for your current filter/search.`)}
+                                ? "Belum ada rilis yang dibuat." 
+                                : `Tidak ada hasil untuk filter atau pencarian saat ini.`)}
                     </p>
                 </div>
             )}
@@ -523,11 +542,11 @@ export default function ReleasesPage() {
             {/* Pagination Footer */}
             <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
                 <div className="text-[13px] text-slate-500 font-medium">
-                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min((currentPage - 1) * ITEMS_PER_PAGE + ITEMS_PER_PAGE, sortedReleases.length)} of {sortedReleases.length} results
+                    Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} sampai {Math.min((currentPage - 1) * ITEMS_PER_PAGE + ITEMS_PER_PAGE, sortedReleases.length)} dari {sortedReleases.length} data
                 </div>
                 <div className="flex gap-2">
                      <button onClick={() => setIsViewAll(!isViewAll)} className="px-3 py-1.5 text-[14px] font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        {isViewAll ? "Show Paged" : "View All"}
+                        {isViewAll ? "Tampilkan Per Halaman" : "Lihat Semua"}
                      </button>
                      {!isViewAll && totalPages > 1 && (
                      <div className="flex items-center gap-1">

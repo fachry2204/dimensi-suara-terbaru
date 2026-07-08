@@ -152,22 +152,92 @@ export async function getReleaseById(
       [r.id]
     );
 
+    let songwritersMap: Record<number, any[]> = {};
+    let lyricistsMap: Record<number, any[]> = {};
     let additionalWritersMap: Record<number, any[]> = {};
+    let productionCreditsMap: Record<number, any[]> = {};
+    let contributorsMap: Record<number, any[]> = {};
     if (trackRows.length > 0) {
       const trackIds = trackRows.map((tr: any) => tr.id);
+      const placeholders = trackIds.map(() => '?').join(',');
+      const pushRow = (map: Record<number, any[]>, row: any, item: any) => {
+        if (!map[row.track_id]) {
+          map[row.track_id] = [];
+        }
+        map[row.track_id].push(item);
+      };
+
+      const [songwriterRows]: any = await db.query(
+        `SELECT * FROM track_songwriters WHERE track_id IN (${placeholders}) ORDER BY sequence_number ASC`,
+        trackIds
+      );
+      if (Array.isArray(songwriterRows)) {
+        songwriterRows.forEach((row: any) => {
+          pushRow(songwritersMap, row, {
+            id: row.id,
+            name: row.name,
+            sequenceNumber: row.sequence_number
+          });
+        });
+      }
+
+      const [lyricistRows]: any = await db.query(
+        `SELECT * FROM track_lyricists WHERE track_id IN (${placeholders}) ORDER BY sequence_number ASC`,
+        trackIds
+      );
+      if (Array.isArray(lyricistRows)) {
+        lyricistRows.forEach((row: any) => {
+          pushRow(lyricistsMap, row, {
+            id: row.id,
+            name: row.name,
+            sequenceNumber: row.sequence_number
+          });
+        });
+      }
+
       const [addWriterRows]: any = await db.query(
-        `SELECT * FROM track_additional_writers WHERE track_id IN (${trackIds.map(() => '?').join(',')}) ORDER BY sequence_number ASC`,
+        `SELECT * FROM track_additional_writers WHERE track_id IN (${placeholders}) ORDER BY sequence_number ASC`,
         trackIds
       );
       if (Array.isArray(addWriterRows)) {
         addWriterRows.forEach((row: any) => {
-          if (!additionalWritersMap[row.track_id]) {
-            additionalWritersMap[row.track_id] = [];
-          }
-          additionalWritersMap[row.track_id].push({
+          pushRow(additionalWritersMap, row, {
             id: row.id,
             roleId: row.role_id,
             roleName: row.role_name,
+            name: row.name,
+            sequenceNumber: row.sequence_number
+          });
+        });
+      }
+
+      const [productionRows]: any = await db.query(
+        `SELECT * FROM track_production_credits WHERE track_id IN (${placeholders}) ORDER BY sequence_number ASC`,
+        trackIds
+      );
+      if (Array.isArray(productionRows)) {
+        productionRows.forEach((row: any) => {
+          pushRow(productionCreditsMap, row, {
+            id: row.id,
+            roleId: row.role_id,
+            roleName: row.role_name,
+            name: row.name,
+            sequenceNumber: row.sequence_number
+          });
+        });
+      }
+
+      const [contributorRows]: any = await db.query(
+        `SELECT id, track_id, role_id, COALESCE(NULLIF(role_name, ''), NULLIF(role, ''), NULLIF(type, '')) AS role_name, name, sequence_number FROM track_contributors WHERE track_id IN (${placeholders}) ORDER BY sequence_number ASC, id ASC`,
+        trackIds
+      );
+      if (Array.isArray(contributorRows)) {
+        contributorRows.forEach((row: any) => {
+          pushRow(contributorsMap, row, {
+            id: row.id,
+            roleId: row.role_id,
+            roleName: row.role_name,
+            role: row.role_name,
             name: row.name,
             sequenceNumber: row.sequence_number
           });
@@ -178,18 +248,26 @@ export async function getReleaseById(
     tracks = trackRows.map((t: any) => {
       const parseJson = (val: any) => {
         if (!val) return [];
+        if (Array.isArray(val)) return val;
         if (typeof val !== 'string') return val;
-        try { return JSON.parse(val); } catch (e) { return []; }
+        const trimmed = val.trim();
+        if (!trimmed) return [];
+        try {
+          const parsed = JSON.parse(trimmed);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          return [{ name: trimmed }];
+        }
       };
 
       return {
         ...t,
         primaryArtists: parseJson(t.primary_artists),
         featuredArtists: parseJson(t.featured_artists),
-        songwriters: parseJson(t.writer),
-        lyricists: parseJson(t.lyricist),
-        productionCredits: parseJson(t.producer),
-        contributors: parseJson(t.contributors),
+        songwriters: songwritersMap[t.id] || parseJson(t.writer || t.composer),
+        lyricists: lyricistsMap[t.id] || parseJson(t.lyricist),
+        productionCredits: productionCreditsMap[t.id] || parseJson(t.producer),
+        contributors: contributorsMap[t.id] || parseJson(t.contributors),
         additionalWriters: additionalWritersMap[t.id] || [],
         audioFile: t.resolved_audio_file || t.audio_file,
         audioClip: t.resolved_audio_clip || t.audio_clip,

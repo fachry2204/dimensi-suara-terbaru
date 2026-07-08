@@ -64,11 +64,11 @@ export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, 
   );
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
            <div>
                 <h1 className="text-lg text-white tracking-tight font-bold">Dashboard</h1>
-                <p className="text-slate-400 mt-0.5 text-[12px]">Welcome back, here is your catalog overview.</p>
+                <p className="text-slate-400 mt-0.5 text-[12px]">Selamat datang kembali, berikut ringkasan katalog Anda.</p>
            </div>
            <button 
                 onClick={() => navigate('/new-release')}
@@ -76,32 +76,32 @@ export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, 
                 style={{ backgroundColor: getButtonColor() }}
             >
                 <Plus size={16} />
-                New Release
+                Rilis Baru
             </button>
        </div>
 
        {/* STATS CARDS */}
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <StatCard 
-                title="Pending Review" 
+                title="Menunggu Review" 
                 count={stats.pending} 
                 icon={<Clock size={20} />} 
                 colorClass="text-yellow-600" 
                 bgClass="bg-yellow-50"
-                subtext="Waiting for approval"
+                subtext="Menunggu persetujuan"
                 cardClass="bg-yellow-50 border-yellow-100"
             />
             <StatCard 
-                title="Processing" 
+                title="Diproses" 
                 count={stats.processing} 
                 icon={<Loader2 size={20} className={stats.processing > 0 ? "animate-spin-slow" : ""} />} 
                 colorClass="text-blue-600" 
                 bgClass="bg-blue-50"
-                subtext="Sent to stores"
+                subtext="Dikirim ke toko"
                 cardClass="bg-blue-50 border-blue-100"
             />
             <StatCard 
-                title="Released" 
+                title="Rilis" 
                 count={stats.live} 
                 icon={<CheckCircle size={20} />} 
                 colorClass="text-green-600" 
@@ -110,12 +110,12 @@ export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, 
                 cardClass="bg-green-50 border-green-100"
             />
             <StatCard 
-                title="Rejected" 
+                title="Ditolak" 
                 count={stats.rejected} 
                 icon={<AlertTriangle size={20} />} 
                 colorClass="text-red-600" 
                 bgClass="bg-red-50"
-                subtext="Requires attention"
+                subtext="Perlu diperhatikan"
                 cardClass="bg-red-50 border-red-100"
             />
        </div>
@@ -166,13 +166,13 @@ export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, 
             <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="text-[11px] text-slate-800 flex items-center gap-2 font-bold uppercase tracking-wider">
                     <LayoutDashboard size={16} className="text-slate-400" />
-                    Recent Activity (Pending & Processing)
+                    Aktivitas Terbaru (Menunggu & Diproses)
                 </h3>
                 <button 
                     onClick={onNavigateToAll}
                     className="text-[11px] font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
                 >
-                    View All <ArrowRight size={14} />
+                    Lihat Semua <ArrowRight size={14} />
                 </button>
             </div>
             
@@ -182,7 +182,7 @@ export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, 
                         <tr>
                             <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Cover</th>
                             <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Title</th>
-                            <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Artist</th>
+                            <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Artis</th>
                             {(userRole === 'Admin' || userRole === 'Operator') && <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Aggregator</th>}
                             <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Status</th>
                             <th className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase">Date</th>

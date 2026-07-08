@@ -82,17 +82,17 @@ export function DashboardHeader({
   };
 
   const getPageTitle = () => {
-    if (pathname === '/dashboard') return "Overview";
-    if (pathname === '/aggregator') return "Aggregator Overview";
-    if (pathname === '/new-release') return "Music Distribution";
-    if (pathname === '/releases') return "All Releases";
-    if (pathname === '/settings') return "Settings";
-    if (pathname === '/users') return "User Management";
+    if (pathname === '/dashboard') return "Ringkasan";
+    if (pathname === '/aggregator') return "Ringkasan Agregator";
+    if (pathname === '/new-release') return "Distribusi Musik";
+    if (pathname === '/releases') return "Semua Rilis";
+    if (pathname === '/settings') return "Pengaturan";
+    if (pathname === '/users') return "Manajemen User";
     if (pathname === '/reports') return "Laporan";
     if (pathname === '/import-reports') return "Import Laporan";
     if (pathname === '/revenue') return "Pendapatan";
     if (pathname.startsWith('/reports/payments')) return "Menu Pembayaran";
-    if (pathname === '/statistics') return "Analytics & Reports";
+    if (pathname === '/statistics') return "Analitik & Laporan";
     if (pathname.startsWith('/publishing')) return "Publishing";
     return "Dashboard";
   };
@@ -185,7 +185,7 @@ export function DashboardHeader({
               {/* Releases Results */}
               {!isSearching && searchResults.releases?.length > 0 && (
                 <div className="p-4 border-b border-slate-50">
-                  <div className="text-[13px] font-semibold text-slate-400 mb-3">Releases (Lagu)</div>
+                  <div className="text-[13px] font-semibold text-slate-400 mb-3">Rilis Lagu</div>
                   <div className="space-y-3">
                     {searchResults.releases.map((release: any) => (
                       <div key={release.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => window.location.href = '/releases'}>
@@ -198,7 +198,7 @@ export function DashboardHeader({
                         </div>
                         <div className="overflow-hidden">
                           <div className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors truncate">{release.title}</div>
-                          <div className="text-[11px] text-slate-400 truncate">{release.main_artist || 'Unknown Artist'}</div>
+                          <div className="text-[11px] text-slate-400 truncate">{release.main_artist || 'Artis Tidak Dikenal'}</div>
                         </div>
                       </div>
                     ))}
@@ -209,7 +209,7 @@ export function DashboardHeader({
               {/* Users Results */}
               {!isSearching && searchResults.users?.length > 0 && (
                 <div className="p-4 border-b border-slate-50">
-                  <div className="text-[13px] font-semibold text-slate-400 mb-3">Users</div>
+                  <div className="text-[13px] font-semibold text-slate-400 mb-3">User</div>
                   <div className="space-y-3">
                     {searchResults.users.map((u: any) => (
                       <div key={u.id} className="flex items-center gap-3 cursor-pointer group" onClick={() => window.location.href = '/users'}>
@@ -270,7 +270,7 @@ export function DashboardHeader({
           {showNotifications && (
             <div className="absolute right-0 top-full mt-3 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-200">
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 className="font-bold text-slate-800 text-sm">Notifications</h3>
+                <h3 className="font-bold text-slate-800 text-sm">Notifikasi</h3>
                 <button 
                   onClick={() => setShowNotifications(false)}
                   className="text-slate-500 hover:text-slate-300"
@@ -282,7 +282,7 @@ export function DashboardHeader({
                 {notifications.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 text-sm">
                     <Bell size={32} className="mx-auto mb-3 opacity-20" />
-                    No notifications yet
+                    Belum ada notifikasi
                   </div>
                 ) : (
                   notifications.map((notif: any) => (
@@ -316,7 +316,7 @@ export function DashboardHeader({
             className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 text-white hover:bg-amber-600 rounded-xl font-bold text-xs transition-all shadow-lg animate-pulse"
           >
             <Shield size={14} />
-            Back to Admin
+            Kembali ke Admin
           </button>
         )}
 
@@ -334,7 +334,7 @@ export function DashboardHeader({
               {userRole === 'Admin' 
                 ? 'Super Administrator' 
                 : userRole === 'Operator' 
-                  ? 'Content Manager' 
+                  ? 'Pengelola Konten' 
                   : (currentUserData?.account_type?.toLowerCase() === 'company' ? 'PT/LABEL' : 'ARTIS')}
             </div>
           </div>
@@ -363,10 +363,10 @@ export function DashboardHeader({
         <button 
           onClick={onLogout}
           className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-medium text-xs transition-colors ml-2"
-          title="Sign Out"
+          title="Keluar"
         >
           <LogOut size={16} />
-          <span className="hidden sm:inline">Logout</span>
+          <span className="hidden sm:inline">Keluar</span>
         </button>
       </div>
     </header>

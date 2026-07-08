@@ -34,7 +34,7 @@ export default function UsersPage() {
     try {
       setIsLoading(true);
       const res = await fetch('/api/users');
-      if (!res.ok) throw new Error('Failed to fetch users');
+      if (!res.ok) throw new Error('Gagal memuat data user');
       const data = await res.json();
       setUsers(data);
     } catch (err: any) {
@@ -63,12 +63,12 @@ export default function UsersPage() {
 
   return (
     <div className="flex-1 bg-slate-50 min-h-screen">
-      <div className="p-6 md:p-8 max-w-[1400px] mx-auto">
+      <div className="p-6 md:p-8 w-full max-w-none">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <Shield className="text-blue-600" size={28} />
-              User Management
+              Manajemen User
             </h1>
             <p className="text-slate-500 text-sm mt-1">Kelola data pengguna, hak akses, dan status akun.</p>
           </div>
@@ -98,7 +98,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider w-16">ID</th>
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">User</th>
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Tipe</th>
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Terdaftar</th>
                   <th className="px-6 py-4 text-right text-[13px] font-bold text-slate-600 uppercase tracking-wider">Aksi</th>
@@ -108,7 +108,7 @@ export default function UsersPage() {
                 {isLoading ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
-                      Loading users...
+                      Memuat data user...
                     </td>
                   </tr>
                 ) : displayedUsers.length > 0 ? (
@@ -133,11 +133,11 @@ export default function UsersPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-[13px] text-slate-600">
-                          {user.account_type || user.type || 'N/A'}
+                            {user.account_type || user.type || 'N/A'}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-bold border ${statusClass}`}>
-                            {user.status}
+                            {user.status === 'Active' ? 'Aktif' : user.status === 'Approved' ? 'Disetujui' : user.status === 'Pending' ? 'Menunggu' : user.status === 'Review' ? 'Review' : user.status === 'Rejected' ? 'Ditolak' : user.status === 'Blocked' ? 'Diblokir' : user.status === 'Inactive' ? 'Tidak Aktif' : user.status}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-[13px] text-slate-500">
@@ -175,7 +175,7 @@ export default function UsersPage() {
               
               <div className="flex gap-2">
                  <button className="px-3 py-1.5 text-[14px] font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                    View All
+                    Lihat Semua
                  </button>
                  <div className="flex items-center gap-1">
                      <button

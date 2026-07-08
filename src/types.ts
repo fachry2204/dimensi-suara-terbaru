@@ -55,6 +55,7 @@ export interface Track {
   trackNumber: string;
   releaseDate: string;
   isrc: string;
+  isNewRelease?: boolean;
   title: string;
   duration: string; // MM:SS
 
@@ -67,6 +68,7 @@ export interface Track {
   subGenre?: string;
   subgenreId?: number;
   isInstrumental?: 'Yes' | 'No';
+  lyricsLanguage?: string;
   explicitLyrics: string; // 'Yes', 'No', 'Clean'
   composer: string;
   lyricist: string;

@@ -46,12 +46,12 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
 
   // Define Tabs
   const tabs = [
-    { id: 'ALL', label: 'All Release', statusMap: null },
+    { id: 'ALL', label: 'Semua Rilis', statusMap: null },
     { id: 'PENDING', label: 'Pending', statusMap: 'Pending' },
     { id: 'REQUEST_EDIT', label: 'Request Edit', statusMap: 'Request Edit' },
     { id: 'PROCESSING', label: 'Proses', statusMap: 'Processing' },
-    { id: 'RELEASED', label: 'Released', statusMap: 'Live' },
-    { id: 'REJECTED', label: 'Reject', statusMap: 'Rejected' },
+    { id: 'RELEASED', label: 'Rilis', statusMap: 'Live' },
+    { id: 'REJECTED', label: 'Ditolak', statusMap: 'Rejected' },
   ];
 
   const getCount = (statusMap: string | null) => {
@@ -194,10 +194,10 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
   };
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div className="md:hidden">
-                <h1 className="text-[15px] text-white tracking-tight">All Releases</h1>
+                <h1 className="text-[15px] text-white tracking-tight">Semua Rilis</h1>
                 <p className="text-slate-400 mt-0.5 text-[10px]">Manage and track your music catalog status.</p>
             </div>
         </div>
@@ -335,7 +335,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={`Search Title, Artist, UPC${(userRole === 'Admin' || userRole === 'Operator') ? ', Aggregator' : ''}...`} 
+                        placeholder={`Cari Judul, Artis, UPC${(userRole === 'Admin' || userRole === 'Operator') ? ', Agregator' : ''}...`} 
                         className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-white shadow-sm transition-all text-[13px] text-slate-800"
                     />
                     <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
@@ -343,10 +343,10 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                 <button
                     onClick={() => navigate('/new-release')}
                     className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-xs font-normal shadow-md shadow-blue-100"
-                    title="Create New Release"
+                    title="Buat Rilis Baru"
                 >
                     <Plus size={14} />
-                    New Release
+                    Rilis Baru
                 </button>
             </div>
         </div>
@@ -359,8 +359,8 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                             <ThSortable label="Release" sortKey="title" />
                             <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider">User</th>
                             <ThSortable label="Type" sortKey="type" />
-                            <ThSortable label="Release Date" sortKey="date" />
-                            <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider">Submit Date</th>
+                            <ThSortable label="Tanggal Rilis" sortKey="date" />
+                            <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider">Tanggal Submit</th>
                             {(userRole === 'Admin' || userRole === 'Operator') && <ThSortable label="Aggregator" sortKey="aggregator" />}
                             <ThSortable label="Status" sortKey="status" />
                             <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider text-right">Action</th>
@@ -419,9 +419,9 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                                                 )}
                                             </div>
                                             <div className="min-w-[150px]">
-                                                <div className="font-medium text-slate-800 truncate max-w-[200px] text-[13px]" title={release.title}>{release.title || "Untitled Release"}</div>
+                                                <div className="font-medium text-slate-800 truncate max-w-[200px] text-[13px]" title={release.title}>{release.title || "Rilis Tanpa Judul"}</div>
                                                 <div className="text-[13px] text-slate-500 truncate max-w-[200px] font-medium" title={(release.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).join(', ')}>
-                                                    {(release.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).join(', ') || "Unknown Artist"}
+                                                    {(release.primaryArtists || []).map(a => typeof a === 'string' ? a : a.name).join(', ') || "Artis Tidak Dikenal"}
                                                 </div>
                                             </div>
                                         </div>
@@ -462,7 +462,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                                                 {release.aggregator}
                                             </div>
                                         ) : (
-                                            <span className="text-[13px] text-slate-300 italic">Not set</span>
+                                            <span className="text-[13px] text-slate-300 italic">Belum diatur</span>
                                         )}
                                     </td>
                                     )}
@@ -472,7 +472,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                                                 title={rejectionTooltip}
                                                 className={`inline-block px-2 py-0.5 rounded-full text-[13px] font-medium whitespace-nowrap border ${statusClass}`}
                                             >
-                                                {status === 'Live' || status === 'Released' ? 'Released' : status}
+                                                {status === 'Live' || status === 'Released' ? 'Rilis' : status === 'Processing' ? 'Diproses' : status === 'Rejected' ? 'Ditolak' : status === 'Request Edit' ? 'Minta Revisi' : status === 'Pending' ? 'Menunggu' : status}
                                             </span>
                                         </div>
                                     </td>
@@ -499,7 +499,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Filter size={24} className="text-slate-300" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-700 mb-1">{error ? "Connection Failed" : "No releases found"}</h3>
+                    <h3 className="text-lg font-bold text-slate-700 mb-1">{error ? "Koneksi Gagal" : "Rilis tidak ditemukan"}</h3>
                     <p className="text-slate-400 text-xs">
                         {error 
                             ? "We couldn't load your releases. Please check the error message above."
@@ -517,7 +517,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                 </div>
                 <div className="flex gap-2">
                      <button onClick={() => setIsViewAll(!isViewAll)} className="px-3 py-1.5 text-[14px] font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        {isViewAll ? "Show Paged" : "View All"}
+                        {isViewAll ? "Tampilkan Per Halaman" : "Lihat Semua"}
                      </button>
                      {!isViewAll && totalPages > 1 && (
                      <div className="flex items-center gap-1">

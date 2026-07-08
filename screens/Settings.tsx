@@ -486,7 +486,7 @@ export const Settings: React.FC<Props> = ({ aggregators, onSaveAggregators }) =>
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto min-h-screen">
+    <div className="p-8 w-full max-w-none min-h-screen">
        <div className="mb-6 border-b border-gray-200 pb-4">
             <h1 className="text-lg text-white tracking-tight flex items-center gap-2">
                 <SettingsIcon size={22} className="text-slate-400" />

@@ -110,7 +110,7 @@ const HkDataTable = ({
                     {(searchBar && !searchQuery) && <Col sm={3}>
                         <Form.Control
                             type="search"
-                            placeholder="Search"
+                            placeholder="Cari"
                             size="sm"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}

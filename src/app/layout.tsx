@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dm_sans.variable}`} data-bs-theme="light">
+    <html lang="en" className={`${dm_sans.variable}`} data-bs-theme="light" suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider>
           <GlobalStateProvider>

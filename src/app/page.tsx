@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Music4, FileText, ArrowRight, LogOut, ArrowRightCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { assetUrl } from '@/utils/url';
 
 const ADMIN_DASHBOARD_PATH = '/dashboard-aggregator';
 
@@ -13,18 +14,18 @@ export default function PortalPage() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    fetch('/api/settings/branding')
+    fetch('/api/settings/branding', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setBranding(data);
         if (data.favicon_url) {
             const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
             if (link) {
-                link.href = data.favicon_url;
+                link.href = assetUrl(data.favicon_url);
             } else {
                 const newLink = document.createElement('link');
                 newLink.rel = 'icon';
-                newLink.href = data.favicon_url;
+                newLink.href = assetUrl(data.favicon_url);
                 document.head.appendChild(newLink);
             }
         }
@@ -90,7 +91,7 @@ export default function PortalPage() {
         className="absolute top-6 right-6 z-20 flex items-center gap-2 text-slate-500 hover:text-red-500 hover:bg-red-50 px-4 py-2 rounded-full transition-all duration-300 font-semibold text-sm border border-transparent hover:border-red-100 shadow-sm"
       >
         <LogOut size={16} />
-        <span>Sign Out</span>
+        <span>Keluar</span>
       </button>
 
       {/* Main Content */}
@@ -108,7 +109,7 @@ export default function PortalPage() {
               </div>
               
               <h2 className="text-2xl font-bold text-slate-800 mb-3 relative z-10">
-                Dashboard Aggregator
+                Dashboard Agregator
               </h2>
               
               <p className="text-slate-500 flex-1 relative z-10 text-sm leading-relaxed">
@@ -151,7 +152,7 @@ export default function PortalPage() {
       
       {/* Footer */}
       <footer className="absolute bottom-6 w-full text-center text-slate-400 text-xs font-medium">
-        {branding?.login_footer || 'Dimensi Suara CMS © Authorized personnel only.'}
+        {branding?.login_footer || 'Dimensi Suara CMS © Hanya untuk personel yang berwenang.'}
       </footer>
     </div>
   );

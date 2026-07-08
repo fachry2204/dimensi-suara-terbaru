@@ -149,7 +149,7 @@ export const PaymentDetailScreen: React.FC = () => {
     const potonganPercentLabel = `${(potonganRate * 100).toFixed(2).replace(/\.00$/, '')}%`;
 
     return (
-        <div className="p-8 max-w-4xl mx-auto animate-fade-in min-h-screen pb-20">
+        <div className="p-8 w-full max-w-none animate-fade-in min-h-screen pb-20">
             <button 
                 onClick={() => navigate(-1)} 
                 className="mb-6 flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors"

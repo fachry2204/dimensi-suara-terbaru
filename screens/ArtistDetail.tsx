@@ -114,7 +114,7 @@ export const ArtistDetail: React.FC<Props> = ({ releases, token }) => {
   const displayName = artistName;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
+    <div className="w-full max-w-none px-4 md:px-8 py-8">
       <div className="mb-6 flex items-center gap-4">
         <button
           onClick={() => navigate('/aggregator/artists')}

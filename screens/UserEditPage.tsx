@@ -122,7 +122,7 @@ export const UserEditPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-8 max-w-4xl mx-auto min-h-screen flex items-center justify-center">
+      <div className="p-8 w-full max-w-none min-h-screen flex items-center justify-center">
         <div className="text-slate-500 flex items-center gap-2">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
             Memuat data user...
@@ -133,7 +133,7 @@ export const UserEditPage: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="p-8 max-w-4xl mx-auto min-h-screen flex flex-col items-center justify-center">
+      <div className="p-8 w-full max-w-none min-h-screen flex flex-col items-center justify-center">
         <XCircle size={48} className="text-red-400 mb-4" />
         <h2 className="text-xl font-bold text-slate-800">User Tidak Ditemukan</h2>
         <button onClick={() => navigate('/users')} className="mt-4 text-blue-600 font-medium">Kembali ke Daftar User</button>
@@ -142,7 +142,7 @@ export const UserEditPage: React.FC = () => {
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto min-h-screen">
+    <div className="p-8 w-full max-w-none min-h-screen">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
             <button

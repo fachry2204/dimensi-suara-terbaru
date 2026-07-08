@@ -130,7 +130,7 @@ export const PaymentScreen: React.FC<Props> = ({ token, defaultTab = 'aggregator
     );
 
     return (
-        <div className="p-8 max-w-7xl mx-auto animate-fade-in space-y-8">
+        <div className="p-8 w-full max-w-none animate-fade-in space-y-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

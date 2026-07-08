@@ -84,7 +84,7 @@ export default function ArtistsPage() {
   const pagedArtists = filteredArtists.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
       <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
             <h1 className="text-lg font-bold text-slate-800 tracking-tight">Data Artis</h1>
@@ -186,7 +186,7 @@ export default function ArtistsPage() {
                  </span>
                  <div className="flex gap-2">
                      <button className="px-3 py-1.5 text-[14px] font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        View All
+                        Lihat Semua
                      </button>
                      <div className="flex items-center gap-1">
                          <button

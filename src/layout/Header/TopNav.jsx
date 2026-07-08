@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import SimpleBar from 'simplebar-react';
-import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Inbox, Plus, Search, Settings, Tag, Disc, Edit, AlertCircle } from 'react-feather';
+import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Plus, Search, Settings, Tag, Disc, Edit, AlertCircle } from 'react-feather';
 import { Button, Container, Dropdown, Form, InputGroup, Nav, Navbar } from 'react-bootstrap';
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
@@ -44,6 +44,30 @@ const TopNav = () => {
     const router = useRouter();
     const { states, dispatch } = useGlobalStateContext();
     const [notifications, setNotifications] = useState([]);
+    const [currentUser, setCurrentUser] = useState({
+        name: 'Administrator',
+        email: 'admin@dimensisuara.id',
+    });
+
+    useEffect(() => {
+        const fetchCurrentUser = async () => {
+            try {
+                const res = await fetch('/api/auth/me', { credentials: 'include' });
+                if (!res.ok) return;
+                const data = await res.json().catch(() => null);
+                if (data?.user) {
+                    setCurrentUser({
+                        name: data.user.name || data.user.email || 'Administrator',
+                        email: data.user.email || 'admin@dimensisuara.id',
+                    });
+                }
+            } catch (err) {
+                // Keep fallback user label.
+            }
+        };
+
+        fetchCurrentUser();
+    }, []);
 
     useEffect(() => {
         const fetchNotifications = async () => {
@@ -148,16 +172,6 @@ const TopNav = () => {
                             <ThemeSwitcher />
                         </Nav.Item>
                         <Nav.Item>
-                            <Button as={Link} variant="flush-dark" href="/apps/email" className="btn-icon btn-rounded flush-soft-hover">
-                                <span className="icon">
-                                    <span className=" position-relative">
-                                        <span className="feather-icon"><Inbox /></span>
-                                        <HkBadge bg="primary" soft pill size="sm" className="position-top-end-overflow-1" >4</HkBadge>
-                                    </span>
-                                </span>
-                            </Button>
-                        </Nav.Item>
-                        <Nav.Item>
                             <Dropdown className="dropdown-notifications">
                                 <Dropdown.Toggle variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover no-caret" onClick={handleMarkAsRead}>
                                     <span className="icon">
@@ -171,11 +185,11 @@ const TopNav = () => {
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu align="end" className="p-0">
                                     <Dropdown.Header className="px-4 fs-6">
-                                        Notifications
+                                        Notifikasi
                                     </Dropdown.Header>
                                     <SimpleBar className="dropdown-body p-2" style={{ maxHeight: '400px' }}>
                                         {notifications.length === 0 ? (
-                                            <div className="p-4 text-center text-muted">No new notifications</div>
+                                            <div className="p-4 text-center text-muted">Belum ada notifikasi baru</div>
                                         ) : (
                                             notifications.map((notif, index) => (
                                                 <Dropdown.Item key={index}>
@@ -205,7 +219,7 @@ const TopNav = () => {
                                         )}
                                     </SimpleBar>
                                     <div className="dropdown-footer">
-                                        <Link href="#"><u>View all notifications</u>
+                                        <Link href="#"><u>Lihat semua notifikasi</u>
                                         </Link>
                                     </div>
                                 </Dropdown.Menu>
@@ -213,9 +227,13 @@ const TopNav = () => {
                         </Nav.Item>
                         <Nav.Item>
                             <Dropdown className="ps-2">
-                                <Dropdown.Toggle as={Link} href="#" className="no-caret">
-                                    <div className="avatar avatar-rounded avatar-xs">
-                                        <Image src={avatar12} alt="user" className="avatar-img" />
+                                <Dropdown.Toggle as={Link} href="#" className="no-caret d-flex align-items-center gap-3 topnav-profile-toggle">
+                                    <div className="topnav-welcome text-end d-none d-md-block">
+                                        <div className="topnav-welcome-label">Selamat Datang</div>
+                                        <div className="topnav-welcome-name">{currentUser.name}</div>
+                                    </div>
+                                    <div className="avatar topnav-profile-avatar">
+                                        <Image src={avatar12} alt={currentUser.name || 'user'} className="avatar-img" />
                                     </div>
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu align="end">
@@ -227,21 +245,23 @@ const TopNav = () => {
                                                 </div>
                                             </div>
                                             <div className="media-body">
-                                                <div className="fs-7 fw-bold text-dark">Administrator</div>
-                                                <div className="fs-7 text-muted">admin@dimensisuara.id</div>
-                                                <button 
-                                                    onClick={handleLogout} 
-                                                    className="d-block fs-8 link-danger mt-1 bg-transparent border-0 p-0 text-start"
-                                                    style={{ cursor: 'pointer' }}
-                                                >
-                                                    <u>Sign Out</u>
-                                                </button>
+                                                <div className="fs-7 fw-bold text-dark">{currentUser.name}</div>
+                                                <div className="fs-7 text-muted">{currentUser.email}</div>
                                             </div>
                                         </div>
                                     </div>
                                     <Dropdown.Divider as="div" />
-                                    <Dropdown.Item as={Link} href="/profile" >Profile</Dropdown.Item>
-                                    <Dropdown.Item>Settings</Dropdown.Item>
+                                    <Dropdown.Item as={Link} href="/profile" >Profil</Dropdown.Item>
+                                    <Dropdown.Item>Pengaturan</Dropdown.Item>
+                                    <div className="px-3 pb-3 pt-2">
+                                        <button
+                                            onClick={handleLogout}
+                                            className="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+                                            type="button"
+                                        >
+                                            Keluar
+                                        </button>
+                                    </div>
                                 </Dropdown.Menu>
                             </Dropdown>
                         </Nav.Item>

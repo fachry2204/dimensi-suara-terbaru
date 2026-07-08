@@ -13,9 +13,9 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
   const [previewIsPdf, setPreviewIsPdf] = useState(false);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto min-h-screen">
+    <div className="p-8 w-full max-w-none min-h-screen">
       <div className="mb-6">
-        <h1 className="text-lg text-slate-800 tracking-tight">Profile</h1>
+        <h1 className="text-lg text-slate-800 tracking-tight">Profil</h1>
         <p className="text-slate-500 mt-0.5 text-[12px]">Data akun Anda.</p>
       </div>
 
@@ -36,40 +36,40 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
             <div className="rounded-xl border border-slate-200 overflow-hidden">
                 <table className="w-full text-sm">
                 <tbody className="[&>tr>td]:py-2 [&>tr>td]:px-3 [&>tr:nth-child(even)]:bg-slate-50">
-                    <tr><td className="text-slate-600">Account Type</td><td className="font-normal text-slate-700">{user.account_type || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Tipe Akun</td><td className="font-normal text-slate-700">{user.account_type || '-'}</td></tr>
                     {(user.account_type === 'COMPANY') && (
-                    <tr><td className="text-slate-600">Company</td><td className="font-normal text-slate-700">{user.company_name || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Perusahaan</td><td className="font-normal text-slate-700">{user.company_name || '-'}</td></tr>
                     )}
                     <tr><td className="text-slate-600">Nama Lengkap</td><td className="font-normal text-slate-700">{user.full_name || '-'}</td></tr>
                     <tr><td className="text-slate-600">NIK</td><td className="font-normal text-slate-700">{user.nik || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Phone</td><td className="font-normal text-slate-700">{user.phone || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Address</td><td className="font-normal text-slate-700 whitespace-pre-line">{user.address || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Country</td><td className="font-normal text-slate-700">{user.country || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Province</td><td className="font-normal text-slate-700">{user.province || '-'}</td></tr>
-                    <tr><td className="text-slate-600">City</td><td className="font-normal text-slate-700">{user.city || '-'}</td></tr>
-                    <tr><td className="text-slate-600">District</td><td className="font-normal text-slate-700">{user.district || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Subdistrict</td><td className="font-normal text-slate-700">{user.subdistrict || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Postal Code</td><td className="font-normal text-slate-700">{user.postal_code || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Telepon</td><td className="font-normal text-slate-700">{user.phone || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Alamat</td><td className="font-normal text-slate-700 whitespace-pre-line">{user.address || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Negara</td><td className="font-normal text-slate-700">{user.country || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Provinsi</td><td className="font-normal text-slate-700">{user.province || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Kota</td><td className="font-normal text-slate-700">{user.city || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Kecamatan</td><td className="font-normal text-slate-700">{user.district || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Kelurahan</td><td className="font-normal text-slate-700">{user.subdistrict || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Kode Pos</td><td className="font-normal text-slate-700">{user.postal_code || '-'}</td></tr>
                     {(user.account_type === 'COMPANY') && (
                     <>
-                        <tr><td className="text-slate-600">PIC Name</td><td className="font-normal text-slate-700">{user.pic_name || '-'}</td></tr>
-                        <tr><td className="text-slate-600">PIC Position</td><td className="font-normal text-slate-700">{user.pic_position || '-'}</td></tr>
-                        <tr><td className="text-slate-600">PIC Phone</td><td className="font-normal text-slate-700">{user.pic_phone || '-'}</td></tr>
+                        <tr><td className="text-slate-600">Nama PIC</td><td className="font-normal text-slate-700">{user.pic_name || '-'}</td></tr>
+                        <tr><td className="text-slate-600">Jabatan PIC</td><td className="font-normal text-slate-700">{user.pic_position || '-'}</td></tr>
+                        <tr><td className="text-slate-600">Telepon PIC</td><td className="font-normal text-slate-700">{user.pic_phone || '-'}</td></tr>
                     </>
                     )}
                     <tr><td className="text-slate-600">Role</td><td className="font-normal text-slate-700">{user.role || '-'}</td></tr>
                     <tr><td className="text-slate-600">Status</td><td className="font-normal text-slate-700">{user.status || '-'}</td></tr>
-                    <tr><td className="text-slate-600">Joined Date</td><td className="font-normal text-slate-700">{user.joinedDate || '-'}</td></tr>
+                    <tr><td className="text-slate-600">Tanggal Bergabung</td><td className="font-normal text-slate-700">{user.joinedDate || '-'}</td></tr>
                     {user.aggregator_percentage !== undefined && (
-                    <tr><td className="text-slate-600">Aggregator Percentage</td><td className="font-normal text-slate-700">{user.aggregator_percentage}%</td></tr>
+                    <tr><td className="text-slate-600">Persentase Agregator</td><td className="font-normal text-slate-700">{user.aggregator_percentage}%</td></tr>
                     )}
                     {user.publishing_percentage !== undefined && (
-                    <tr><td className="text-slate-600">Publishing Percentage</td><td className="font-normal text-slate-700">{user.publishing_percentage}%</td></tr>
+                    <tr><td className="text-slate-600">Persentase Publishing</td><td className="font-normal text-slate-700">{user.publishing_percentage}%</td></tr>
                     )}
                     {user.status === 'Blocked' && (
                     <>
-                        <tr><td className="text-slate-600">Blocked Date</td><td className="font-normal text-slate-700">{user.blockedAt || '-'}</td></tr>
-                        <tr><td className="text-slate-600">Block Reason</td><td className="font-normal text-slate-700">{user.block_reason || '-'}</td></tr>
+                        <tr><td className="text-slate-600">Tanggal Diblokir</td><td className="font-normal text-slate-700">{user.blockedAt || '-'}</td></tr>
+                        <tr><td className="text-slate-600">Alasan Blokir</td><td className="font-normal text-slate-700">{user.block_reason || '-'}</td></tr>
                     </>
                     )}
                 </tbody>
@@ -78,7 +78,7 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
             </div>
 
             <div className="space-y-4">
-            <h4 className="text-sm font-medium text-slate-800">Documents</h4>
+            <h4 className="text-sm font-medium text-slate-800">Dokumen</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {user.ktp_doc_path && (
                 <div className="border border-slate-200 rounded-xl p-3">
@@ -97,17 +97,17 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
                     <button
                         onClick={() => { setPreviewUrl(user.ktp_doc_path!); setPreviewIsPdf(user.ktp_doc_path!.toLowerCase().endsWith('.pdf')); setShowDocPreview(true); }}
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Preview"
+                        title="Pratinjau"
                     >
-                        <Eye size={14} /> Preview
+                        <Eye size={14} /> Pratinjau
                     </button>
                     <a
                         href={user.ktp_doc_path}
                         download
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Download"
+                        title="Unduh"
                     >
-                        <Download size={14} /> Download
+                        <Download size={14} /> Unduh
                     </a>
                     </div>
                 </div>
@@ -129,17 +129,17 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
                     <button
                         onClick={() => { setPreviewUrl(user.npwp_doc_path!); setPreviewIsPdf(user.npwp_doc_path!.toLowerCase().endsWith('.pdf')); setShowDocPreview(true); }}
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Preview"
+                        title="Pratinjau"
                     >
-                        <Eye size={14} /> Preview
+                        <Eye size={14} /> Pratinjau
                     </button>
                     <a
                         href={user.npwp_doc_path}
                         download
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Download"
+                        title="Unduh"
                     >
-                        <Download size={14} /> Download
+                        <Download size={14} /> Unduh
                     </a>
                     </div>
                 </div>
@@ -161,17 +161,17 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
                     <button
                         onClick={() => { setPreviewUrl(user.signature_doc_path!); setPreviewIsPdf(user.signature_doc_path!.toLowerCase().endsWith('.pdf')); setShowDocPreview(true); }}
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Preview"
+                        title="Pratinjau"
                     >
-                        <Eye size={14} /> Preview
+                        <Eye size={14} /> Pratinjau
                     </button>
                     <a
                         href={user.signature_doc_path}
                         download
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Download"
+                        title="Unduh"
                     >
-                        <Download size={14} /> Download
+                        <Download size={14} /> Unduh
                     </a>
                     </div>
                 </div>
@@ -193,17 +193,17 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
                     <button
                         onClick={() => { setPreviewUrl(user.nib_doc_path!); setPreviewIsPdf(user.nib_doc_path!.toLowerCase().endsWith('.pdf')); setShowDocPreview(true); }}
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Preview"
+                        title="Pratinjau"
                     >
-                        <Eye size={14} /> Preview
+                        <Eye size={14} /> Pratinjau
                     </button>
                     <a
                         href={user.nib_doc_path}
                         download
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Download"
+                        title="Unduh"
                     >
-                        <Download size={14} /> Download
+                        <Download size={14} /> Unduh
                     </a>
                     </div>
                 </div>
@@ -225,17 +225,17 @@ export const MyProfile: React.FC<Props> = ({ currentUserData }) => {
                     <button
                         onClick={() => { setPreviewUrl(user.kemenkumham_doc_path!); setPreviewIsPdf(user.kemenkumham_doc_path!.toLowerCase().endsWith('.pdf')); setShowDocPreview(true); }}
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Preview"
+                        title="Pratinjau"
                     >
-                        <Eye size={14} /> Preview
+                        <Eye size={14} /> Pratinjau
                     </button>
                     <a
                         href={user.kemenkumham_doc_path}
                         download
                         className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center gap-1"
-                        title="Download"
+                        title="Unduh"
                     >
-                        <Download size={14} /> Download
+                        <Download size={14} /> Unduh
                     </a>
                     </div>
                 </div>

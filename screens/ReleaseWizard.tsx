@@ -128,7 +128,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
 
         data.tracks.forEach((track: any, index) => {
             const trackLabel = `Track ${index + 1}`;
-            const add = (label: string, section: 'audio' | 'metadata' | 'artists' | 'details' | 'production') => {
+            const add = (label: string, section: 'audio' | 'metadata' | 'artists' | 'details' | 'production' | 'distribution') => {
                 missing.push({
                     label: `${trackLabel}: ${label}`,
                     trackId: track.id,
@@ -158,6 +158,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
 
             if (!hasNamedListValue(track, 'songwriters', track.composer)) add('Composer', 'details');
             if (!hasCompleteProductionCredit(track)) add('Production & Additional Production', 'production');
+            if (track.isNewRelease === false && !String(track.isrc || '').trim()) add('ISRC Code', 'distribution');
         });
 
         return missing;
@@ -457,7 +458,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
 
     return (
         <div className="min-h-screen pb-20">
-            <div className="max-w-5xl mx-auto pt-6 px-4 md:px-6">
+            <div className="w-full max-w-none pt-6 px-4 md:px-6">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                     <div className="flex flex-col">

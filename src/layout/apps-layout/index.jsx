@@ -34,7 +34,7 @@ const MainLayout = ({ children }) => {
     return (
         <>
             <div
-                className={classNames("hk-wrapper", { "hk__email__backdrop": states.emailState.maximize  }, { "hk-pg-auth": pathName === "/error-404" })}
+                className={classNames("hk-wrapper mendy-shell", { "hk__email__backdrop": states.emailState.maximize  }, { "hk-pg-auth": pathName === "/error-404" })}
                 data-layout="vertical"
                 data-navbar-style={states.layoutState.topNavCollapse ? "collapsed" : ""}
                 data-layout-style={states.layoutState.isSidebarCollapsed ? "collapsed" : "default"}

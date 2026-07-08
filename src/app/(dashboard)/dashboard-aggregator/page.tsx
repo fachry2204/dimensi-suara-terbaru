@@ -80,10 +80,10 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="p-4 md:p-8 w-full max-w-[1400px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
         <div className="mb-8">
-            <h1 className="text-lg font-bold text-slate-800 tracking-tight">Dashboard Overview</h1>
-            <p className="text-slate-500 mt-1 text-xs">Welcome back, here is your catalog and publishing overview.</p>
+            <h1 className="text-lg font-bold text-slate-800 tracking-tight">Ringkasan Dashboard</h1>
+            <p className="text-slate-500 mt-1 text-xs">Selamat datang kembali, berikut ringkasan katalog dan publishing Anda.</p>
        </div>
 
        {/* AGGREGATOR / RELEASES SECTION */}
@@ -91,7 +91,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <Music className="text-blue-500" size={18} />
-                    <h2 className="text-sm font-bold text-slate-700">Aggregator Status</h2>
+                    <h2 className="text-sm font-bold text-slate-700">Status Agregator</h2>
                 </div>
                 <button 
                     onClick={() => router.push('/new-release')}
@@ -99,44 +99,44 @@ export default function DashboardPage() {
                     style={{ backgroundColor: getButtonColor() }}
                 >
                     <Plus size={14} />
-                    New Release
+                    Rilis Baru
                 </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
-                    title="Pending Review" 
+                    title="Menunggu Review" 
                     count={releaseStats.pending} 
                     icon={<Clock size={20} />} 
                     colorClass="text-yellow-600" 
                     bgClass="bg-yellow-50"
-                    subtext="Waiting for approval"
+                    subtext="Menunggu persetujuan"
                     cardClass="bg-yellow-500/10 border-yellow-500/20"
                 />
                 <StatCard 
-                    title="Processing" 
+                    title="Diproses" 
                     count={releaseStats.processing} 
                     icon={<Loader2 size={20} className={releaseStats.processing > 0 ? "animate-spin-slow" : ""} />} 
                     colorClass="text-blue-600" 
                     bgClass="bg-blue-50"
-                    subtext="Sent to stores"
+                    subtext="Dikirim ke store"
                     cardClass="bg-blue-500/10 border-blue-500/20"
                 />
                 <StatCard 
-                    title="Released" 
+                    title="Rilis" 
                     count={releaseStats.live} 
                     icon={<CheckCircle size={20} />} 
                     colorClass="text-green-600" 
                     bgClass="bg-green-50"
-                    subtext="Active on DSPs"
+                    subtext="Aktif di DSP"
                     cardClass="bg-green-500/10 border-green-500/20"
                 />
                 <StatCard 
-                    title="Rejected" 
+                    title="Ditolak" 
                     count={releaseStats.rejected} 
                     icon={<AlertTriangle size={20} />} 
                     colorClass="text-red-600" 
                     bgClass="bg-red-50"
-                    subtext="Requires attention"
+                    subtext="Perlu diperiksa"
                     cardClass="bg-red-500/10 border-red-500/20"
                 />
             </div>
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Clock className="text-blue-500" size={18} />
-                        <h3 className="text-sm font-bold text-slate-700">Release Pending/Review</h3>
+                        <h3 className="text-sm font-bold text-slate-700">Rilis Menunggu/Review</h3>
                     </div>
                 </div>
                 <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -155,7 +155,7 @@ export default function DashboardPage() {
                             <tr>
                                 <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider w-12">No</th>
                                 <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider">Judul</th>
-                                <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider">Artist</th>
+                                <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider">Artis</th>
                                 <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider">Tanggal</th>
                                 <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-xs font-normal text-slate-500 uppercase tracking-wider text-right">Aksi</th>
@@ -181,7 +181,7 @@ export default function DashboardPage() {
                                         <td className="px-4 py-3 text-xs text-slate-600">{r.submissionDate ? new Date(r.submissionDate).toLocaleDateString('id-ID') : '-'}</td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium border ${r.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                                                {r.status}
+                                                {r.status === 'Pending' ? 'Menunggu' : r.status === 'Review' ? 'Review' : r.status}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-right">
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                                 disabled={pendingPage === 1}
                                 className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-slate-300 font-bold hover:bg-blue-600 transition-colors"
                             >
-                                Prev
+                                Sebelumnya
                             </button>
                             {Array.from({ length: totalPendingPages })
                                 .map((_, i) => i + 1)
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                                 disabled={pendingPage === totalPendingPages}
                                 className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-slate-300 font-bold hover:bg-blue-600 transition-colors"
                             >
-                                Next
+                                Berikutnya
                             </button>
                         </div>
                     </div>

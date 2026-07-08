@@ -84,7 +84,7 @@ export const Artists: React.FC<Props> = ({ releases }) => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
+    <div className="w-full max-w-none px-4 md:px-8 py-8">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-white">Artists</h1>
         <p className="text-xs text-slate-400">Daftar artis berdasarkan rilisan yang tersedia</p>

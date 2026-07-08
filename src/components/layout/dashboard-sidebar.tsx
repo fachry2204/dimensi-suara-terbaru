@@ -8,6 +8,7 @@ import {
   ClipboardList, DollarSign, Upload, UserPlus, FileText, Library,
   PieChart, Users, Shield, User, MessageSquare, ChevronDown, ChevronRight
 } from 'lucide-react';
+import { assetUrl } from '@/utils/url';
 
 interface SidebarProps {
   currentUser: string;
@@ -57,11 +58,13 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
   };
 
   useEffect(() => {
-    fetch('/api/settings/branding')
+    fetch('/api/settings/branding', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
-        if (data.logo) setLogo(data.logo);
-        if (data.login_title) setSystemTitle(data.login_title);
+        const branding = data?.branding || data;
+        const nextLogo = branding?.logo || branding?.systemLogo || branding?.logo_url || branding?.logoUrl || branding?.system_logo;
+        if (nextLogo) setLogo(nextLogo);
+        if (branding?.login_title) setSystemTitle(branding.login_title);
       })
       .catch(err => {
         console.warn("Failed to fetch branding:", err);
@@ -93,9 +96,9 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
 
   return (
     <aside className="w-64 bg-brand-card border-r border-brand-border h-screen md:min-h-screen flex flex-col shadow-2xl transition-all duration-300 sticky top-0 overflow-y-auto pb-6 md:pb-0 sidebar-scroll">
-      <div className="min-h-[80px] h-auto py-4 flex flex-col items-center justify-center px-6 border-b border-brand-border flex-shrink-0">
+      <div className="min-h-[80px] h-auto py-4 flex flex-col items-center justify-center px-6 border-b border-brand-border flex-shrink-0 bg-black">
         {logo ? (
-          <img src={logo} alt="Logo" className="w-auto h-auto max-h-[150px] object-contain mb-2" />
+          <img src={assetUrl(logo)} alt="Logo" className="w-auto h-auto max-h-[150px] object-contain mb-2" />
         ) : (
           <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 mb-2">
             <Music4 size={24} />
@@ -109,8 +112,8 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
       <nav className="flex-1 py-6 px-4 space-y-6 overflow-y-auto sidebar-scroll">
         
         <div>
-          <Link href="/dashboard" className={getLinkClass('/dashboard')}>
-            <LayoutDashboard size={20} className={getIconClass('/dashboard')} />
+          <Link href="/dashboard-aggregator" className={getLinkClass('/dashboard-aggregator')}>
+            <LayoutDashboard size={20} className={getIconClass('/dashboard-aggregator')} />
             Dashboard
           </Link>
         </div>
@@ -134,13 +137,13 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
               <li>
                 <Link href={userRole === 'User' ? "/my-releases" : "/releases"} className={getLinkClass(userRole === 'User' ? '/my-releases' : '/releases')}>
                   <ListMusic size={20} className={getIconClass(userRole === 'User' ? '/my-releases' : '/releases')} />
-                  {userRole === 'User' ? 'My Releases' : 'All Release'}
+                  {userRole === 'User' ? 'Rilis Saya' : 'Semua Rilis'}
                 </Link>
               </li>
               <li>
                 <Link href="/aggregator/artists" className={getLinkClass('/aggregator/artists')}>
                   <Users size={20} className={getIconClass('/aggregator/artists')} />
-                  Artist
+                  Artis
                 </Link>
               </li>
             </ul>
@@ -179,7 +182,7 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
             className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
             onClick={() => toggleSection('report')}
           >
-            Report
+            Laporan
             {expandedSections.report ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </h3>
           {expandedSections.report && (
@@ -330,7 +333,7 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
               className="px-4 text-[14px] font-bold text-white/60 uppercase tracking-wider mb-4 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
               onClick={() => toggleSection('system')}
             >
-              System
+              Sistem
               {expandedSections.system ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </h3>
             {expandedSections.system && (
@@ -338,14 +341,14 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
                 <li>
                   <Link href="/settings" className={getLinkClass('/settings')}>
                     <Settings size={20} className={getIconClass('/settings')} />
-                    Settings
+                    Pengaturan
                   </Link>
                 </li>
                 {(userRole === 'Admin' || userRole === 'Operator') && (
                 <li>
                   <Link href="/users" className={getLinkClass('/users')}>
                     <Users size={20} className={getIconClass('/users')} />
-                    User Management
+                    Manajemen User
                   </Link>
                 </li>
                 )}

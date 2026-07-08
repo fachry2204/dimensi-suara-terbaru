@@ -3,7 +3,7 @@ import HkBadge from '@/components/@hk-badge/@hk-badge';
 
 export const SidebarMenu = [
     {
-        group: 'Main',
+        group: 'Utama',
         contents: [
             {
                 name: 'Dashboard',
@@ -47,34 +47,25 @@ export const SidebarMenu = [
         group: 'Publishing',
         contents: [
             {
-                id: 'aggregator_publishing',
-                name: 'Publishing',
-                icon: <Icons.Book2 />,
-                path: '/publishing',
-                childrens: [
-                    {
-                        name: 'Data Pencipta',
-                        path: '/publishing/writer',
-                    },
-                    {
-                        name: 'Data Lagu',
-                        path: '/publishing/songs',
-                    },
-                    {
-                        name: 'Analitik',
-                        path: '/publishing/analytics',
-                    },
-                    {
-                        name: 'Laporan',
-                        path: '/publishing/reports',
-                    }
-                ]
+                name: 'Data Pencipta',
+                icon: <Icons.UserPlus />,
+                path: '/publishing/writer',
+            },
+            {
+                name: 'Data Lagu',
+                icon: <Icons.ListDetails />,
+                path: '/publishing/songs',
+            },
+            {
+                name: 'Laporan',
+                icon: <Icons.ClipboardList />,
+                path: '/publishing/reports',
             }
         ]
     },
 
     {
-        group: 'Settings',
+        group: 'Pengaturan',
         contents: [
             {
                 name: 'Data User',
@@ -83,23 +74,9 @@ export const SidebarMenu = [
             },
             {
                 id: 'settings_menu',
-                name: 'Setting',
+                name: 'Pengaturan',
                 icon: <Icons.Settings />,
                 path: '/settings',
-                childrens: [
-                    {
-                        name: 'Setting System',
-                        path: '/settings#system',
-                    },
-                    {
-                        name: 'Setting Aggregator',
-                        path: '/settings#general',
-                    },
-                    {
-                        name: 'Setting Email',
-                        path: '/settings#gateway',
-                    }
-                ]
             }
         ]
     }

@@ -11,6 +11,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      status: "online",
       service: "DimensiSuara API Next.js",
       database: "connected",
       timestamp: new Date().toISOString(),
@@ -21,6 +22,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
+        status: "offline",
         service: "DimensiSuara API Next.js",
         database: "disconnected",
       },

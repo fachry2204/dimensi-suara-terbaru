@@ -65,18 +65,18 @@ const HkFormWizard = ({
             <div className="hk-wizard-actions">
                 {activeStep > 0 && (
                     <Button variant="primary" onClick={handlePrevious} className="me-3" disabled={activeStep === steps.length}>
-                        {prevBtnLabel ? prevBtnLabel : "Previous"}
+                        {prevBtnLabel ? prevBtnLabel : "Sebelumnya"}
                     </Button>
                 )}
                 {activeStep < steps.length - 1 && (
                     <Button variant="primary" onClick={handleNext}>
-                        {nextBtnLabel ? nextBtnLabel : "Next"}
+                        {nextBtnLabel ? nextBtnLabel : "Berikutnya"}
                     </Button>
                 )}
                 {
                     activeStep === steps.length - 1 && (
                         <Button variant="success" onClick={handleFinish}>
-                            {submitBtnLabel ? submitBtnLabel : "Submit"}
+                            {submitBtnLabel ? submitBtnLabel : "Kirim"}
                         </Button>
                     )
                 }

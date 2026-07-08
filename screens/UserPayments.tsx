@@ -86,7 +86,7 @@ export const UserPayments: React.FC<Props> = ({ reportData, currentUserData, tok
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto min-h-screen">
+    <div className="p-8 w-full max-w-none min-h-screen">
       <div className="mb-6">
         <h1 className="text-lg text-slate-800 tracking-tight">Pembayaran</h1>
         <p className="text-slate-500 mt-0.5 text-[12px]">Ringkasan pendapatan Anda per periode.</p>

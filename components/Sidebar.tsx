@@ -64,8 +64,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
       fetch('/api/settings/branding')
           .then(res => res.json())
           .then(data => {
-              if (data.logo) setLogo(data.logo);
-              if (data.login_title) setSystemTitle(data.login_title);
+              const branding = data?.branding || data;
+              const nextLogo = branding?.logo || branding?.systemLogo || branding?.logo_url || branding?.logoUrl || branding?.system_logo;
+              if (nextLogo) setLogo(nextLogo);
+              if (branding?.login_title) setSystemTitle(branding.login_title);
           })
           .catch(err => {
               console.error("Failed to fetch branding:", err);
@@ -93,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
   return (
     <aside className="w-64 bg-brand-card border-r border-brand-border h-screen md:min-h-screen flex flex-col shadow-2xl transition-all duration-300 sticky top-0 overflow-y-auto pb-6 md:pb-0 sidebar-scroll">
       {/* Brand Logo */}
-      <div className="min-h-[80px] h-auto py-4 flex flex-col items-center justify-center px-6 border-b border-brand-border flex-shrink-0">
+      <div className="min-h-[80px] h-auto py-4 flex flex-col items-center justify-center px-6 border-b border-brand-border flex-shrink-0 bg-black">
         {logo ? (
             <img src={logo} alt="Logo" className="w-auto h-auto max-h-[150px] object-contain mb-2" />
         ) : (
@@ -147,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                 {({ isActive }) => (
                   <>
                     <ListMusic size={20} className={getIconClass(isActive)} />
-                    {userRole === 'User' ? 'My Releases' : 'All Release'}
+                    {userRole === 'User' ? 'Rilis Saya' : 'Semua Rilis'}
                   </>
                 )}
               </NavLink>
@@ -157,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                 {({ isActive }) => (
                   <>
                     <Users size={20} className={getIconClass(isActive)} />
-                    Artist
+                    Artis
                   </>
                 )}
               </NavLink>
@@ -417,7 +419,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
             className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
             onClick={() => toggleSection('reportUser')}
           >
-            Report User
+            Laporan User
             {expandedSections.reportUser ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </h3>
           {expandedSections.reportUser && (
@@ -454,7 +456,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
               className="px-4 text-[14px] font-bold text-white/60 uppercase tracking-wider mb-4 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
               onClick={() => toggleSection('system')}
             >
-              System
+              Sistem
               {expandedSections.system ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </h3>
             {expandedSections.system && (
@@ -464,7 +466,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                 {({ isActive }) => (
                   <>
                     <Settings size={20} className={getIconClass(isActive)} />
-                    Setting System
+                    Pengaturan Sistem
                   </>
                 )}
               </NavLink>
@@ -475,7 +477,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                 {({ isActive }) => (
                   <>
                     <Users size={20} className={getIconClass(isActive)} />
-                    User Management
+                    Manajemen User
                   </>
                 )}
               </NavLink>
@@ -501,7 +503,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
                 {({ isActive }) => (
                   <>
                     <User size={20} className={getIconClass(isActive)} />
-                    Profile
+                    Profil
                   </>
                 )}
               </NavLink>

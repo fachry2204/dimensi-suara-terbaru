@@ -10,14 +10,14 @@ interface Props {
 
 const getSteps = (releaseType?: ReleaseType) => releaseType === 'ALBUM'
   ? [
-      { id: Step.INFO, label: "Album Info", desc: "Cover & Metadata" },
-      { id: Step.DETAILS, label: "Upload Track", desc: "Audio & Track Metadata" },
-      { id: Step.REVIEW, label: "Review", desc: "Finalize" },
+      { id: Step.INFO, label: "Info Album", desc: "Cover & Metadata" },
+      { id: Step.DETAILS, label: "Upload Track", desc: "Audio & Metadata Track" },
+      { id: Step.REVIEW, label: "Review", desc: "Finalisasi" },
     ]
   : [
-      { id: Step.INFO, label: "Info & Tracks", desc: "Audio & Metadata" },
-      { id: Step.DETAILS, label: "Cover & Date", desc: "Cover Art & Release Date" },
-      { id: Step.REVIEW, label: "Review", desc: "Finalize" },
+      { id: Step.INFO, label: "Info & Track", desc: "Audio & Metadata" },
+      { id: Step.DETAILS, label: "Cover & Tanggal", desc: "Cover Art & Tanggal Rilis" },
+      { id: Step.REVIEW, label: "Review", desc: "Finalisasi" },
     ];
 
 export const StepIndicator: React.FC<Props> = ({ currentStep, onStepClick, releaseType }) => {

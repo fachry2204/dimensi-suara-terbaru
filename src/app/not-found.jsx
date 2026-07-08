@@ -1,81 +1,90 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Users, Send } from 'lucide-react';
+import { ArrowLeft, Home, Music4, SearchX } from 'lucide-react';
+import { useBranding } from '@/contexts/BrandingContext';
+import { assetUrl } from '@/utils/url';
 
-export default function Error404() {
+export default function NotFound() {
   const router = useRouter();
+  const { branding } = useBranding();
+  const logoValue = branding?.logo || branding?.systemLogo || branding?.logo_url || branding?.logoUrl || branding?.system_logo;
+  const logo = logoValue ? assetUrl(logoValue) : '';
+  const title = branding?.login_title || 'Dimensi Suara';
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6 md:p-12 font-sans overflow-hidden">
-      <div className="max-w-[1200px] w-full grid md:grid-cols-2 gap-12 md:gap-8 items-center">
-        {/* Left Side */}
-        <div className="space-y-6 z-10">
-          <h1 className="text-6xl md:text-[80px] font-black text-slate-900 leading-none tracking-tight">
-            Oops!
-          </h1>
-          <h2 className="text-3xl md:text-[42px] font-black text-[#ffb800] leading-tight drop-shadow-sm">
-            Something Went Wrong!
-          </h2>
-          <p className="text-slate-600 text-lg md:text-xl font-semibold mb-8">
-            Don't worry our team is here to help
-          </p>
+    <main className="h-screen overflow-hidden bg-[#f3f3f5] text-[#343a40]">
+      <div className="relative flex h-screen items-center justify-center px-6 py-6">
+        <div className="absolute inset-x-0 top-0 h-36 bg-[#353556]" />
+        <div className="absolute inset-x-0 top-0 h-2 bg-[#ae5af3]" />
+        <div className="absolute right-[-120px] top-24 h-80 w-80 rounded-full bg-[#f158d0]/10 blur-3xl" />
+        <div className="absolute left-[-120px] bottom-10 h-80 w-80 rounded-full bg-[#ae5af3]/10 blur-3xl" />
 
-          <div className="space-y-5 mb-10 pt-4">
-            <div className="flex items-center gap-4 group cursor-pointer">
-              <div className="w-10 h-10 flex items-center justify-center">
-                 <MessageSquare className="text-[#ffb800] w-6 h-6 group-hover:scale-110 transition-transform" />
+        <section className="relative z-10 grid w-full max-w-4xl overflow-hidden rounded-[8px] border border-black/10 bg-white shadow-[0_18px_55px_rgba(53,53,86,0.16)] lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="flex flex-col justify-between bg-[#353556] p-6 text-white md:p-8">
+            <div>
+              <div className="inline-flex items-center gap-3">
+                {logo ? (
+                  <img src={logo} alt={title} className="max-h-11 max-w-[170px] object-contain drop-shadow-lg" />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#ae5af3] shadow-lg shadow-black/15">
+                    <Music4 size={21} />
+                  </div>
+                )}
+                <div>
+                  <p className="text-lg font-extrabold leading-none">{title}</p>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-white/55">CMS Terlindungi</p>
+                </div>
               </div>
-              <span className="text-slate-800 font-bold text-lg group-hover:text-[#ffb800] transition-colors">Question and answers</span>
-            </div>
-            <div className="flex items-center gap-4 group cursor-pointer">
-              <div className="w-10 h-10 flex items-center justify-center">
-                 <Users className="text-[#ffb800] w-6 h-6 group-hover:scale-110 transition-transform" />
-              </div>
-              <span className="text-slate-800 font-bold text-lg group-hover:text-[#ffb800] transition-colors">Community forum</span>
-            </div>
-            <div className="flex items-center gap-4 group cursor-pointer">
-              <div className="w-10 h-10 flex items-center justify-center">
-                 <Send className="text-[#ffb800] w-6 h-6 group-hover:scale-110 transition-transform" />
-              </div>
-              <span className="text-slate-800 font-bold text-lg group-hover:text-[#ffb800] transition-colors">Send support request</span>
-            </div>
-          </div>
 
-          <div className="pt-6">
-            <button 
+              <div className="mt-10">
+                <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#f158d0]">Halaman Tidak Ditemukan</p>
+                <h1 className="mt-3 text-4xl font-black leading-tight text-white md:text-5xl">Halaman tidak ditemukan</h1>
+                <p className="mt-4 max-w-sm text-sm leading-6 text-white/72">
+                  Link yang kamu buka tidak tersedia atau sudah dipindahkan. Silakan kembali ke dashboard untuk melanjutkan pekerjaan.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
               onClick={() => router.back()}
-              className="bg-[#ffb800] hover:bg-[#e6a600] text-slate-900 font-bold text-lg px-12 py-4 rounded-full transition-all duration-300 hover:shadow-[0_8px_20px_rgba(255,184,0,0.4)] shadow-md transform hover:-translate-y-1"
+              className="mt-8 inline-flex w-fit items-center gap-2 rounded-[6px] border border-white/15 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
             >
-              Live Support
+              <ArrowLeft size={18} />
+              Kembali
             </button>
           </div>
-        </div>
 
-        {/* Right Side */}
-        <div className="relative flex flex-col justify-center items-center mt-12 md:mt-0 z-0">
-          {/* Big 404 Background Text */}
-          <div className="absolute font-black text-[#2b333e] tracking-tighter flex items-center justify-center w-full" style={{ fontSize: 'clamp(140px, 18vw, 240px)', lineHeight: 0.8, top: '10%' }}>
-            <span className="-rotate-6 mr-2 md:mr-6 drop-shadow-xl">4</span>
-            <span className="rotate-3 drop-shadow-xl">0</span>
-            <span className="-rotate-6 ml-2 md:ml-6 drop-shadow-xl">4</span>
+          <div className="relative flex min-h-[360px] flex-col items-center justify-center p-6 text-center md:p-9">
+            <div className="absolute right-7 top-7 flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#f158d0]/10 text-[#f158d0]">
+              <SearchX size={20} />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 translate-y-6 rounded-full bg-[#353556]/10 blur-2xl" />
+              <div className="relative text-[92px] font-black leading-none tracking-tight text-[#353556] md:text-[128px]">
+                404
+              </div>
+            </div>
+
+            <h2 className="mt-1 text-xl font-black text-[#343a40]">Oops, alamatnya kosong.</h2>
+            <p className="mt-2 max-w-md text-sm leading-6 text-[#777]">
+              Halaman ini tidak ada di sistem CMS {title}. Periksa kembali URL atau gunakan tombol di bawah.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard-aggregator')}
+              className="mt-6 inline-flex items-center gap-2 rounded-[6px] bg-[#f158d0] px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(241,88,208,0.28)] transition hover:bg-[#d93ab9]"
+            >
+              <Home size={18} />
+              Ke Dashboard
+            </button>
           </div>
-          
-          <div className="relative z-10 w-full max-w-[450px] mx-auto mt-24 md:mt-32 hover:scale-105 transition-transform duration-500">
-            {/* The generated robot image */}
-            <Image 
-              src="/robot-404.png" 
-              alt="404 Robot" 
-              width={500} 
-              height={500}
-              className="object-contain w-full h-auto drop-shadow-2xl animate-[pulse_4s_infinite]"
-              priority
-            />
-          </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

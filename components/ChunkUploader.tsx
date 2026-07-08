@@ -12,6 +12,8 @@ interface ChunkUploaderProps {
   required?: boolean;
   /** Pass the already-uploaded ID so state is restored when navigating back between wizard steps */
   existingUploadId?: string | null;
+  /** Existing persisted file path/URL from an already-saved release. */
+  existingFileRef?: string | null;
 }
 
 const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for proxy stability
@@ -37,14 +39,26 @@ function formatDuration(seconds: number) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+function getExistingFileName(ref?: string | null) {
+  if (!ref) return '';
+  const clean = ref.split('?')[0].split('#')[0];
+  const name = clean.split('/').filter(Boolean).pop() || ref;
+  try {
+    return decodeURIComponent(name);
+  } catch {
+    return name;
+  }
+}
+
 export const ChunkUploader: React.FC<ChunkUploaderProps> = ({ 
-  label, accept, filePurpose, onUploadComplete, onRemove, required, existingUploadId 
+  label, accept, filePurpose, onUploadComplete, onRemove, required, existingUploadId, existingFileRef
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [uploadId, setUploadId] = useState<string | null>(existingUploadId || null);
+  const [existingRef, setExistingRef] = useState<string | null>(existingFileRef || null);
   const [status, setStatus] = useState<'IDLE' | 'UPLOADING' | 'VALIDATING' | 'SUCCESS' | 'ERROR'>(
-    existingUploadId ? 'SUCCESS' : 'IDLE'
+    existingUploadId || existingFileRef ? 'SUCCESS' : 'IDLE'
   );
   const [errorMessage, setErrorMessage] = useState('');
   const [duration, setDuration] = useState<number | null>(null);
@@ -52,11 +66,12 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
   // Restore SUCCESS state if parent still holds an uploadId (e.g., user navigated back)
   useEffect(() => {
-    if (existingUploadId && status === 'IDLE') {
+    if ((existingUploadId || existingFileRef) && status === 'IDLE') {
       setUploadId(existingUploadId);
+      setExistingRef(existingFileRef || null);
       setStatus('SUCCESS');
     }
-  }, [existingUploadId]);
+  }, [existingUploadId, existingFileRef, status]);
 
   const reset = async () => {
     if (uploadId) {
@@ -67,6 +82,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
     setFile(null);
     setProgress(0);
     setUploadId(null);
+    setExistingRef(null);
     setStatus('IDLE');
     setErrorMessage('');
     setDuration(null);
@@ -181,6 +197,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       }
 
       setDuration(completeData.data?.duration || null);
+      setExistingRef(null);
       setStatus('SUCCESS');
       onUploadComplete(currentUploadId);
 
@@ -203,8 +220,8 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
   };
 
   return (
-    <div className="border border-slate-200 rounded p-4 bg-white relative">
-      <div className="flex justify-between items-start mb-2">
+    <div className="border border-slate-200 rounded p-3 bg-white relative">
+      <div className="flex justify-between items-start mb-1.5">
         <label className="text-sm font-bold text-slate-800">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
@@ -216,16 +233,16 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       {status === 'IDLE' && (
         <div 
           onClick={() => fileInputRef.current?.click()}
-          className="w-full border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-slate-50 hover:border-blue-400 cursor-pointer transition-colors"
+          className="w-full min-h-[104px] border-2 border-dashed border-slate-300 rounded-lg px-4 py-4 flex flex-col items-center justify-center hover:bg-slate-50 hover:border-blue-400 cursor-pointer transition-colors"
         >
-          <Upload className="text-slate-400 mb-2" size={24} />
+          <Upload className="text-slate-400 mb-1.5" size={20} />
           <p className="text-sm text-slate-600 font-medium">Click to select file</p>
-          <p className="text-xs text-slate-400 mt-1">WAV or FLAC (Minimum 16-bit)</p>
+          <p className="text-xs text-slate-400 mt-0.5">WAV or FLAC (Minimum 16-bit)</p>
         </div>
       )}
 
       {(status === 'UPLOADING' || status === 'VALIDATING') && (
-        <div className="w-full border border-slate-200 rounded-lg p-4 bg-slate-50">
+        <div className="w-full border border-slate-200 rounded-lg p-3 bg-slate-50">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-slate-700 truncate mr-4">{file?.name}</span>
             <span className="text-xs font-bold text-blue-600">
@@ -248,12 +265,12 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       )}
 
       {status === 'SUCCESS' && (
-        <div className="w-full border border-green-200 rounded-lg p-4 bg-green-50 flex flex-col gap-2 relative">
+        <div className="w-full border border-green-200 rounded-lg p-3 bg-green-50 flex flex-col gap-2 relative">
           <div className="flex items-center">
             <CheckCircle className="text-green-500 mr-2" size={20} />
             <div className="truncate flex-1">
               <p className="text-sm font-medium text-green-800 truncate pr-6">
-                {file?.name || `File uploaded (ID: ${uploadId?.slice(0, 8)}...)`}
+                {file?.name || getExistingFileName(existingRef || uploadId) || `File uploaded (ID: ${uploadId?.slice(0, 8)}...)`}
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded font-medium">✓ Uploaded &amp; verified</span>
@@ -268,18 +285,18 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           <button 
             type="button"
             onClick={reset}
-            className="absolute top-4 right-4 p-1.5 bg-white text-slate-500 rounded-md shadow-sm border border-slate-200 hover:text-red-500 hover:border-red-200 transition-colors"
+            className="absolute top-3 right-3 p-1.5 bg-white text-slate-500 rounded-md shadow-sm border border-slate-200 hover:text-red-500 hover:border-red-200 transition-colors"
           >
             <X size={16} />
           </button>
           {/* Audio Preview */}
-          {(file || (uploadId && typeof uploadId === 'string')) && (
+          {(file || existingRef || (uploadId && typeof uploadId === 'string')) && (
             <div className="mt-2 w-full pr-10">
               <audio 
                 controls 
                 className="w-full h-8 outline-none" 
                 controlsList="nodownload"
-                src={file ? URL.createObjectURL(file) : assetUrl(uploadId as string)} 
+                src={file ? URL.createObjectURL(file) : assetUrl((existingRef || uploadId) as string)} 
               />
             </div>
           )}
@@ -287,7 +304,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       )}
 
       {status === 'ERROR' && (
-        <div className="w-full border border-red-200 rounded-lg p-4 bg-red-50 flex flex-col items-start relative">
+        <div className="w-full border border-red-200 rounded-lg p-3 bg-red-50 flex flex-col items-start relative">
           <button 
             type="button"
             onClick={reset}

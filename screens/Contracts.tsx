@@ -189,7 +189,7 @@ export const Contracts: React.FC<Props> = ({ token, defaultTab = 'aggregator' })
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto min-h-screen animate-fade-in">
+    <div className="p-8 w-full max-w-none min-h-screen animate-fade-in">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
           <div className="p-2 bg-blue-50 rounded-lg text-blue-600">

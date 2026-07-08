@@ -241,7 +241,7 @@ export const UserDetailPage: React.FC<Props> = ({ isImpersonating: propIsImperso
 
   if (isLoading) {
     return (
-      <div className="p-8 max-w-7xl mx-auto min-h-screen">
+      <div className="p-8 w-full max-w-none min-h-screen">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">Memuat data...</div>
       </div>
     );
@@ -249,14 +249,14 @@ export const UserDetailPage: React.FC<Props> = ({ isImpersonating: propIsImperso
 
   if (!user) {
     return (
-      <div className="p-8 max-w-7xl mx-auto min-h-screen">
+      <div className="p-8 w-full max-w-none min-h-screen">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">User tidak ditemukan</div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto min-h-screen">
+    <div className="p-8 w-full max-w-none min-h-screen">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fade-in">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">

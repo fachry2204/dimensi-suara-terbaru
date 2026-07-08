@@ -40,7 +40,7 @@ export default function ReleaseDetailsPage() {
 
   useEffect(() => {
     const fetchDetail = async () => {
-      if (!id) { setError('Invalid release id'); setLoading(false); return; }
+      if (!id) { setError('ID rilis tidak valid'); setLoading(false); return; }
       try {
         const raw: any = await api.getRelease(token, id);
         const mapArtists = (arr: any) => {
@@ -125,7 +125,7 @@ export default function ReleaseDetailsPage() {
         (mapped as any).ownerDisplayName = ownerDisplayName;
         setRelease(mapped);
       } catch (e: any) {
-        setError(e?.message || 'Failed to load release detail');
+        setError(e?.message || 'Gagal memuat detail rilis');
       } finally {
         setLoading(false);
       }
@@ -136,9 +136,9 @@ export default function ReleaseDetailsPage() {
   if (loading) return null;
   if (error) {
     return (
-      <div className="p-8 max-w-3xl mx-auto">
+      <div className="p-8 w-full max-w-none">
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl">{error}</div>
-        <button onClick={() => router.push('/releases')} className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg font-medium">Back to Releases</button>
+        <button onClick={() => router.push('/releases')} className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg font-medium">Kembali ke Rilis</button>
       </div>
     );
   }
@@ -169,7 +169,7 @@ export default function ReleaseDetailsPage() {
           router.push(`/releases/${r.id}/edit`);
         }}
         onDelete={async (r) => {
-            if (!confirm('Are you sure you want to delete this release?')) return;
+            if (!confirm('Apakah Anda yakin ingin menghapus rilis ini?')) return;
             try {
                 await api.deleteRelease(token, r.id!);
                 router.push('/releases');
@@ -193,8 +193,8 @@ export default function ReleaseDetailsPage() {
              if (userRole !== 'Admin') {
                  setAlertState({
                      isOpen: true,
-                     title: 'Cover Art Updated',
-                     message: 'Cover art updated. Status changed to Request Edit.',
+                     title: 'Cover Art Diperbarui',
+                     message: 'Cover art berhasil diperbarui. Status berubah menjadi Minta Revisi.',
                      type: 'success'
                  });
              }

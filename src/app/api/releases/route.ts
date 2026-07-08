@@ -10,6 +10,11 @@ function sanitizeName(name: string) {
     return name.replace(/[<>:"/\\|?*]+/g, '').trim().substring(0, 80);
 }
 
+function toDbBoolean(value: any) {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return value === true || value === 1 || normalized === '1' || normalized === 'yes' || normalized === 'true' ? 1 : 0;
+}
+
 export async function GET(request: Request) {
   try {
     const session = await requireUser();
@@ -184,13 +189,13 @@ export async function POST(request: Request) {
             const explicitVal = (rawExplicit === 'YES' || rawExplicit === 'Yes' || rawExplicit === true || rawExplicit === 1) ? 1 : 0;
             
             const [trackResult]: any = await conn.execute(
-                `INSERT INTO tracks (release_id, title, audio_file, audio_clip, is_instrumental, language, explicit_lyrics, lyrics, primary_artists, featured_artists, lyricist, writer, producer, contributors, track_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO tracks (release_id, title, audio_file, audio_clip, is_instrumental, language, explicit_lyrics, lyrics, primary_artists, featured_artists, lyricist, writer, producer, contributors, track_number, isrc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     releaseId, 
                     trackTitle, 
                     audioFile, 
                     audioClip, 
-                    t.isInstrumental ? 1 : 0, 
+                    toDbBoolean(t.isInstrumental), 
                     t.lyricsLanguage || t.language || '', 
                     explicitVal, 
                     t.lyrics || '',
@@ -200,7 +205,8 @@ export async function POST(request: Request) {
                     JSON.stringify(trackSongwriters),
                     JSON.stringify(trackProductionCredits),
                     JSON.stringify(trackContributors),
-                    String(i + 1)
+                    String(i + 1),
+                    t.isrc || null
                 ]
             );
 
