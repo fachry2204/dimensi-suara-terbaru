@@ -850,3 +850,58 @@ label {
   color: #1d4ed8 !important;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14) !important;
 }
+
+/* ==========================================================================
+   GLOBAL BUTTON ROUNDED & BRIGHT COLOR OVERRIDES (FOR BOTH USER & ADMIN)
+   ========================================================================== */
+
+/* Make all buttons, links styled as buttons, and action elements fully rounded (pill) */
+button,
+.btn,
+a.btn,
+[role="button"],
+[type="button"],
+[type="submit"] {
+  border-radius: 9999px !important;
+}
+
+/* Ensure all buttons have bright, solid backgrounds and high contrast with the page background */
+.btn-primary,
+.bg-blue-600,
+.bg-blue-500,
+.bg-violet-600,
+.bg-indigo-600 {
+  background-color: #7c3aed !important; /* Premium bright violet as standard primary */
+  border-color: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+.btn-success,
+.bg-green-600,
+.bg-green-500,
+.bg-emerald-600,
+.bg-emerald-500 {
+  background-color: #10b981 !important; /* Premium bright emerald */
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.btn-secondary,
+.btn-outline-primary,
+.btn-outline-secondary,
+a.btn-outline,
+button[class*="border-slate-"],
+button[class*="border-gray-"] {
+  background-color: #3b82f6 !important; /* Bright blue */
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+/* Exclude certain small button icons or specific items that should stay transparent/unstyled */
+button.navbar-toggler,
+.hk-menu-backdrop,
+.modal-backdrop,
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent !important;
+  border-radius: initial !important;
+}

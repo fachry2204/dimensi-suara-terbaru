@@ -5,6 +5,7 @@ const publicRoutes = [
   "/register",
   "/forgot-password",
   "/user-status",
+  "/reset-password",
 ];
 
 export default function middleware(request: NextRequest) {

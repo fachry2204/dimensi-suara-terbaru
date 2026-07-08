@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
-import { Music4, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { Music4, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Loader2, Mail, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 import { api } from '@/utils/api';
 import { assetUrl } from '@/utils/url';
@@ -11,7 +11,7 @@ import { assetUrl } from '@/utils/url';
 // register mode removed
 
 
-const ADMIN_DASHBOARD_PATH = '/dashboard-aggregator';
+const ADMIN_DASHBOARD_PATH = '/admin';
 
 
 export default function LoginScreen() {
@@ -25,6 +25,12 @@ export default function LoginScreen() {
   const [logoSrc, setLogoSrc] = useState('');
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected' | 'unknown'>('unknown');
+
+  const [mode, setMode] = useState<'login' | 'forgot'>('login');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -191,15 +197,30 @@ export default function LoginScreen() {
     }
   };
 
-  // register mode removed
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    setForgotLoading(true);
 
-  // register mode removed
-
-  // register mode removed
-
-  // register mode removed
-
-  // register mode removed
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal mengirim email reset password');
+      }
+      setForgotSuccess(data.message || 'Instruksi reset password telah dikirim ke email terdaftar.');
+      setForgotEmail('');
+    } catch (err: any) {
+      setForgotError(err.message || 'Terjadi kesalahan saat memproses reset password.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   // register mode removed
 
@@ -261,7 +282,17 @@ export default function LoginScreen() {
             <input type="checkbox" className="h-4 w-4 rounded border-[#d9dee8] text-[#8b5cf6] focus:ring-[#8b5cf6]" />
             Ingat saya
           </label>
-          <span className="font-semibold text-[#7c3aed]">Lupa Password?</span>
+          <button
+            type="button"
+            onClick={() => {
+              setMode('forgot');
+              setForgotError('');
+              setForgotSuccess('');
+            }}
+            className="font-semibold text-[#7c3aed] hover:text-[#6d28d9] hover:underline focus:outline-none bg-transparent border-none cursor-pointer"
+          >
+            Lupa Password?
+          </button>
         </div>
 
         <button
@@ -310,10 +341,72 @@ export default function LoginScreen() {
     </>
   );
 
-  // register mode removed
+  const renderForgot = () => (
+    <>
+      <form onSubmit={handleForgotSubmit} className="space-y-4 mt-6">
+        {forgotError && (
+          <div className="bg-[#fff1f0] text-[#ff5c5c] text-xs p-2.5 rounded-xl flex items-center gap-2 border border-[#ffd7d7]">
+            <AlertCircle size={16} className="shrink-0" />
+            {forgotError}
+          </div>
+        )}
+        {forgotSuccess && (
+          <div className="bg-[#f0fdf4] text-[#16a34a] text-xs p-3 rounded-xl flex items-start gap-2 border border-[#bbf7d0]">
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+            <span className="font-semibold text-xs leading-relaxed">{forgotSuccess}</span>
+          </div>
+        )}
 
-  // register mode removed
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold text-[#374557]">Alamat Email</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#a5afbd] group-focus-within:text-[#8b5cf6] transition-colors">
+              <Mail size={18} />
+            </div>
+            <input
+              type="email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              className="w-full h-12 pl-12 pr-4 bg-[#f8f8fb] border border-[#edf0f5] rounded-xl focus:outline-none focus:border-[#8b5cf6] focus:ring-4 focus:ring-[#8b5cf6]/10 transition-all text-sm font-medium text-[#1f2937] placeholder:text-[#a5afbd]"
+              placeholder="Masukkan email terdaftar Anda"
+              required
+            />
+          </div>
+        </div>
 
+        <button
+          type="submit"
+          disabled={forgotLoading}
+          className={`w-full h-12 rounded-xl font-bold text-white shadow-lg shadow-[#8b5cf6]/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99] text-sm mt-2
+            ${forgotLoading ? 'bg-slate-300 cursor-not-allowed' : 'bg-[#8b5cf6] hover:bg-[#7c3aed]'}`}
+        >
+          {forgotLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Mengirim...
+            </>
+          ) : (
+            <>
+              Kirim Reset Password
+              <ArrowRight size={16} />
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMode('login');
+            setForgotError('');
+            setForgotSuccess('');
+          }}
+          className="w-full h-11 rounded-xl font-bold text-[#374557] bg-white border border-[#edf0f5] hover:bg-[#f5f3ff] hover:text-[#7c3aed] hover:border-[#ddd6fe] flex items-center justify-center gap-2 transition-all active:scale-[0.99] text-sm mt-1"
+        >
+          Kembali ke Login
+        </button>
+      </form>
+    </>
+  );
   // register mode removed
 
   // register mode removed
@@ -362,13 +455,15 @@ export default function LoginScreen() {
               <span className="text-xl font-extrabold text-[#1f2937]">Dimensi Suara</span>
             </div>
             <h1 className="text-[30px] leading-tight font-extrabold text-[#1f2937] tracking-[-0.01em]">
-              Masuk ke akun Anda
+              {mode === 'login' ? 'Masuk ke akun Anda' : 'Lupa Password'}
             </h1>
             <p className="mt-2 text-sm text-[#667085] leading-6">
-              Kelola distribusi musik, publishing, dan data rilis dari satu dashboard.
+              {mode === 'login'
+                ? 'Kelola distribusi musik, publishing, dan data rilis dari satu dashboard.'
+                : 'Masukkan alamat email terdaftar Anda untuk menerima tautan reset password.'}
             </p>
           </div>
-          {renderLogin()}
+          {mode === 'login' ? renderLogin() : renderForgot()}
         </div>
       </section>
 
@@ -384,21 +479,8 @@ export default function LoginScreen() {
       >
         <div className="absolute inset-x-0 top-0 h-28 bg-white/10" />
         <div className="absolute inset-y-0 left-0 w-28 bg-white/10 skew-x-[-12deg] origin-top-left" />
-        {logoSrc && !logoFailed && (
-          <div className="absolute left-12 top-8 z-20 flex min-h-[64px] min-w-[280px] items-center">
-            <img
-              src={logoSrc}
-              alt="Logo"
-              className="max-h-[72px] max-w-[360px] w-auto object-contain drop-shadow-xl"
-              onError={() => setLogoFailed(true)}
-            />
-          </div>
-        )}
+
         <div className="relative z-10 w-full max-w-[560px] text-white">
-          <div className="inline-flex items-center gap-2 rounded-2xl bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
-            <ShieldCheck size={18} />
-            Area CMS Terlindungi
-          </div>
           <h2 className="mt-6 text-[44px] font-extrabold leading-tight tracking-[-0.02em] text-white">
             CMS Distribusi Musik & Publishing
           </h2>

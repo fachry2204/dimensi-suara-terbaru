@@ -30,7 +30,7 @@ export default function PublishingPage() {
         const data = await api.publishing.getSongs('');
         setSongs(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error('Failed to fetch songs:', err);
+        console.warn('Failed to fetch songs:', err);
       } finally {
         setIsLoading(false);
       }
@@ -68,20 +68,20 @@ export default function PublishingPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg" style={{ background: getButtonColor() }}>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3 whitespace-nowrap">
+            <div className="rounded-xl flex items-center justify-center text-white shadow-lg" style={{ background: getButtonColor(), width: '40px', height: '40px', minWidth: '40px' }}>
               <FileText size={20} />
             </div>
-            Dashboard Publishing
+            <span>Dashboard Publishing</span>
           </h1>
           <p className="text-slate-500 text-sm mt-1">Kelola data pencipta dan lagu publishing</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/publishing/writer" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" style={{ background: getButtonColor() }}>
+          <Link href="/publishing/writer" className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold text-white shadow-lg shadow-[#aa91cc]/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" style={{ background: getButtonColor() || '#aa91cc' }}>
             <UserPlus size={16} />
             Data Pencipta
           </Link>
-          <Link href="/publishing/songs" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg bg-pink-500 hover:bg-pink-600 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
+          <Link href="/publishing/songs" className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5" style={{ background: '#7c3aed' }}>
             <ListMusic size={16} />
             Data Lagu
           </Link>
@@ -89,24 +89,28 @@ export default function PublishingPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
-          { label: 'Total Lagu', value: stats.total, icon: <Music size={20} />, color: 'from-indigo-500 to-purple-600', bgLight: 'bg-indigo-50' },
-          { label: 'Menunggu', value: stats.pending, icon: <Clock size={20} />, color: 'from-amber-400 to-orange-500', bgLight: 'bg-amber-50' },
-          { label: 'Review', value: stats.review, icon: <Loader2 size={20} />, color: 'from-blue-400 to-cyan-500', bgLight: 'bg-blue-50' },
-          { label: 'Diterima', value: stats.accepted, icon: <CheckCircle size={20} />, color: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50' },
-          { label: 'Ditolak', value: stats.rejected, icon: <AlertTriangle size={20} />, color: 'from-red-400 to-rose-500', bgLight: 'bg-red-50' },
+          { label: 'Total Lagu', value: stats.total, icon: <Music size={20} />, cardClass: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-700', iconBg: 'bg-indigo-500/20', sub: 'Semua data lagu' },
+          { label: 'Menunggu', value: stats.pending, icon: <Clock size={20} />, cardClass: 'bg-amber-500/10 border-amber-500/20 text-amber-700', iconBg: 'bg-amber-500/20', sub: 'Menunggu review' },
+          { label: 'Review', value: stats.review, icon: <Loader2 size={20} />, cardClass: 'bg-blue-500/10 border-blue-500/20 text-blue-700', iconBg: 'bg-blue-500/20', sub: 'Sedang diperiksa' },
+          { label: 'Diterima', value: stats.accepted, icon: <CheckCircle size={20} />, cardClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700', iconBg: 'bg-emerald-500/20', sub: 'Diterima publishing' },
+          { label: 'Ditolak', value: stats.rejected, icon: <AlertTriangle size={20} />, cardClass: 'bg-rose-500/10 border-rose-500/20 text-rose-700', iconBg: 'bg-rose-500/20', sub: 'Perlu diperbaiki' },
         ].map((stat, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-md`}>
-                {stat.icon}
-              </div>
+          <div key={i} className={`rounded-3xl border p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between ${stat.cardClass.split(' ').slice(0, 2).join(' ')}`}>
+            <div>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">{stat.label}</p>
+              <h3 className="text-2xl font-extrabold text-slate-800">
+                {isLoading ? <Loader2 size={20} className="animate-spin text-slate-400" /> : stat.value}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1 font-medium">{stat.sub}</p>
             </div>
-            <div className="text-2xl font-extrabold text-slate-800">
-              {isLoading ? <Loader2 size={20} className="animate-spin text-slate-400" /> : stat.value}
+            <div 
+              className={`rounded-2xl flex items-center justify-center ${stat.iconBg} ${stat.cardClass.split(' ')[2]}`}
+              style={{ width: '44px', height: '44px', minWidth: '44px', minHeight: '44px' }}
+            >
+              {stat.icon}
             </div>
-            <div className="text-xs font-medium text-slate-500 mt-1">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -115,7 +119,7 @@ export default function PublishingPage() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <ListMusic size={18} className="text-pink-500" />
+            <ListMusic size={18} style={{ color: getButtonColor() }} />
             Lagu Terbaru
           </h2>
           <Link href="/publishing/songs" className="text-sm font-semibold hover:underline" style={{ color: '#aa91cc' }}>

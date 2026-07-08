@@ -190,13 +190,16 @@ export default function ReleasesPage() {
 
   // Stat card UI
   const StatCard = ({ title, count, icon, colorClass, bgClass, subtext, cardClass }: any) => (
-    <div className={`p-4 rounded-xl shadow-sm border flex items-center justify-between transition-transform hover:-translate-y-1 hover:shadow-md ${cardClass || 'bg-white border-slate-100'}`}>
+    <div className={`p-5 rounded-3xl border flex items-center justify-between transition-transform hover:-translate-y-1 hover:shadow-md ${cardClass || 'bg-white border-slate-100'}`}>
         <div>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">{title}</p>
-            <h3 className="text-xl font-bold text-slate-800">{count}</h3>
-            <p className="text-[11px] text-slate-500 mt-1 font-normal">{subtext}</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">{title}</p>
+            <h3 className="text-2xl font-extrabold text-slate-800">{count}</h3>
+            <p className="text-[11px] text-slate-400 mt-1 font-medium">{subtext}</p>
         </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${bgClass} ${colorClass}`}>
+        <div 
+            className={`rounded-2xl flex items-center justify-center ${bgClass} ${colorClass}`}
+            style={{ width: '40px', height: '40px', minWidth: '40px', minHeight: '40px' }}
+        >
             {icon}
         </div>
     </div>
@@ -274,16 +277,17 @@ export default function ReleasesPage() {
             </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-6 w-full">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-6 w-full">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                 <div>
-                    <h2 className="text-sm font-bold text-slate-800">Kelola Rilis</h2>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Cari data rilis atau buat rilis baru.</p>
+                    <h2 className="text-base font-bold text-slate-800">Kelola Rilis</h2>
+                    <p className="text-xs text-slate-400 mt-1">Cari data rilis atau buat rilis baru.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
                     <button
                         onClick={() => router.push('/new-release')}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-xs font-bold shadow-md shadow-blue-100 whitespace-nowrap"
+                        className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-full hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 text-xs font-bold whitespace-nowrap"
+                        style={{ background: getButtonColor() }}
                         title="Buat Rilis Baru"
                     >
                         <Plus size={14} />
@@ -295,9 +299,9 @@ export default function ReleasesPage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={`Cari judul, artis, UPC${(userRole === 'Admin' || userRole === 'Operator') ? ', agregator' : ''}...`} 
-                            className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-white shadow-sm transition-all text-xs text-slate-800"
+                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-full focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-white shadow-sm transition-all text-xs text-slate-800"
                         />
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     </div>
                 </div>
             </div>
@@ -308,27 +312,27 @@ export default function ReleasesPage() {
                 const baseColors =
                     tab.id === 'PENDING'
                         ? isActive
-                            ? 'bg-yellow-100 text-yellow-800 border-yellow-300 shadow-sm'
-                            : 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100/60'
+                            ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/25'
+                            : 'bg-amber-500/60 text-white border-transparent hover:bg-amber-500/80'
                         : tab.id === 'REQUEST_EDIT'
                         ? isActive
-                            ? 'bg-orange-500 text-white border-orange-600 shadow-sm'
-                            : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100/60'
+                            ? 'bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/25'
+                            : 'bg-orange-500/60 text-white border-transparent hover:bg-orange-500/80'
                         : tab.id === 'PROCESSING'
                         ? isActive
-                            ? 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm'
-                            : 'bg-blue-50 text-blue-700 border-blue-200/80 hover:bg-blue-100/60'
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/25'
+                            : 'bg-blue-600/60 text-white border-transparent hover:bg-blue-600/80'
                         : tab.id === 'RELEASED'
                         ? isActive
-                            ? 'bg-green-100 text-green-800 border-green-300 shadow-sm'
-                            : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100/60'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/25'
+                            : 'bg-emerald-600/60 text-white border-transparent hover:bg-emerald-600/80'
                         : tab.id === 'REJECTED'
                         ? isActive
-                            ? 'bg-red-100 text-red-800 border-red-300 shadow-sm'
-                            : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100/60'
+                            ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-600/25'
+                            : 'bg-red-600/60 text-white border-transparent hover:bg-red-600/80'
                         : isActive
-                        ? 'bg-blue-500 text-white border-blue-500 shadow-md'
-                        : 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600 shadow-sm';
+                        ? 'bg-[#aa91cc] text-white border-[#aa91cc] shadow-md shadow-[#aa91cc]/25'
+                        : 'bg-[#aa91cc]/60 text-white border-transparent hover:bg-[#aa91cc]/80';
                 
                 return (
                     <button
@@ -340,36 +344,7 @@ export default function ReleasesPage() {
                         `}
                     >
                         {tab.label}
-                        <span
-                            className={`
-                                px-1.5 py-0.5 rounded-full text-[10px] min-w-[20px] text-center border
-                                ${
-                                    tab.id === 'PENDING'
-                                        ? isActive
-                                            ? 'bg-white/10 text-yellow-500 border-yellow-500/30'
-                                            : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                                        : tab.id === 'PROCESSING'
-                                        ? isActive
-                                            ? 'bg-white/10 text-blue-500 border-blue-500/30'
-                                            : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                        : tab.id === 'RELEASED'
-                                        ? isActive
-                                            ? 'bg-white text-green-800 border-green-200'
-                                            : 'bg-green-500/10 text-green-600 border-green-500/20'
-                                        : tab.id === 'REQUEST_EDIT'
-                                        ? isActive
-                                            ? 'bg-white/20 text-white border-white/40'
-                                            : 'bg-orange-500/10 text-orange-600 border-orange-500/20'
-                                        : tab.id === 'REJECTED'
-                                        ? isActive
-                                            ? 'bg-white/10 text-red-500 border-red-500/30'
-                                            : 'bg-red-500/10 text-red-500 border-red-500/20'
-                                        : isActive
-                                        ? 'bg-white/20 text-white border-white/40'
-                                        : 'bg-white/10 text-white border-white/20'
-                                }
-                            `}
-                        >
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] min-w-[20px] text-center border bg-white/20 text-white border-white/30">
                             {count}
                         </span>
                     </button>

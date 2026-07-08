@@ -7,7 +7,7 @@ export const DashboardMenu = [
         id: nanoid(),
         title: 'Dashboard',
         icon: <Icons.Template />,
-        link: '/dashboard-aggregator',
+        link: '/aggregator',
         badge: <HkBadge size="sm" bg="pink" soft className="ms-auto" >hot</HkBadge>
     },
 

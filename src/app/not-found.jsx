@@ -76,7 +76,7 @@ export default function NotFound() {
 
             <button
               type="button"
-              onClick={() => router.push('/dashboard-aggregator')}
+              onClick={() => router.push('/aggregator')}
               className="mt-6 inline-flex items-center gap-2 rounded-[6px] bg-[#f158d0] px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(241,88,208,0.28)] transition hover:bg-[#d93ab9]"
             >
               <Home size={18} />

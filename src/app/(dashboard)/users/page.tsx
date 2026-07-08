@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, Filter, Search, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 interface User {
   id: number;
@@ -19,15 +21,37 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('User');
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
-    fetchUsers();
+    const checkRoleAndFetch = async () => {
+      try {
+        const checkRes = await fetch('/api/auth/me');
+        if (!checkRes.ok) {
+          notFound();
+          return;
+        }
+        const checkData = await checkRes.json();
+        const role = checkData?.user?.role || checkData?.role || '';
+        if (role.toLowerCase() !== 'admin') {
+          notFound();
+          return;
+        }
+      } catch {
+        notFound();
+        return;
+      }
+      setIsChecking(false);
+      fetchUsers();
+    };
+    checkRoleAndFetch();
   }, []);
 
   const fetchUsers = async () => {
@@ -45,6 +69,9 @@ export default function UsersPage() {
   };
 
   const filteredUsers = users.filter(user => {
+    if (activeTab === 'User' && user.role !== 'User') return false;
+    if (activeTab === 'Admin' && user.role !== 'Admin') return false;
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -61,6 +88,14 @@ export default function UsersPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  if (isChecking) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 bg-slate-50 min-h-screen">
       <div className="p-6 md:p-8 w-full max-w-none">
@@ -72,6 +107,29 @@ export default function UsersPage() {
             </h1>
             <p className="text-slate-500 text-sm mt-1">Kelola data pengguna, hak akses, dan status akun.</p>
           </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-6 flex gap-6 mb-6">
+          <button
+            onClick={() => { setActiveTab('User'); setCurrentPage(1); }}
+            className={`py-3 px-1 text-[15px] font-bold border-b-2 transition-all ${
+              activeTab === 'User'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            User
+          </button>
+          <button
+            onClick={() => { setActiveTab('Admin'); setCurrentPage(1); }}
+            className={`py-3 px-1 text-[15px] font-bold border-b-2 transition-all ${
+              activeTab === 'Admin'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Admin
+          </button>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -98,8 +156,12 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider w-16">ID</th>
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">User</th>
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Tipe</th>
-                  <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                  {activeTab !== 'Admin' && (
+                    <>
+                      <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Tipe</th>
+                      <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                    </>
+                  )}
                   <th className="px-6 py-4 text-left text-[13px] font-bold text-slate-600 uppercase tracking-wider">Terdaftar</th>
                   <th className="px-6 py-4 text-right text-[13px] font-bold text-slate-600 uppercase tracking-wider">Aksi</th>
                 </tr>
@@ -107,7 +169,7 @@ export default function UsersPage() {
               <tbody className="divide-y divide-slate-100">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan={activeTab === 'Admin' ? 5 : 7} className="px-6 py-8 text-center text-slate-500">
                       Memuat data user...
                     </td>
                   </tr>
@@ -132,28 +194,32 @@ export default function UsersPage() {
                             {user.role}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-[13px] text-slate-600">
-                            {user.account_type || user.type || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-bold border ${statusClass}`}>
-                            {user.status === 'Active' ? 'Aktif' : user.status === 'Approved' ? 'Disetujui' : user.status === 'Pending' ? 'Menunggu' : user.status === 'Review' ? 'Review' : user.status === 'Rejected' ? 'Ditolak' : user.status === 'Blocked' ? 'Diblokir' : user.status === 'Inactive' ? 'Tidak Aktif' : user.status}
-                          </span>
-                        </td>
+                        {activeTab !== 'Admin' && (
+                          <>
+                            <td className="px-6 py-4 text-[13px] text-slate-600">
+                                {user.account_type || user.type || 'N/A'}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-bold border ${statusClass}`}>
+                                {user.status === 'Active' ? 'Aktif' : user.status === 'Approved' ? 'Disetujui' : user.status === 'Pending' ? 'Menunggu' : user.status === 'Review' ? 'Review' : user.status === 'Rejected' ? 'Ditolak' : user.status === 'Blocked' ? 'Diblokir' : user.status === 'Inactive' ? 'Tidak Aktif' : user.status}
+                              </span>
+                            </td>
+                          </>
+                        )}
                         <td className="px-6 py-4 text-[13px] text-slate-500">
                           {new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <MoreVertical size={16} />
-                          </button>
+                          <Link href={`/users/${user.id}`} className="inline-flex items-center justify-center px-4 py-2 text-[13px] font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
+                            Lihat
+                          </Link>
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={activeTab === 'Admin' ? 5 : 7} className="px-6 py-12 text-center">
                       <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Filter size={20} className="text-slate-400" />
                       </div>

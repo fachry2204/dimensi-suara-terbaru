@@ -15,6 +15,8 @@ export async function GET() {
       "genres",
       "subgenres",
       "notifications",
+      "tickets",
+      "ticket_replies",
       "security_logs",
       "system_logs",
     ];

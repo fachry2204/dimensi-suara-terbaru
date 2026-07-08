@@ -220,6 +220,23 @@ const initDb = async () => {
             }
         }
 
+        // 3g. Ensure reset password columns in 'users'
+        const resetPasswordCols = [
+            { name: 'reset_token', type: "VARCHAR(255) NULL" },
+            { name: 'reset_token_expiry', type: "DATETIME NULL" }
+        ];
+        for (const col of resetPasswordCols) {
+            try {
+                await connection.query(`SELECT \`${col.name}\` FROM users LIMIT 1`);
+            } catch (err) {
+                if (err.code === 'ER_BAD_FIELD_ERROR') {
+                    console.log(`⚠️ Adding missing column: ${col.name} to users table`);
+                    await connection.query(`ALTER TABLE users ADD COLUMN \`${col.name}\` ${col.type}`);
+                }
+            }
+        }
+
+
         // 4. Check 'cover_art' in 'releases'
         try {
             await connection.query('SELECT cover_art FROM releases LIMIT 1');

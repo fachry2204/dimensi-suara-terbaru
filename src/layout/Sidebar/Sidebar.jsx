@@ -16,24 +16,65 @@ const Sidebar = () => {
     const [activeSubMenu, setActiveSubMenu] = useState();
     const pathname = usePathname();
     const { theme } = useTheme();
+    const [userRole, setUserRole] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('cms_role') || 'user';
+        }
+        return 'user';
+    });
 
     useEffect(() => {
         require("bootstrap/js/dist/collapse");
+        
+        const role = typeof window !== 'undefined' ? localStorage.getItem('cms_role') : 'user';
+        setUserRole(role || 'user');
+        
+        fetch('/api/auth/me', { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                if (data?.user?.role) {
+                    setUserRole(data.user.role);
+                }
+            })
+            .catch(err => console.warn("Failed to fetch user role:", err));
     }, []);
 
     const handleClick = (menuName) => {
         setActiveMenu(menuName);
     }
 
+    const filteredMenu = SidebarMenu.filter(routes => {
+        if (userRole?.toLowerCase() === 'user') {
+            const isPublishingRoute = pathname.startsWith('/publishing');
+            if (isPublishingRoute) {
+                return routes.id === 'utama_publishing' || routes.group === 'Publishing' || routes.group === 'Laporan Publishing' || routes.id === 'switch_service_aggregator';
+            } else {
+                return (routes.group === 'Utama' && routes.id === 'utama_user_aggregator') || routes.group === 'Aggregator' || routes.group === 'Laporan Aggregator' || routes.id === 'switch_service_publishing';
+            }
+        }
+        // Hide service switch items, user aggregator dashboard, user reporting groups, and publishing dashboard from Admin sidebar to avoid duplication
+        if (
+            routes.id === 'switch_service_publishing' || 
+            routes.id === 'switch_service_aggregator' || 
+            routes.id === 'utama_publishing' || 
+            routes.id === 'utama_user_aggregator' ||
+            routes.group === 'Laporan Aggregator' ||
+            routes.group === 'Laporan Publishing'
+        ) {
+            return false;
+        }
+        return true;
+    });
+
     useEffect(() => {
-        for (const routes of SidebarMenu) {
+        for (const routes of filteredMenu) {
             const matchedMenu = routes.contents.find((menu) => menu.childrens && pathname.startsWith(menu.path));
             if (matchedMenu) {
                 setActiveMenu(matchedMenu.name);
                 return;
             }
         }
-    }, [pathname]);
+    }, [pathname, filteredMenu]);
 
 
     return (
@@ -44,7 +85,7 @@ const Sidebar = () => {
                 {/* Main Menu */}
                 <SimpleBar className="nicescroll-bar">
                     <div className="menu-content-wrap">
-                        {SidebarMenu.map((routes, index) => (
+                        {filteredMenu.map((routes, index) => (
                             <React.Fragment key={index}>
                                 <div className="menu-group" >
                                     {routes.group && <div className="nav-header" >
@@ -52,7 +93,7 @@ const Sidebar = () => {
                                     </div>}
                                     {routes.contents.map((menus, idx) => (
                                         <Nav bsPrefix="navbar-nav" className="flex-column" key={idx}>
-                                            <Nav.Item className={classNames({ "active": pathname.startsWith(menus.path) })}>
+                                            <Nav.Item className={classNames({ "active": menus.path === '/publishing' ? pathname === '/publishing' : pathname.startsWith(menus.path) })}>
                                                 {
                                                     menus.childrens
                                                         ?

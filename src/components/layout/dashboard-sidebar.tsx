@@ -112,8 +112,8 @@ export function DashboardSidebar({ currentUser, userRole = "Admin" }: SidebarPro
       <nav className="flex-1 py-6 px-4 space-y-6 overflow-y-auto sidebar-scroll">
         
         <div>
-          <Link href="/dashboard-aggregator" className={getLinkClass('/dashboard-aggregator')}>
-            <LayoutDashboard size={20} className={getIconClass('/dashboard-aggregator')} />
+          <Link href="/aggregator" className={getLinkClass('/aggregator')}>
+            <LayoutDashboard size={20} className={getIconClass('/aggregator')} />
             Dashboard
           </Link>
         </div>

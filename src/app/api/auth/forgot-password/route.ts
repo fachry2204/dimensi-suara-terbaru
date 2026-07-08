@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { RowDataPacket } from "mysql2/promise";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +19,6 @@ type SmtpConfig = {
   pass?: string;
   from_email?: string;
   from_name?: string;
-};
-
-const makeTemporaryPassword = () => {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  let password = "";
-  for (let i = 0; i < 10; i += 1) {
-    password += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return `${password}!7`;
 };
 
 const getSmtpConfig = async (): Promise<SmtpConfig | null> => {
@@ -74,13 +65,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const temporaryPassword = makeTemporaryPassword();
-    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+    const token = crypto.randomBytes(32).toString("hex");
+    await db.query(
+      "UPDATE users SET reset_token = ?, reset_token_expiry = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE id = ?",
+      [token, users[0].id]
+    );
 
-    await db.query("UPDATE users SET password_hash = ? WHERE id = ?", [
-      passwordHash,
-      users[0].id,
-    ]);
+    const origin = request.headers.get("origin") || new URL(request.url).origin;
+    const resetLink = `${origin}/reset-password?token=${token}`;
 
     const transporter = nodemailer.createTransport({
       host: smtp.host,
@@ -103,29 +95,36 @@ export async function POST(request: Request) {
       text: [
         `Halo ${displayName},`,
         "",
-        "Permintaan reset password untuk akun Dimensi Suara CMS Anda telah diproses.",
-        `Password sementara Anda: ${temporaryPassword}`,
+        "Anda menerima email ini karena ada permintaan untuk mengatur ulang password akun Anda.",
+        "Silakan klik link di bawah ini untuk mereset password Anda:",
+        resetLink,
         "",
-        "Silakan login menggunakan password sementara tersebut, lalu ubah password dari menu profil/setting akun.",
-        "Jika Anda tidak meminta reset password, segera hubungi administrator.",
+        "Link reset password ini akan kedaluwarsa dalam waktu 1 jam.",
+        "Jika Anda tidak meminta reset password, silakan abaikan email ini.",
       ].join("\n"),
       html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">
-          <h2>Reset Password Dimensi Suara CMS</h2>
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:500px;margin:0 auto;padding:20px;border:1px solid #e5e7eb;border-radius:12px;">
+          <h2 style="color:#7c3aed;margin-bottom:20px;">Reset Password Dimensi Suara CMS</h2>
           <p>Halo <strong>${displayName}</strong>,</p>
-          <p>Permintaan reset password untuk akun Anda telah diproses.</p>
-          <p style="padding:14px 16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px">
-            Password sementara Anda:<br />
-            <strong style="font-size:20px;color:#7c3aed">${temporaryPassword}</strong>
+          <p>Anda menerima email ini karena ada permintaan untuk mengatur ulang password akun Dimensi Suara CMS Anda.</p>
+          <p style="margin:24px 0;text-align:center;">
+            <a href="${resetLink}" style="background-color:#7c3aed;color:#ffffff;padding:12px 24px;text-decoration:none;font-weight:bold;border-radius:8px;display:inline-block;box-shadow:0 4px 6px -1px rgba(124, 58, 237, 0.1), 0 2px 4px -1px rgba(124, 58, 237, 0.06);">
+              Reset Password Saya
+            </a>
           </p>
-          <p>Silakan login menggunakan password sementara tersebut, lalu ubah password dari menu profil/setting akun.</p>
-          <p style="color:#64748b;font-size:13px">Jika Anda tidak meminta reset password, segera hubungi administrator.</p>
+          <p style="font-size:13px;color:#64748b;">
+            Link ini akan kedaluwarsa dalam 1 jam. Jika tombol di atas tidak berfungsi, salin dan tempel URL berikut ke browser Anda:
+            <br />
+            <a href="${resetLink}" style="color:#7c3aed;word-break:break-all;">${resetLink}</a>
+          </p>
+          <hr style="border:0;border-top:1px solid #e5e7eb;margin:20px 0;" />
+          <p style="color:#94a3b8;font-size:12px;margin:0;">Jika Anda tidak merasa meminta reset password, silakan abaikan email ini atau hubungi administrator.</p>
         </div>
       `,
     });
 
     return NextResponse.json({
-      message: "Password sementara sudah dikirim ke email terdaftar.",
+      message: "Link reset password telah dikirim ke email terdaftar.",
     });
   } catch (error) {
     console.error("API Error - POST /api/auth/forgot-password:", error);
@@ -135,3 +134,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
