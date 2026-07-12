@@ -4,12 +4,13 @@ import { db } from "@/lib/db";
 export interface UserRow extends RowDataPacket {
   id: number;
   name: string;
+  full_name: string;
   email: string;
   password?: string;
   role: string;
   status: string;
   created_at: string;
-  
+  profile_picture?: string;
 }
 
 export async function findUserByEmail(
@@ -42,9 +43,11 @@ export async function findUserById(
       SELECT
         id,
         username as name,
+        COALESCE(full_name, username) as full_name,
         email,
         role,
         status,
+        profile_picture,
         created_at FROM users
       WHERE id = ?
       LIMIT 1

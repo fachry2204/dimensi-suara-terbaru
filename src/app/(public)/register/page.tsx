@@ -97,6 +97,9 @@ export default function RegisterScreen() {
   const [picName, setPicName] = useState('');
   const [picPosition, setPicPosition] = useState('');
   const [picPhoneLocal, setPicPhoneLocal] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankAccountName, setBankAccountName] = useState('');
 
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [npwpFile, setNpwpFile] = useState<File | null>(null);
@@ -557,6 +560,11 @@ export default function RegisterScreen() {
         setRegErrorModalOpen(true);
         return false;
       }
+      if (!bankName || !bankAccountNumber || !bankAccountName) {
+        setRegError('Nama Bank, Nomor Rekening, dan Atas Nama Rekening wajib diisi.');
+        setRegErrorModalOpen(true);
+        return false;
+      }
       if (accountType === 'COMPANY') {
         if (!picName || !picPosition) {
           setRegError('Data PIC (Nama & Posisi) wajib diisi untuk perusahaan.');
@@ -693,6 +701,9 @@ export default function RegisterScreen() {
         picName,
         picPosition,
         picPhone,
+        bankName,
+        bankAccountNumber,
+        bankAccountName,
         ktpDocPath: docPaths.ktpDocPath,
         npwpDocPath: docPaths.npwpDocPath,
         nibDocPath: docPaths.nibDocPath,
@@ -1092,6 +1103,42 @@ export default function RegisterScreen() {
           />
         </div>
       </div>
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Data Bank</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Nama Bank</label>
+            <input
+              type="text"
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
+              placeholder="Contoh: BCA"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Nomor Rekening</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={bankAccountNumber}
+              onChange={(e) => setBankAccountNumber(e.target.value.replace(/[^0-9]/g, ''))}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
+              placeholder="Nomor rekening"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Atas Nama Rekening</label>
+          <input
+            type="text"
+            value={bankAccountName}
+            onChange={(e) => setBankAccountName(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
+            placeholder="Nama pemilik rekening"
+          />
+        </div>
+      </div>
       {accountType === 'COMPANY' && (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -1193,6 +1240,12 @@ export default function RegisterScreen() {
             <p>No HP PIC: {picPhoneLocal && selectedCountryDialCode ? `${selectedCountryDialCode}${picPhoneLocal}` : picPhoneLocal}</p>
           </>
         )}
+      </div>
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1">
+        <p className="text-[10px] font-semibold text-slate-800">Data Bank</p>
+        <p>Nama Bank: {bankName}</p>
+        <p>Nomor Rekening: {bankAccountNumber}</p>
+        <p>Atas Nama Rekening: {bankAccountName}</p>
       </div>
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1">
         <p className="text-[10px] font-semibold text-slate-800">Dokumen</p>

@@ -904,13 +904,14 @@ export const api = {
             return parseResponse(res);
         },
         create: async (token, data) => {
+            const isFormData = data instanceof FormData;
             const res = await fetch(`${API_BASE_URL}/tickets`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
+                headers: {
+                    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify(data),
+                body: isFormData ? data : JSON.stringify(data),
                 credentials: 'include'
             });
             return parseResponse(res);

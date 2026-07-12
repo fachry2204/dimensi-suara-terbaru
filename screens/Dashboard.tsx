@@ -17,6 +17,7 @@ import { api } from '@/utils/api';
 interface Props {
   releases: ReleaseData[];
   token: string | null;
+  userRole?: string;
 }
 
 interface Song {
@@ -24,9 +25,10 @@ interface Song {
     [key: string]: any;
 }
 
-export const Dashboard: React.FC<Props> = ({ releases, token }) => {
+export const Dashboard: React.FC<Props> = ({ releases, token, userRole }) => {
   const navigate = useNavigate();
   const { getButtonColor } = useBranding();
+  const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(true);
   const [pendingPage, setPendingPage] = useState(1);
@@ -116,7 +118,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                     <h2 className="text-sm font-bold text-slate-200">Aggregator Status</h2>
                 </div>
                 <button 
-                    onClick={() => navigate('/new-release')}
+                    onClick={() => navigate(rolePath('/new-release'))}
                     className="flex items-center gap-2 px-3 py-1.5 text-white rounded-lg shadow-sm hover:opacity-90 transition-all text-xs font-bold"
                     style={{ backgroundColor: getButtonColor() }}
                 >
@@ -256,7 +258,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Link
-                                                to={`/releases/${r.id}/view`}
+                                                to={rolePath(`/releases/${r.id}/view`)}
                                                 className="px-3 py-1.5 text-[11px] bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-block font-normal"
                                             >
                                                 Lihat
@@ -354,7 +356,7 @@ export const Dashboard: React.FC<Props> = ({ releases, token }) => {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <Link
-                                                to="/publishing/songs"
+                                                to={rolePath('/publishing/songs')}
                                                 className="px-3 py-1.5 text-[11px] bg-blue-500 text-white rounded-lg hover:bg-blue-600 inline-block font-normal"
                                             >
                                                 Kelola

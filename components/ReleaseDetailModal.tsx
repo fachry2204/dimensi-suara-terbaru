@@ -20,20 +20,21 @@ interface Props {
   isUpdatingCoverArt?: boolean;
   token?: string;
   onCoverArtUpdated?: (newCoverArtUrl: string) => void;
+  hideDistributionTab?: boolean;
 }
 
-export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, onUpdate, availableAggregators, mode = 'edit', onEdit, onDelete, userRole, isUpdatingCoverArt, token, onCoverArtUpdated }) => {
+export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, onUpdate, availableAggregators, mode = 'edit', onEdit, onDelete, userRole, isUpdatingCoverArt, token, onCoverArtUpdated, hideDistributionTab = false }) => {
   const [activeTab, setActiveTab] = useState<'INFO' | 'DISTRIBUTION'>('INFO');
   
   const renderList = (arr: any[], nameKey = 'name', roleKey?: string) =>
-    (!arr || arr.length === 0) ? <span className="text-slate-400 font-normal italic">-</span> :
-      <div className="flex flex-col gap-0.5">
+    (!arr || arr.length === 0) ? <span className="text-slate-400 font-normal italic text-xs">-</span> :
+      <div className="flex flex-col gap-1">
         {arr.map((item: any, i: number) => {
           const roleVal = roleKey ? (item[roleKey] || item.role || item.roleName || item.role_name || '') : '';
           return (
-            <span key={i} className="text-slate-700 text-xs font-semibold">
+            <span key={i} className="text-slate-850 text-sm font-bold">
               {typeof item === 'string' ? item : item[nameKey] || '-'}
-              {roleVal ? <span className="text-slate-400 font-normal ml-1">({roleVal})</span> : null}
+              {roleVal ? <span className="text-slate-400 font-medium text-xs ml-1">({roleVal})</span> : null}
             </span>
           );
         })}
@@ -511,7 +512,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         <ArrowLeft size={20} />
                         Kembali ke Daftar
                     </button>
-                    {(userRole === 'Admin' || userRole === 'Operator') && (
+                    {(userRole === 'Admin' || userRole === 'Operator') && !hideDistributionTab && (
                         <div className="flex gap-2">
                             <button onClick={onClose} className="px-4 py-2 text-slate-500 font-bold text-sm hover:bg-slate-100 rounded-lg transition-colors">
                                 Batal
@@ -608,10 +609,30 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                 <div className="flex-1 w-full">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                         <div>
-                            <div className="text-sm text-slate-600 mb-1 font-medium">
-                                {(release as any).ownerDisplayName || 'User Tidak Dikenal'}
+                            <div className="flex flex-wrap items-center gap-2.5 mb-1">
+                                <span className="text-sm text-slate-600 font-semibold">
+                                    {(release as any).ownerDisplayName || 'User Tidak Dikenal'}
+                                </span>
+                                <div className="h-3.5 w-px bg-slate-300"></div>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider flex items-center gap-1 ${
+                                    (status === 'Live' || status === 'Released') ? 'bg-green-100 text-green-700 border-green-200' :
+                                    status === 'Processing' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                    status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                                    'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                }`}>
+                                    {status === 'Rejected' && <AlertTriangle size={10} />}
+                                    {(status === 'Live' || status === 'Released') ? 'Rilis' : status === 'Processing' ? 'Diproses' : status === 'Rejected' ? 'Ditolak' : status === 'Request Edit' ? 'Minta Revisi' : 'Menunggu'}
+                                </span>
+                                {(userRole === 'Admin' || userRole === 'Operator') && release.aggregator && (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1">
+                                        <Globe size={10} className="text-purple-600" /> {release.aggregator}
+                                    </span>
+                                )}
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-slate-600 border border-gray-200 flex items-center gap-1">
+                                    <Music2 size={10} className="text-slate-500" /> {release.tracks.length > 1 ? 'Album' : 'Single'}
+                                </span>
                             </div>
-                            <h1 className="text-3xl font-bold text-slate-900 mb-1">{release.title}</h1>
+                            <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1">{release.title}</h1>
                             <p className="text-slate-600 font-medium text-lg mb-3">
                                 {release.primaryArtists.map(a => typeof a === 'string' ? a : a.name).join(", ")}
                             </p>
@@ -642,26 +663,6 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                             )}
                         </div>
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
-                            (status === 'Live' || status === 'Released') ? 'bg-green-100 text-green-700 border-green-200' :
-                            status === 'Processing' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            status === 'Rejected' ? 'bg-red-100 text-red-700 border-red-200' :
-                            'bg-yellow-100 text-yellow-700 border-yellow-200'
-                        }`}>
-                            {status === 'Rejected' && <AlertTriangle size={14} />}
-                            <span className="uppercase tracking-wider">{(status === 'Live' || status === 'Released') ? 'Rilis' : status === 'Processing' ? 'Diproses' : status === 'Rejected' ? 'Ditolak' : status === 'Request Edit' ? 'Minta Revisi' : 'Menunggu'}</span>
-                        </span>
-                        {(userRole === 'Admin' || userRole === 'Operator') && release.aggregator && (
-                            <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1.5">
-                                <Globe size={14} /> {release.aggregator}
-                            </span>
-                        )}
-                        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-slate-600 border border-gray-200 flex items-center gap-1.5">
-                            <Music2 size={14} /> {release.tracks.length > 1 ? 'Album' : 'Single'}
-                        </span>
-                    </div>
 
                     {/* REJECTION REASON DISPLAY */}
                     {status === 'Rejected' && (rejectionReason || rejectionDesc) && (
@@ -689,18 +690,51 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         </div>
                     )}
 
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2.5">
                         <MetaItem label="Judul Rilis" value={release.title} icon={<FileText size={10} />} />
                         <MetaItem
-                            label="Artis Utama"
+                            label="Artis Utama / Featuring"
                             value={
                                 <div className="flex flex-col gap-1">
                                     {(release.primaryArtists || []).map((a, idx) => {
                                         const name = typeof a === 'string' ? a : a.name;
                                         const link = typeof a === 'object' && (a as any).spotifyLink ? (a as any).spotifyLink : null;
+                                        const roleVal = typeof a === 'object' && (a as any).role ? (a as any).role : 'MainArtist';
+                                        const isFeat = roleVal.toLowerCase() === 'featured' || roleVal.toLowerCase() === 'featuredartist' || roleVal.toLowerCase() === 'featured artist';
                                         return (
-                                            <div key={idx} className="flex items-center gap-1.5">
-                                                <span>{name}</span>
+                                            <div key={`prim-${idx}`} className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="font-semibold text-slate-800">{name}</span>
+                                                <span className={`text-[9px] px-1 py-0.2 rounded font-bold border ${
+                                                    isFeat 
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                                    : 'bg-violet-50 text-violet-750 border-violet-200'
+                                                }`}>
+                                                    {isFeat ? 'Featuring' : 'Artis Utama'}
+                                                </span>
+                                                {link && (
+                                                    <a
+                                                        href={link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-green-500 hover:text-green-600 inline-flex items-center"
+                                                        title="Link Spotify Artis"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Globe size={12} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {((release as any).featuredArtists || []).map((a: any, idx: number) => {
+                                        const name = typeof a === 'string' ? a : a.name;
+                                        const link = typeof a === 'object' && (a as any).spotifyLink ? (a as any).spotifyLink : null;
+                                        return (
+                                            <div key={`feat-${idx}`} className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="font-semibold text-slate-800">{name}</span>
+                                                <span className="text-[9px] bg-amber-50 text-amber-700 border border-amber-200 px-1 py-0.2 rounded font-bold">
+                                                    Featuring
+                                                </span>
                                                 {link && (
                                                     <a
                                                         href={link}
@@ -754,22 +788,24 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-gray-200 mb-8">
-                <button 
-                    onClick={() => setActiveTab('INFO')}
-                    className={`pb-4 px-4 mr-6 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'INFO' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-                >
-                    <FileText size={16} /> Metadata & Track
-                </button>
-                {(userRole === 'Admin' || userRole === 'Operator') && (
+            {!hideDistributionTab && (
+                <div className="flex border-b border-gray-200 mb-8">
                     <button 
-                        onClick={() => setActiveTab('DISTRIBUTION')}
-                        className={`pb-4 px-4 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'DISTRIBUTION' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                        onClick={() => setActiveTab('INFO')}
+                        className={`pb-4 px-4 mr-6 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'INFO' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
                     >
-                        <Globe size={16} /> Distribusi & Status
+                        <FileText size={16} /> Metadata & Track
                     </button>
-                )}
-            </div>
+                    {(userRole === 'Admin' || userRole === 'Operator') && (
+                        <button 
+                            onClick={() => setActiveTab('DISTRIBUTION')}
+                            className={`pb-4 px-4 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'DISTRIBUTION' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <Globe size={16} /> Distribusi & Status
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Content Area */}
             <div>
@@ -819,101 +855,104 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                                 </div>
                                             </div>
 
-                                            {/* C: Artists */}
-                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">C. Artis</p>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Artis Utama</p>
-                                                        <div className="flex flex-col gap-0.5">
-                                                            {track.artists.filter(a => a.role === 'MainArtist').map((a, idx) => (
-                                                                <span key={idx} className="text-slate-700 text-xs font-bold">{a.name}</span>
-                                                            )) || <span className="text-slate-400 italic">-</span>}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Artis Featuring</p>
-                                                        {renderList(track.artists.filter(a => a.role === 'FeaturedArtist'), 'name')}
-                                                    </div>
-                                                </div>
-                                            </div>
 
-                                            {/* D: Writers & Credits */}
-                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">D. Penulis & Kredit</p>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Songwriter / Komposer</p>
-                                                        {renderList(track.songwriters || (track.composer ? [track.composer] : []))}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Penulis Lirik</p>
-                                                        {renderList(track.lyricists || (track.lyricist ? [track.lyricist] : []))}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Penulis Tambahan</p>
-                                                        {renderList(track.additionalWriters, 'name', 'role')}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Kredit Produksi</p>
-                                                        {renderList(track.productionCredits, 'name', 'role')}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Kontributor</p>
-                                                        {renderList(track.contributors, 'name', 'role')}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* E: Lyrics Info */}
-                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">E. Informasi Lirik</p>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {/* D: Writers & Credits */}
+                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">D. Penulis, Kredit & Metadata</p>
                                                     <div className="space-y-4">
-                                                        <div>
-                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Bahasa Lirik</p>
-                                                            <p className="text-xs font-bold text-slate-800">{(track as any).lyricsLanguage || release.language || '-'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Konten Eksplisit</p>
-                                                            {(() => {
-                                                                const explicitVal = track.explicitLyrics;
-                                                                const isExplicit = (explicitVal as any) === 'YES' || (explicitVal as any) === 'Yes' || (explicitVal as any) === 1 || (explicitVal as any) === true;
-                                                                const explicitText = isExplicit ? 'Yes' : ((explicitVal as any) === 'CLEAN' || (explicitVal as any) === 'Clean') ? 'Clean' : 'No';
-                                                                return (
-                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase inline-block ${isExplicit ? 'bg-red-100 text-red-700' : explicitText === 'Clean' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'}`}>
-                                                                        {explicitText}
-                                                                    </span>
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Instrumental</p>
-                                                            <p className="text-xs font-bold text-slate-800">{isInstrumental ? 'Yes' : 'No'}</p>
-                                                        </div>
+                                                         {/* Row 1: Composer, Lyricist, Additional Writers */}
+                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Songwriter / Komposer</span>
+                                                                 {renderList(track.songwriters || (track.composer ? [track.composer] : []))}
+                                                             </div>
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Penulis Lirik</span>
+                                                                 {renderList(track.lyricists || (track.lyricist ? [track.lyricist] : []))}
+                                                             </div>
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Penulis Tambahan</span>
+                                                                 {renderList(track.additionalWriters, 'name', 'role')}
+                                                             </div>
+                                                         </div>
+
+                                                         {/* Divider Line */}
+                                                         <div className="border-t border-slate-200/60 my-2"></div>
+
+                                                         {/* Row 2: Production Credits, Contributors, Bahasa Lirik */}
+                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Kredit Produksi</span>
+                                                                 {renderList(track.productionCredits, 'name', 'role')}
+                                                             </div>
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Kontributor</span>
+                                                                 {renderList(track.contributors, 'name', 'role')}
+                                                             </div>
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Bahasa Lirik</span>
+                                                                 <p className="text-sm font-extrabold text-slate-800">{(track as any).lyricsLanguage || release.language || '-'}</p>
+                                                             </div>
+                                                         </div>
+
+                                                         {/* Divider Line */}
+                                                         <div className="border-t border-slate-200/60 my-2"></div>
+
+                                                         {/* Row 3: Explicit Content, Instrumental */}
+                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Konten Eksplisit</span>
+                                                                 <div className="mt-1">
+                                                                     {(() => {
+                                                                         const explicitVal = track.explicitLyrics;
+                                                                         const isExplicit = (explicitVal as any) === 'YES' || (explicitVal as any) === 'Yes' || (explicitVal as any) === 1 || (explicitVal as any) === true;
+                                                                         const explicitText = isExplicit ? 'Yes' : ((explicitVal as any) === 'CLEAN' || (explicitVal as any) === 'Clean') ? 'Clean' : 'No';
+                                                                         return (
+                                                                             <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase inline-block ${isExplicit ? 'bg-red-100 text-red-700' : explicitText === 'Clean' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-650'}`}>
+                                                                                 {explicitText}
+                                                                             </span>
+                                                                         );
+                                                                     })()}
+                                                                 </div>
+                                                             </div>
+                                                             <div>
+                                                                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-block mb-1.5">Instrumental</span>
+                                                                 <p className="text-sm font-extrabold text-slate-800">{isInstrumental ? 'Yes' : 'No'}</p>
+                                                             </div>
+                                                             <div></div>
+                                                         </div>
+                                                     </div>
+                                                </div>
+
+                                                {/* E: Lyrics Box */}
+                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col">
+                                                    <div className="flex justify-between items-center mb-4">
+                                                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest">E. Lirik</p>
+                                                        {track.lyrics && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); copyToClipboard(track.lyrics); }}
+                                                                className="text-blue-500 hover:text-blue-750 transition-colors flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider"
+                                                                title="Salin Lirik"
+                                                            >
+                                                                <Clipboard size={14} /> Salin Lirik
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                    <div>
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Lyrics</span>
-                                                            {track.lyrics && (
-                                                                <button 
-                                                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(track.lyrics); }}
-                                                                    className="text-blue-500 hover:text-blue-700 transition-colors"
-                                                                    title="Copy Lyrics"
-                                                                >
-                                                                    <Clipboard size={14} />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                        {isInstrumental ? (
-                                                            <span className="text-xs text-slate-500 italic font-medium">Instrumental Track (No lyrics)</span>
-                                                        ) : track.lyrics ? (
-                                                            <div className="bg-white border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-semibold">
+                                                    <div className="flex-1">
+                                                         {isInstrumental ? (
+                                                            <div className="bg-slate-100/50 border border-slate-200 rounded-lg p-3.5 h-[300px] flex items-center justify-center text-sm text-slate-500 italic font-semibold">
+                                                                Instrumental Track (No lyrics)
+                                                            </div>
+                                                         ) : track.lyrics ? (
+                                                            <div className="bg-white border border-gray-200 rounded-lg p-3.5 h-[300px] overflow-y-auto text-[13px] text-slate-800 whitespace-pre-wrap leading-relaxed font-bold shadow-inner">
                                                                 {track.lyrics}
                                                             </div>
-                                                        ) : (
-                                                            <span className="text-xs text-slate-500 italic font-medium">No lyrics provided</span>
-                                                        )}
+                                                         ) : (
+                                                            <div className="bg-slate-100/50 border border-slate-200 rounded-lg p-3.5 h-[300px] flex items-center justify-center text-sm text-slate-500 italic font-semibold">
+                                                                No lyrics provided
+                                                            </div>
+                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1249,10 +1288,12 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
 };
 
 const MetaItem: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode }> = ({ label, value, icon }) => (
-  <div className="flex flex-col border border-gray-200 rounded p-3 bg-slate-50/50">
-    <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-      {React.cloneElement(icon as React.ReactElement, { size: 14 } as any)} {label}
-    </span>
-    <div className="text-xs font-bold text-slate-900 break-words">{value || "-"}</div>
+  <div className="flex flex-col border border-[#edf0f5] rounded-xl p-4 bg-slate-50/40">
+    <div className="mb-2">
+      <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-750 border border-blue-100 rounded inline-flex items-center gap-1.5">
+        {React.cloneElement(icon as React.ReactElement, { size: 12, className: 'text-blue-600' } as any)} {label}
+      </span>
+    </div>
+    <div className="text-sm font-extrabold text-slate-900 break-words">{value || "-"}</div>
   </div>
 );

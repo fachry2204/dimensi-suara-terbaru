@@ -22,6 +22,7 @@ interface TicketsProps {
 
 const Tickets: React.FC<TicketsProps> = ({ token, userRole }) => {
     const navigate = useNavigate();
+    const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
     const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' | 'info' | 'success' }>({
         isOpen: false,
         title: '',
@@ -362,7 +363,7 @@ const Tickets: React.FC<TicketsProps> = ({ token, userRole }) => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <button 
-                                            onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                            onClick={() => navigate(rolePath(`/tickets/${ticket.id}`))}
                                             className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
                                         >
                                             <MessageSquare size={14} />

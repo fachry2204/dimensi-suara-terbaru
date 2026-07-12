@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import SimpleBar from 'simplebar-react';
-import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Plus, Search, Settings, Tag, Disc, Edit, AlertCircle } from 'react-feather';
+import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Plus, Search, Settings, Tag, Disc, Edit, AlertCircle, Shield } from 'react-feather';
 import { Button, Container, Dropdown, Form, InputGroup, Nav, Navbar } from 'react-bootstrap';
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
@@ -48,8 +48,11 @@ const TopNav = () => {
         name: 'Administrator',
         email: 'admin@dimensisuara.id',
     });
+    const [isImpersonating, setIsImpersonating] = useState(false);
 
     useEffect(() => {
+        setIsImpersonating(document.cookie.split(';').some((cookie) => cookie.trim() === 'dimensi_impersonating=1'));
+
         const fetchCurrentUser = async () => {
             try {
                 const res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -128,6 +131,24 @@ const TopNav = () => {
         }
     };
 
+    const handleBackToAdmin = async () => {
+        try {
+            const res = await fetch('/api/admin/impersonate/stop', {
+                method: 'POST',
+                credentials: 'include',
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(data?.error || 'Gagal kembali ke admin');
+            }
+
+            router.push(data?.redirectTo || '/admin/users');
+        } catch (error) {
+            alert(error?.message || 'Gagal kembali ke admin');
+        }
+    };
+
     const pageVariants = {
         initial: { opacity: 0, y: 10 },
         open: { opacity: 1, y: 0 },
@@ -168,6 +189,18 @@ const TopNav = () => {
                 {/* End Nav */}
                 <div className="nav-end-wrap">
                     <Nav className="navbar-nav flex-row">
+                        {isImpersonating && (
+                            <Nav.Item className="d-flex align-items-center me-2">
+                                <button
+                                    type="button"
+                                    onClick={handleBackToAdmin}
+                                    className="btn btn-warning fw-bold d-flex align-items-center gap-2 rounded-pill px-3 py-2"
+                                >
+                                    <Shield size={16} />
+                                    Kembali ke Admin
+                                </button>
+                            </Nav.Item>
+                        )}
                         <Nav.Item className='ms-2'>
                             <ThemeSwitcher />
                         </Nav.Item>

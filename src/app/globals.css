@@ -335,17 +335,17 @@ label {
 /* Mendy Admin-inspired dashboard shell
    Source reference: mendy-admin/package/html/ltr/index.html + dist/css/style.css */
 .mendy-shell {
-  --mendy-bg: #f3f3f5;
+  --mendy-bg: #f5f6fa;
   --mendy-surface: #ffffff;
-  --mendy-sidebar: #353556;
-  --mendy-sidebar-strong: #2d2d49;
-  --mendy-logo: #ae5af3;
-  --mendy-primary: #f158d0;
-  --mendy-primary-dark: #d93ab9;
-  --mendy-primary-soft: rgba(241, 88, 208, 0.12);
-  --mendy-cyan: #30ccff;
-  --mendy-text: #343a40;
-  --mendy-muted: #999999;
+  --mendy-sidebar: #1e1b4b;
+  --mendy-sidebar-strong: #171239;
+  --mendy-logo: #8b5cf6;
+  --mendy-primary: #7c3aed;
+  --mendy-primary-dark: #6d28d9;
+  --mendy-primary-soft: rgba(124, 58, 237, 0.1);
+  --mendy-cyan: #c084fc;
+  --mendy-text: #1f2937;
+  --mendy-muted: #667085;
   --mendy-border: rgba(0, 0, 0, 0.08);
   --mendy-shadow: 0 6px 24px rgba(53, 53, 86, 0.08);
   background: var(--mendy-bg) !important;
@@ -377,7 +377,7 @@ label {
   padding: 0 26px !important;
   display: flex;
   align-items: center;
-  background: #000000 !important;
+  background: linear-gradient(to right, #1e1b4b, #171239) !important;
   border-bottom: 0 !important;
 }
 
@@ -467,7 +467,7 @@ label {
 .mendy-shell .nav-children .nav-link:hover,
 .mendy-shell .nav-children .nav-link.active {
   color: #ffffff !important;
-  background: rgba(241, 88, 208, 0.18) !important;
+  background: rgba(124, 58, 237, 0.18) !important;
   box-shadow: none;
 }
 
@@ -507,7 +507,7 @@ label {
 .mendy-shell .flush-soft-hover:hover {
   background: var(--mendy-primary-soft) !important;
   color: var(--mendy-primary) !important;
-  border-color: rgba(241, 88, 208, 0.28) !important;
+  border-color: rgba(124, 58, 237, 0.28) !important;
 }
 
 .mendy-shell .topnav-profile-toggle {
@@ -613,7 +613,7 @@ label {
 .mendy-shell select:focus,
 .mendy-shell textarea:focus {
   border-color: var(--mendy-primary) !important;
-  box-shadow: 0 0 0 3px rgba(241, 88, 208, 0.14) !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14) !important;
 }
 
 .mendy-shell .btn-primary,
@@ -643,7 +643,7 @@ label {
 .mendy-shell .border-blue-300,
 .mendy-shell .border-blue-400,
 .mendy-shell .border-blue-500 {
-  border-color: rgba(241, 88, 208, 0.32) !important;
+  border-color: rgba(124, 58, 237, 0.32) !important;
 }
 
 .mendy-shell .bg-slate-50 {
@@ -905,3 +905,25 @@ button.navbar-toggler,
   background-color: transparent !important;
   border-radius: initial !important;
 }
+
+/* Hide global sidebar, backdrop, and navbar on admin portal page */
+body:has(#admin-portal) .hk-menu,
+body:has(#admin-portal) .hk-menu-backdrop,
+body:has(#admin-portal) .hk-navbar,
+body:has(#admin-portal) .hk-footer {
+  display: none !important;
+}
+
+body:has(#admin-portal) .hk-pg-wrapper {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+body:has(#admin-portal),
+body:has(#admin-portal) .hk-wrapper,
+body:has(#admin-portal) .hk-pg-wrapper {
+  background: #f7f8fc !important;
+  min-height: 100vh !important;
+}
+
+

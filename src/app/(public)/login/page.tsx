@@ -11,9 +11,6 @@ import { assetUrl } from '@/utils/url';
 // register mode removed
 
 
-const ADMIN_DASHBOARD_PATH = '/admin';
-
-
 export default function LoginScreen() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -131,7 +128,14 @@ export default function LoginScreen() {
 
   // register mode removed
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('error') === 'unauthorized') {
+        setError('Akses ditolak. Peran Admin dan Operator tidak lagi didukung di aplikasi ini.');
+      }
+    }
+  }, []);
 
   // register mode removed
 
@@ -170,9 +174,31 @@ export default function LoginScreen() {
       }
       
       const role = String(user.role || '').toLowerCase();
-      const targetPath = role === 'admin' ? ADMIN_DASHBOARD_PATH : '/';
 
-      if (role === 'admin' && typeof window !== 'undefined') {
+      if (role !== 'admin' && role !== 'user') {
+        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        setError('Role akun ini belum memiliki halaman dashboard aktif.');
+        setIsLoading(false);
+        return;
+      }
+
+      let targetPath = role === 'admin' ? '/admin' : '/user/my-releases';
+
+      // Check for ?redirect= param in URL
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const redirectTo = params.get('redirect');
+        if (
+          redirectTo &&
+          !redirectTo.startsWith('/login') &&
+          ((role === 'admin' && redirectTo.startsWith('/admin')) ||
+            (role !== 'admin' && redirectTo.startsWith('/user/')))
+        ) {
+          targetPath = redirectTo;
+        }
+      }
+
+      if (typeof window !== 'undefined') {
         window.location.replace(targetPath);
         return;
       }
@@ -180,13 +206,7 @@ export default function LoginScreen() {
       router.replace(targetPath);
 
       if (typeof window !== 'undefined') {
-        window.setTimeout(() => {
-          if (window.location.pathname !== targetPath) {
-            window.location.replace(targetPath);
-          }
-        }, 500);
-
-        window.setTimeout(() => {
+        setTimeout(() => {
           setIsLoading(false);
         }, 5000);
       }

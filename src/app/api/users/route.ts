@@ -7,12 +7,13 @@ export async function GET(request: Request) {
     const session = await requireUser();
     
     // Only Admin or Operator can access users
-    if (session.role !== "Admin" && session.role !== "Operator") {
+    const role = String(session.role || "").toLowerCase();
+    if (role !== "admin" && role !== "operator") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const [users] = await db.query(
-      `SELECT id, username, email, role, type, company_name, full_name, status, created_at, account_type 
+      `SELECT id, username, email, role, type, company_name, full_name, status, created_at, registered_at, joined_date, account_type, contract_status 
        FROM users 
        ORDER BY created_at DESC`
     );

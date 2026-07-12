@@ -38,6 +38,15 @@ router.post('/register', async (req, res) => {
             picName,
             picPosition,
             picPhone,
+            bankName,
+            bankAccountNumber,
+            bankAccountName,
+            bank_name: rawBankName,
+            bank_account_number: rawBankAccountNumber,
+            bank_account_name: rawBankAccountName,
+            companyBankName,
+            companyBankAccountNumber,
+            companyBankAccountName,
             nibDocPath,
             kemenkumhamDocPath,
             ktpDocPath,
@@ -80,6 +89,9 @@ router.post('/register', async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
+        const normalizedBankName = bankName || rawBankName || companyBankName || null;
+        const normalizedBankAccountNumber = bankAccountNumber || rawBankAccountNumber || companyBankAccountNumber || null;
+        const normalizedBankAccountName = bankAccountName || rawBankAccountName || companyBankAccountName || null;
 
         const fields = ['username', 'email', 'password_hash'];
         const values = [username, email, hash];
@@ -109,6 +121,9 @@ router.post('/register', async (req, res) => {
             ['pic_name', picName || null],
             ['pic_position', picPosition || null],
             ['pic_phone', picPhone || null],
+            ['bank_name', normalizedBankName],
+            ['bank_account_number', normalizedBankAccountNumber],
+            ['bank_account_name', normalizedBankAccountName],
             ['nib_doc_path', nibDocPath || null],
             ['kemenkumham_doc_path', kemenkumhamDocPath || null],
             ['ktp_doc_path', ktpDocPath || null],

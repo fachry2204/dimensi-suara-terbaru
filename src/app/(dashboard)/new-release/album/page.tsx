@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ReleaseWizard } from '../../../../../screens/ReleaseWizard';
 import { ReleaseData } from '@/types';
 
 export default function AlbumReleasePage() {
     const router = useRouter();
+    const pathname = usePathname();
+    const routePrefix = pathname?.startsWith('/user') ? '/user' : pathname?.startsWith('/admin') ? '/admin' : '';
     const [userRole, setUserRole] = useState('User');
 
     useEffect(() => {
@@ -18,11 +20,11 @@ export default function AlbumReleasePage() {
     }, []);
 
     const handleBack = () => {
-        router.push('/new-release');
+        router.push(`${routePrefix}/new-release`);
     };
 
     const handleSave = (data: ReleaseData) => {
-        router.push('/releases');
+        router.push(`${routePrefix}/releases`);
     };
 
     return (

@@ -70,7 +70,9 @@ export async function requireUser(): Promise<SessionPayload> {
     throw new Error("UNAUTHORIZED");
   }
 
-  if (session.status !== "Approved" && session.status !== "Active" && session.status !== "approved" && session.status !== "active") {
+  // Admin role bypasses status check - only non-admin users need Approved/Active status
+  const isAdmin = session.role === "Admin" || session.role === "admin";
+  if (!isAdmin && session.status !== "Approved" && session.status !== "Active" && session.status !== "approved" && session.status !== "active") {
     throw new Error("ACCOUNT_NOT_APPROVED");
   }
 

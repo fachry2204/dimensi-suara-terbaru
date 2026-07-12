@@ -9,21 +9,12 @@ import { ReleaseWizard } from './screens/ReleaseWizard';
 import { AllReleases } from './screens/AllReleases';
 import { AggregatorDashboard } from './screens/AggregatorDashboard';
 import { Dashboard } from './screens/Dashboard'; 
-import { Statistics } from './screens/Statistics'; 
 import { ReleaseDetailsPage } from './screens/ReleaseDetailsPage';
 import { SingleReleasePage } from './screens/SingleReleasePage';
 import { PublishingWriter } from './screens/publishing/PublishingWriter';
 import { PublishingSongs } from './screens/publishing/PublishingSongs';
 import { PublishingAnalytics } from './screens/publishing/PublishingAnalytics';
 import { PublishingReports } from './screens/publishing/PublishingReports';
-import { Settings } from './screens/Settings';
-import { UserManagement } from './screens/UserManagement';
-import { RoleUserPage } from './screens/RoleUserPage';
-import { UserDetailPage } from './screens/UserDetailPage';
-import { ReportScreen } from './screens/ReportScreen';
-import { RevenueScreen } from './screens/RevenueScreen';
-import { PaymentScreen } from './screens/PaymentScreen';
-import { PaymentDetailScreen } from './screens/PaymentDetailScreen';
 import { LoginScreen } from './screens/LoginScreen'; 
 import { RegisterScreen } from './screens/RegisterScreen';
 import { UserStatusScreen } from './screens/UserStatusScreen';
@@ -50,9 +41,7 @@ import { getTextColorClass } from './src/utils/colorUtils';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Artists } from './screens/Artists';
 import { ArtistDetail } from './screens/ArtistDetail';
-import { UserEditPage } from './screens/UserEditPage';
-import { Contracts } from './screens/Contracts';
-import { ContractDetail } from './screens/ContractDetail';
+
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -548,7 +537,7 @@ const App: React.FC = () => {
       if (effectiveStatus && !['approved', 'active'].includes(effectiveStatus)) {
         navigate('/user-status');
       } else {
-        navigate('/my-releases');
+        navigate('/user/my-releases');
       }
     } else {
       navigate('/dashboard');
@@ -597,7 +586,7 @@ const App: React.FC = () => {
           await api.deleteRelease(token, releaseToDelete.id);
           setAllReleases(prev => prev.filter(r => r.id !== releaseToDelete.id));
           setViewingRelease((prev: any) => (prev && prev.id === releaseToDelete.id ? null : prev));
-          navigate('/releases');
+          navigate(rolePath('/releases'));
       } catch (err: any) {
           setAlertState({
             isOpen: true,
@@ -645,7 +634,7 @@ const App: React.FC = () => {
                }).catch((err: any) => console.warn("Background refresh failed", err));
            }
 
-          navigate('/releases');
+          navigate(rolePath('/releases'));
           setViewingRelease(null);
       } catch (err: any) {
           console.error("Failed to save release:", err);
@@ -747,7 +736,9 @@ const App: React.FC = () => {
   const handleEditRelease = async (release: ReleaseData) => {
       if (!release.id || !token) {
           setEditingRelease(release);
-          navigate(release.type === 'SINGLE' ? '/new-release/single' : '/new-release/album');
+          navigate(userRole === 'User'
+            ? (release.type === 'SINGLE' ? '/user/new-release/single' : '/user/new-release/album')
+            : (release.type === 'SINGLE' ? '/new-release/single' : '/new-release/album'));
           return;
       }
       try {
@@ -836,11 +827,15 @@ const App: React.FC = () => {
               plannedReleaseDate: normDate(raw.planned_release_date)
           };
           setEditingRelease(mapped);
-          navigate(mapped.type === 'SINGLE' ? '/new-release/single' : '/new-release/album');
+          navigate(userRole === 'User'
+            ? (mapped.type === 'SINGLE' ? '/user/new-release/single' : '/user/new-release/album')
+            : (mapped.type === 'SINGLE' ? '/new-release/single' : '/new-release/album'));
       } catch (e) {
           console.error('Failed to load full release for edit', e);
           setEditingRelease(release);
-          navigate(release.type === 'SINGLE' ? '/new-release/single' : '/new-release/album');
+          navigate(userRole === 'User'
+            ? (release.type === 'SINGLE' ? '/user/new-release/single' : '/user/new-release/album')
+            : (release.type === 'SINGLE' ? '/new-release/single' : '/new-release/album'));
       }
   };
 
@@ -904,22 +899,17 @@ const App: React.FC = () => {
 
   // Determine Page Title for Header
   const getPageTitle = () => {
-      const path = location.pathname;
+      const path = location.pathname.replace(/^\/user(?=\/)/, '');
       if (path === '/dashboard') return "Overview";
       if (path === '/aggregator') return "Aggregator";
       if (path === '/new-release') return "Music Distribution";
       if (path === '/releases') return "Catalog Manager";
-      if (path === '/settings') return "System Settings";
-      if (path === '/users') return "User Management";
-      if (path === '/reports') return "Laporan";
-      if (path === '/import-reports') return "Import Laporan";
-      if (path === '/revenue') return "Pendapatan";
-      if (path === '/reports/payments') return "Menu Pembayaran";
-      if (path.startsWith('/reports/payments/detail')) return "Detail Pembayaran";
-      if (path === '/statistics') return "Analytics & Reports";
       if (path.startsWith('/publishing')) return "Publishing";
       return "Dashboard";
   };
+
+  const currentPath = location.pathname.replace(/^\/user(?=\/)/, '');
+  const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
 
   return (
     <div className="flex min-h-screen bg-brand-dark text-slate-100 font-sans">
@@ -952,40 +942,22 @@ const App: React.FC = () => {
             className="sticky top-0 z-30 backdrop-blur-xl border-b border-brand-border px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300"
             style={{ background: headerBgColor }}
         >
-            {location.pathname === '/dashboard' ? (
+            {currentPath === '/dashboard' ? (
                 <div className="hidden md:flex flex-col leading-tight">
                     <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
                         Dashboard
                     </span>
                 </div>
-            ) : location.pathname === '/aggregator' ? (
+            ) : currentPath === '/aggregator' ? (
                 <div className="hidden md:flex flex-col leading-tight">
                     <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
                         Aggregator Overview
                     </span>
                 </div>
-            ) : location.pathname === '/releases' ? (
+            ) : currentPath === '/releases' ? (
                 <div className="hidden md:flex flex-col leading-tight">
                     <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
                         All Releases
-                    </span>
-                </div>
-            ) : location.pathname === '/settings' ? (
-                <div className="hidden md:flex flex-col leading-tight">
-                    <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
-                        Settings
-                    </span>
-                </div>
-            ) : location.pathname === '/users' ? (
-                <div className="hidden md:flex flex-col leading-tight">
-                    <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
-                        User Management
-                    </span>
-                </div>
-            ) : location.pathname === '/statistics' ? (
-                <div className="hidden md:flex flex-col leading-tight">
-                    <span className="text-sm tracking-tight" style={{ color: headerTitleColor }}>
-                        statistik &amp; laporan
                     </span>
                 </div>
             ) : (
@@ -1146,13 +1118,21 @@ const App: React.FC = () => {
               element={
                 userRole === 'User' && userStatus && !['approved', 'active'].includes(userStatus.toLowerCase())
                   ? <Navigate to="/user-status" replace />
-                  : <Navigate to="/dashboard" replace />
+                  : <Navigate to={rolePath('/dashboard')} replace />
               }
             />
             <Route path="/dashboard" element={
-            <Dashboard releases={allReleases} token={token} />
+            userRole === 'User'
+              ? <Navigate to="/user/dashboard" replace />
+              : <Dashboard releases={allReleases} token={token} userRole={userRole} />
+        } />
+            <Route path="/user/dashboard" element={
+            <Dashboard releases={myReleases} token={token} userRole={userRole} />
         } />
         <Route path="/aggregator" element={
+            userRole === 'User'
+              ? <Navigate to="/user/aggregator" replace />
+              :
             <AggregatorDashboard 
                 releases={allReleases}
                 onViewRelease={handleViewDetails}
@@ -1160,22 +1140,42 @@ const App: React.FC = () => {
                 userRole={userRole}
             />
         } />
-        <Route path="/aggregator/artists" element={<Artists releases={userRole === 'User' ? myReleases : allReleases} />} />
-        <Route path="/aggregator/artists/:name" element={<ArtistDetail releases={userRole === 'User' ? myReleases : allReleases} token={token} />} />
+        <Route path="/user/aggregator" element={
+            <AggregatorDashboard 
+                releases={myReleases}
+                onViewRelease={handleViewDetails}
+                onNavigateToAll={() => navigate('/user/my-releases')}
+                userRole={userRole}
+            />
+        } />
+        <Route path="/aggregator/artists" element={userRole === 'User' ? <Navigate to="/user/aggregator/artists" replace /> : <Artists releases={allReleases} />} />
+        <Route path="/aggregator/artists/:name" element={userRole === 'User' ? <Navigate to="/user/aggregator/artists" replace /> : <ArtistDetail releases={allReleases} token={token} />} />
+        <Route path="/user/aggregator/artists" element={<Artists releases={myReleases} />} />
+        <Route path="/user/aggregator/artists/:name" element={<ArtistDetail releases={myReleases} token={token} />} />
 
-            {/* Contracts Routes */}
-            <Route path="/contracts/aggregator" element={<Contracts token={token} defaultTab="aggregator" />} />
-            <Route path="/contracts/aggregator/:id" element={<ContractDetail token={token} />} />
-            <Route path="/contracts/publishing" element={<Contracts token={token} defaultTab="publishing" />} />
-            
             <Route path="/new-release" element={
+                userRole === 'User'
+                  ? <Navigate to="/user/new-release" replace />
+                  :
                 <NewReleaseFlow 
                     editingRelease={editingRelease}
                     setEditingRelease={setEditingRelease}
                     onSaveRelease={handleSaveRelease}
+                    userRole={userRole}
+                />
+            } />
+            <Route path="/user/new-release" element={
+                <NewReleaseFlow 
+                    editingRelease={editingRelease}
+                    setEditingRelease={setEditingRelease}
+                    onSaveRelease={handleSaveRelease}
+                    userRole={userRole}
                 />
             } />
             <Route path="/new-release/single" element={
+                userRole === 'User'
+                  ? <Navigate to="/user/new-release/single" replace />
+                  :
                 <ReleaseWizard 
                     type="SINGLE"
                     onBack={() => {
@@ -1193,7 +1193,28 @@ const App: React.FC = () => {
                     token={token}
                 />
             } />
+            <Route path="/user/new-release/single" element={
+                <ReleaseWizard 
+                    type="SINGLE"
+                    onBack={() => {
+                        const targetId = editingRelease?.id;
+                        setEditingRelease(null);
+                        if (targetId) {
+                          navigate(`/user/releases/${targetId}/view`);
+                        } else {
+                          navigate('/user/new-release');
+                        }
+                    }}
+                    onSave={handleSaveRelease}
+                    initialData={editingRelease || undefined}
+                    userRole={userRole}
+                    token={token}
+                />
+            } />
             <Route path="/new-release/album" element={
+                userRole === 'User'
+                  ? <Navigate to="/user/new-release/album" replace />
+                  :
                 <ReleaseWizard 
                     type="ALBUM"
                     onBack={() => {
@@ -1211,7 +1232,28 @@ const App: React.FC = () => {
                     token={token}
                 />
             } />
+            <Route path="/user/new-release/album" element={
+                <ReleaseWizard 
+                    type="ALBUM"
+                    onBack={() => {
+                        const targetId = editingRelease?.id;
+                        setEditingRelease(null);
+                        if (targetId) {
+                          navigate(`/user/releases/${targetId}/view`);
+                        } else {
+                          navigate('/user/new-release');
+                        }
+                    }}
+                    onSave={handleSaveRelease}
+                    initialData={editingRelease || undefined}
+                    userRole={userRole}
+                    token={token}
+                />
+            } />
             <Route path="/releases" element={
+                userRole === 'User'
+                  ? <Navigate to="/user/releases" replace />
+                  :
                  <AllReleases 
                     releases={allReleases} 
                     onViewDetails={(r) => navigate(`/releases/${r.id}/view`)}
@@ -1219,7 +1261,18 @@ const App: React.FC = () => {
                     userRole={userRole}
                 />
             } />
+            <Route path="/user/releases" element={
+                 <AllReleases 
+                    releases={myReleases} 
+                    onViewDetails={(r) => navigate(`/user/releases/${r.id}/view`)}
+                    error={dataFetchError}
+                    userRole={userRole}
+                />
+            } />
             <Route path="/my-releases" element={
+                userRole === 'User'
+                  ? <Navigate to="/user/my-releases" replace />
+                  :
                  <AllReleases 
                     releases={myReleases} 
                     onViewDetails={(r) => navigate(`/releases/${r.id}/view`)}
@@ -1227,19 +1280,31 @@ const App: React.FC = () => {
                     userRole={userRole}
                  />
             } />
+            <Route path="/user/my-releases" element={
+                 <AllReleases 
+                    releases={myReleases} 
+                    onViewDetails={(r) => navigate(`/user/releases/${r.id}/view`)}
+                    error={dataFetchError}
+                    userRole={userRole}
+                 />
+            } />
             <Route path="/user/reports/analytics" element={<UserAnalytics releases={allReleases} reportData={reportData} currentUserData={currentUserData} token={token} onAuthExpired={handleAuthExpired} />} />
             <Route path="/user/reports/payments" element={<UserPayments reportData={reportData} currentUserData={currentUserData} token={token} onAuthExpired={handleAuthExpired} />} />
             
-            <Route path="/tickets" element={<Tickets token={token} userRole={userRole} />} />
-            <Route path="/tickets/:id" element={<TicketDetail token={token} userRole={userRole} onAuthExpired={handleAuthExpired} />} />
+            <Route path="/tickets" element={userRole === 'User' ? <Navigate to="/user/tickets" replace /> : <Tickets token={token} userRole={userRole} />} />
+            <Route path="/tickets/:id" element={userRole === 'User' ? <Navigate to="/user/tickets" replace /> : <TicketDetail token={token} userRole={userRole} onAuthExpired={handleAuthExpired} />} />
+            <Route path="/user/tickets" element={<Tickets token={token} userRole={userRole} />} />
+            <Route path="/user/tickets/:id" element={<TicketDetail token={token} userRole={userRole} onAuthExpired={handleAuthExpired} />} />
 
-            <Route path="/me/profile" element={<MyProfile currentUserData={currentUserData} />} />
-            <Route path="/me/contracts" element={<MyContracts currentUserData={currentUserData} />} />
-            <Route path="/me/contracts/aggregator" element={<MyContracts currentUserData={currentUserData} defaultTab="aggregator" />} />
-            <Route path="/me/contracts/publishing" element={<MyContracts currentUserData={currentUserData} defaultTab="publishing" />} />
-            <Route path="/statistics" element={<Statistics releases={allReleases} reportData={reportData} token={token} />} />
-            <Route path="/statistics/aggregator" element={<Statistics releases={allReleases} reportData={reportData} token={token} defaultTab="aggregator" />} />
-            <Route path="/statistics/publishing" element={<Statistics releases={allReleases} reportData={reportData} token={token} defaultTab="publishing" />} />
+            <Route path="/me/profile" element={userRole === 'User' ? <Navigate to="/user/me/profile" replace /> : <MyProfile currentUserData={currentUserData} />} />
+            <Route path="/me/contracts" element={userRole === 'User' ? <Navigate to="/user/me/contracts" replace /> : <MyContracts currentUserData={currentUserData} />} />
+            <Route path="/me/contracts/aggregator" element={userRole === 'User' ? <Navigate to="/user/me/contracts/aggregator" replace /> : <MyContracts currentUserData={currentUserData} defaultTab="aggregator" />} />
+            <Route path="/me/contracts/publishing" element={userRole === 'User' ? <Navigate to="/user/me/contracts/publishing" replace /> : <MyContracts currentUserData={currentUserData} defaultTab="publishing" />} />
+            <Route path="/user/me/profile" element={<MyProfile currentUserData={currentUserData} />} />
+            <Route path="/user/me/contracts" element={<MyContracts currentUserData={currentUserData} />} />
+            <Route path="/user/me/contracts/aggregator" element={<MyContracts currentUserData={currentUserData} defaultTab="aggregator" />} />
+            <Route path="/user/me/contracts/publishing" element={<MyContracts currentUserData={currentUserData} defaultTab="publishing" />} />
+
             <Route 
                 path="/releases/:id/view" 
                 element={
@@ -1256,120 +1321,36 @@ const App: React.FC = () => {
                     />
                 } 
             />
+            <Route 
+                path="/user/releases/:id/view" 
+                element={
+                    <ReleaseDetailsPage 
+                        token={token} 
+                        userRole={userRole}
+                        aggregators={aggregators} 
+                        onReleaseUpdated={handleUpdateRelease}
+                        onEditRelease={undefined}
+                        onDeleteRelease={undefined}
+                        resolveOwnerName={resolveOwnerName}
+                    />
+                } 
+            />
             <Route path="/releases/:id/single" element={<SingleReleasePage />} />
+            <Route path="/user/releases/:id/single" element={<SingleReleasePage />} />
             
             {/* Publishing Routes */}
-            <Route path="/publishing/writer" element={<PublishingWriter token={token} userRole={userRole} />} />
-            <Route path="/publishing/writers/:id" element={<PublishingWriterDetail token={token} />} />
-            <Route path="/publishing/songs" element={<PublishingSongs token={token} userRole={userRole} />} />
-            <Route path="/publishing/analytics" element={<PublishingAnalytics token={token} />} />
-            <Route path="/publishing/reports" element={<PublishingReports token={token} />} />
+            <Route path="/publishing/writer" element={userRole === 'User' ? <Navigate to="/user/publishing/writer" replace /> : <PublishingWriter token={token} userRole={userRole} />} />
+            <Route path="/publishing/writers/:id" element={userRole === 'User' ? <Navigate to="/user/publishing/writer" replace /> : <PublishingWriterDetail token={token} userRole={userRole} />} />
+            <Route path="/publishing/songs" element={userRole === 'User' ? <Navigate to="/user/publishing/songs" replace /> : <PublishingSongs token={token} userRole={userRole} />} />
+            <Route path="/publishing/analytics" element={userRole === 'User' ? <Navigate to="/user/publishing/analytics" replace /> : <PublishingAnalytics token={token} />} />
+            <Route path="/publishing/reports" element={userRole === 'User' ? <Navigate to="/user/publishing/reports" replace /> : <PublishingReports token={token} />} />
+            <Route path="/user/publishing/writer" element={<PublishingWriter token={token} userRole={userRole} />} />
+            <Route path="/user/publishing/writers/:id" element={<PublishingWriterDetail token={token} userRole={userRole} />} />
+            <Route path="/user/publishing/songs" element={<PublishingSongs token={token} userRole={userRole} />} />
+            <Route path="/user/publishing/analytics" element={<PublishingAnalytics token={token} />} />
+            <Route path="/user/publishing/reports" element={<PublishingReports token={token} />} />
 
-            <Route path="/settings" element={
-                 <Settings 
-                    aggregators={aggregators} 
-                    onSaveAggregators={handleSaveAggregators} 
-                />
-            } />
-            <Route path="/users" element={
-                <UserManagement 
-                    currentUserRole={userRole} 
-                    token={token}
-                    isImpersonating={isImpersonating}
-                />
-            } />
-            <Route path="/roles/user" element={<RoleUserPage />} />
-            <Route path="/users/:id" element={<UserDetailPage isImpersonating={isImpersonating} />} />
-            <Route path="/users/:id/edit" element={<UserEditPage />} />
-            
-            <Route path="/statistics/aggregator" element={
-                <Statistics 
-                    releases={allReleases}
-                    reportData={reportData}
-                    token={token}
-                    defaultTab="aggregator"
-                />
-            } />
-            <Route path="/statistics/publishing" element={
-                <Statistics 
-                    releases={allReleases}
-                    reportData={reportData}
-                    token={token}
-                    defaultTab="publishing"
-                />
-            } />
 
-            <Route path="/reports" element={
-                <ReportScreen 
-                    mode="view" 
-                    data={reportData} 
-                    releases={allReleases}
-                    onImport={setReportData}
-                    aggregators={aggregators}
-                    token={token}
-                />
-            } />
-            <Route path="/reports/aggregator" element={
-                <ReportScreen 
-                    mode="view" 
-                    data={reportData} 
-                    releases={allReleases}
-                    onImport={setReportData}
-                    aggregators={aggregators}
-                    token={token}
-                    defaultTab="aggregator"
-                />
-            } />
-            <Route path="/reports/publishing" element={
-                <ReportScreen 
-                    mode="view" 
-                    data={reportData} 
-                    releases={allReleases}
-                    onImport={setReportData}
-                    aggregators={aggregators}
-                    token={token}
-                    defaultTab="publishing"
-                />
-            } />
-            <Route path="/import-reports" element={
-                <ReportScreen 
-                    mode="import" 
-                    data={reportData} 
-                    releases={allReleases}
-                    onImport={setReportData}
-                    aggregators={aggregators}
-                    token={token}
-                />
-            } />
-            <Route path="/import-reports/aggregator" element={
-                <ReportScreen 
-                    mode="import" 
-                    data={reportData} 
-                    releases={allReleases}
-                    onImport={setReportData}
-                    aggregators={aggregators}
-                    token={token}
-                    defaultTab="aggregator"
-                />
-            } />
-            <Route path="/import-reports/publishing" element={
-                <ReportScreen 
-                    mode="import" 
-                    data={reportData} 
-                    releases={allReleases}
-                    onImport={setReportData}
-                    aggregators={aggregators}
-                    token={token}
-                    defaultTab="publishing"
-                />
-            } />
-            <Route path="/revenue" element={<RevenueScreen data={reportData} token={token} />} />
-            <Route path="/revenue/aggregator" element={<RevenueScreen data={reportData} token={token} defaultTab="aggregator" />} />
-            <Route path="/revenue/publishing" element={<RevenueScreen data={reportData} token={token} defaultTab="publishing" />} />
-            <Route path="/reports/payments" element={<PaymentScreen token={token} />} />
-            <Route path="/reports/payments/aggregator" element={<PaymentScreen token={token} defaultTab="aggregator" />} />
-            <Route path="/reports/payments/publishing" element={<PaymentScreen token={token} defaultTab="publishing" />} />
-            <Route path="/reports/payments/detail/:id" element={<PaymentDetailScreen />} />
           </Routes>
         </div>
 
@@ -1451,7 +1432,7 @@ const App: React.FC = () => {
         )}
 
         {/* Support Bubble */}
-        <FloatingSupportBubble count={ticketUnreadCount} />
+        <FloatingSupportBubble count={ticketUnreadCount} userRole={userRole} />
         
         {/* Release Detail Modal */}
         {viewingRelease && (
@@ -1479,6 +1460,7 @@ const App: React.FC = () => {
                 onDelete={userRole === 'Admin' ? (r) => { setReleaseToDelete(r); setViewingRelease(null); } : undefined}
                 userRole={userRole}
                 token={token}
+                hideDistributionTab={true}
                 onCoverArtUpdated={(newUrl) => {
                     if (viewingRelease) {
                          const updated = { ...viewingRelease, coverArt: newUrl };

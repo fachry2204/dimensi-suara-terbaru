@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const publicRoutes = [
+  "/",
   "/login",
   "/register",
   "/forgot-password",
@@ -26,8 +27,14 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // If user already has a session and tries to access /login, send them to their dashboard
   if (isPublicRoute && sessionToken && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+    // Check redirect param first
+    const redirectTo = request.nextUrl.searchParams.get("redirect");
+    if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("/login")) {
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
+    return NextResponse.redirect(new URL("/user/my-releases", request.url));
   }
 
   return NextResponse.next();

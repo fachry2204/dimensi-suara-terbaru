@@ -1,0 +1,129 @@
+import { db } from "@/lib/db";
+
+let initialized = false;
+
+export async function ensureReportTables() {
+  if (initialized) return;
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS report_batches (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      aggregator_name VARCHAR(150) NOT NULL,
+      report_period DATE NULL,
+      original_file_name VARCHAR(255) NOT NULL,
+      stored_file_path VARCHAR(500) NOT NULL,
+      file_mime_type VARCHAR(150) NULL,
+      file_size BIGINT UNSIGNED NULL,
+      file_sha256 CHAR(64) NOT NULL,
+      sheet_name VARCHAR(255) NULL,
+      status VARCHAR(40) NOT NULL DEFAULT 'UPLOADING',
+      total_rows INT UNSIGNED NOT NULL DEFAULT 0,
+      matched_rows INT UNSIGNED NOT NULL DEFAULT 0,
+      no_account_rows INT UNSIGNED NOT NULL DEFAULT 0,
+      conflict_rows INT UNSIGNED NOT NULL DEFAULT 0,
+      invalid_rows INT UNSIGNED NOT NULL DEFAULT 0,
+      gross_revenue_summary JSON NULL,
+      gross_idr_total DECIMAL(24,0) NOT NULL DEFAULT 0,
+      user_revenue_total DECIMAL(24,0) NOT NULL DEFAULT 0,
+      aggregator_revenue_total DECIMAL(24,0) NOT NULL DEFAULT 0,
+      currency_rates_snapshot JSON NULL,
+      uploaded_by BIGINT UNSIGNED NOT NULL,
+      finalized_by BIGINT UNSIGNED NULL,
+      uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      finalized_at DATETIME NULL,
+      error_message TEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_report_file_hash (file_sha256),
+      INDEX idx_report_status (status),
+      INDEX idx_report_period (report_period),
+      INDEX idx_report_aggregator (aggregator_name)
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS report_rows (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      report_batch_id BIGINT UNSIGNED NOT NULL,
+      row_number INT UNSIGNED NOT NULL,
+      reporting_month VARCHAR(100) NULL,
+      sales_month VARCHAR(100) NULL,
+      platform VARCHAR(150) NULL,
+      country_region VARCHAR(150) NULL,
+      label_name VARCHAR(255) NULL,
+      artist_name VARCHAR(255) NULL,
+      release_title VARCHAR(500) NULL,
+      track_title VARCHAR(500) NULL,
+      upc_original VARCHAR(100) NULL,
+      upc_normalized VARCHAR(100) NULL,
+      isrc_original VARCHAR(100) NULL,
+      isrc_normalized VARCHAR(100) NULL,
+      streaming_subscription_type VARCHAR(255) NULL,
+      release_type VARCHAR(150) NULL,
+      sales_type VARCHAR(150) NULL,
+      quantity DECIMAL(24,8) NULL,
+      client_payment_currency VARCHAR(10) NULL,
+      net_revenue DECIMAL(24,8) NULL,
+      exchange_rate DECIMAL(24,8) NULL,
+      gross_idr_decimal DECIMAL(24,8) NULL,
+      gross_idr_final DECIMAL(24,0) NULL,
+      matched_user_id BIGINT UNSIGNED NULL,
+      matched_release_id BIGINT UNSIGNED NULL,
+      matched_track_id BIGINT UNSIGNED NULL,
+      match_method VARCHAR(30) NULL,
+      assignment_method VARCHAR(30) NULL,
+      user_percentage DECIMAL(8,4) NULL,
+      aggregator_percentage DECIMAL(8,4) NULL,
+      user_revenue DECIMAL(24,0) NULL,
+      aggregator_revenue DECIMAL(24,0) NULL,
+      status VARCHAR(30) NOT NULL,
+      warning_message TEXT NULL,
+      error_message TEXT NULL,
+      manually_assigned_by BIGINT UNSIGNED NULL,
+      manually_assigned_at DATETIME NULL,
+      manual_assignment_note TEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_report_row (report_batch_id, row_number),
+      INDEX idx_report_row_batch_status (report_batch_id, status),
+      INDEX idx_report_row_isrc (isrc_normalized),
+      INDEX idx_report_row_upc (upc_normalized),
+      INDEX idx_report_row_user (matched_user_id)
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_revenue_ledger (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      user_id BIGINT UNSIGNED NOT NULL,
+      report_batch_id BIGINT UNSIGNED NOT NULL,
+      report_row_id BIGINT UNSIGNED NOT NULL,
+      ledger_type VARCHAR(30) NOT NULL DEFAULT 'ROYALTY',
+      sales_month VARCHAR(100) NULL,
+      platform VARCHAR(150) NULL,
+      country_region VARCHAR(150) NULL,
+      artist_name VARCHAR(255) NULL,
+      release_title VARCHAR(500) NULL,
+      track_title VARCHAR(500) NULL,
+      upc VARCHAR(100) NULL,
+      isrc VARCHAR(100) NULL,
+      quantity DECIMAL(24,8) NULL,
+      original_currency VARCHAR(10) NULL,
+      original_net_revenue DECIMAL(24,8) NULL,
+      exchange_rate_snapshot DECIMAL(24,8) NOT NULL,
+      gross_idr_snapshot DECIMAL(24,0) NOT NULL,
+      user_percentage_snapshot DECIMAL(8,4) NOT NULL,
+      aggregator_percentage_snapshot DECIMAL(8,4) NOT NULL,
+      user_revenue_idr DECIMAL(24,0) NOT NULL,
+      aggregator_revenue_idr DECIMAL(24,0) NOT NULL,
+      status VARCHAR(30) NOT NULL DEFAULT 'FINALIZED',
+      finalized_at DATETIME NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_report_row_ledger (report_row_id, user_id, ledger_type),
+      INDEX idx_user_ledger (user_id, finalized_at),
+      INDEX idx_batch_ledger (report_batch_id)
+    )
+  `);
+
+  initialized = true;
+}

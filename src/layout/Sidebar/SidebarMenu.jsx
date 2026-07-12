@@ -1,18 +1,6 @@
 import * as Icons from 'tabler-icons-react';
-import HkBadge from '@/components/@hk-badge/@hk-badge';
 
 export const SidebarMenu = [
-    {
-        group: 'Utama',
-        id: 'utama_admin',
-        contents: [
-            {
-                name: 'Dashboard Admin',
-                icon: <Icons.Dashboard />,
-                path: '/admin',
-            },
-        ]
-    },
     {
         group: 'Utama',
         id: 'utama_user_aggregator',
@@ -20,7 +8,7 @@ export const SidebarMenu = [
             {
                 name: 'Dashboard',
                 icon: <Icons.Dashboard />,
-                path: '/aggregator',
+                path: '/user/aggregator',
             },
         ]
     },
@@ -30,12 +18,12 @@ export const SidebarMenu = [
             {
                 name: 'Data Rilis',
                 icon: <Icons.Disc />,
-                path: '/releases',
+                path: '/user/my-releases',
             },
             {
                 name: 'Data Artis',
                 icon: <Icons.Microphone2 />,
-                path: '/artists',
+                path: '/user/aggregator/artists',
             },
         ]
     },
@@ -45,17 +33,17 @@ export const SidebarMenu = [
             {
                 name: 'Statistik',
                 icon: <Icons.ChartBar />,
-                path: '/reports/statistics',
+                path: '/user/reports/statistics',
             },
             {
-                name: 'Laporan Aggregator',
+                name: 'Laporan',
                 icon: <Icons.ClipboardList />,
-                path: '/reports/list',
+                path: '/user/reports/list',
             },
             {
                 name: 'Pembayaran',
                 icon: <Icons.CreditCard />,
-                path: '/reports/payments',
+                path: '/user/reports/payments',
             }
         ]
     },
@@ -66,7 +54,7 @@ export const SidebarMenu = [
             {
                 name: 'Dashboard',
                 icon: <Icons.Dashboard />,
-                path: '/publishing',
+                path: '/user/publishing',
             }
         ]
     },
@@ -76,12 +64,12 @@ export const SidebarMenu = [
             {
                 name: 'Data Pencipta',
                 icon: <Icons.UserPlus />,
-                path: '/publishing/writer',
+                path: '/user/publishing/writer',
             },
             {
                 name: 'Data Lagu',
                 icon: <Icons.ListDetails />,
-                path: '/publishing/songs',
+                path: '/user/publishing/songs',
             }
         ]
     },
@@ -91,57 +79,21 @@ export const SidebarMenu = [
             {
                 name: 'Statistik',
                 icon: <Icons.ChartBar />,
-                path: '/publishing/reports/statistics',
+                path: '/user/publishing/reports/statistics',
             },
             {
                 name: 'Laporan',
                 icon: <Icons.ClipboardList />,
-                path: '/publishing/reports/list',
+                path: '/user/publishing/reports/list',
             },
             {
                 name: 'Pembayaran',
                 icon: <Icons.CreditCard />,
-                path: '/publishing/reports/payments',
+                path: '/user/publishing/reports/payments',
             }
         ]
     },
-    {
-        group: 'Laporan Admin',
-        id: 'laporan_admin',
-        contents: [
-            {
-                name: 'Statistik',
-                icon: <Icons.ChartBar />,
-                path: '/admin/statistics',
-            },
-            {
-                name: 'Upload Laporan',
-                icon: <Icons.CloudUpload />,
-                path: '/admin/upload-report',
-            },
-            {
-                name: 'Pembayaran',
-                icon: <Icons.CreditCard />,
-                path: '/admin/payments',
-            }
-        ]
-    },
-    {
-        group: 'Pengaturan',
-        contents: [
-            {
-                name: 'Data User',
-                icon: <Icons.UserPlus />,
-                path: '/users',
-            },
-            {
-                id: 'settings_menu',
-                name: 'Pengaturan',
-                icon: <Icons.Settings />,
-                path: '/settings',
-            }
-        ]
-    },
+
     {
         group: 'Layanan Lain',
         id: 'switch_service_publishing',
@@ -149,17 +101,17 @@ export const SidebarMenu = [
             {
                 name: 'Menu Publishing',
                 icon: <Icons.ClipboardList />,
-                path: '/publishing',
+                path: '/user/publishing',
             },
             {
                 name: 'Kontrak',
                 icon: <Icons.FileText />,
-                path: '/contracts',
+                path: '/user/publishing/contracts',
             },
             {
                 name: 'Tiket Bantuan',
                 icon: <Icons.MessageReport />,
-                path: '/tickets',
+                path: '/user/tickets',
             }
         ]
     },
@@ -170,17 +122,17 @@ export const SidebarMenu = [
             {
                 name: 'Menu Aggregator',
                 icon: <Icons.Dashboard />,
-                path: '/aggregator',
+                path: '/user/aggregator',
             },
             {
                 name: 'Kontrak',
                 icon: <Icons.FileText />,
-                path: '/publishing/contracts',
+                path: '/user/publishing/contracts',
             },
             {
                 name: 'Tiket Bantuan',
                 icon: <Icons.MessageReport />,
-                path: '/tickets',
+                path: '/user/tickets',
             }
         ]
     }

@@ -7,14 +7,17 @@ interface NewReleaseFlowProps {
     editingRelease: ReleaseData | null;
     setEditingRelease: (release: ReleaseData | null) => void;
     onSaveRelease: (data: ReleaseData) => void;
+    userRole?: string;
 }
 
 export const NewReleaseFlow: React.FC<NewReleaseFlowProps> = ({ 
     editingRelease, 
     setEditingRelease, 
-    onSaveRelease 
+    onSaveRelease,
+    userRole
 }) => {
     const navigate = useNavigate();
+    const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
 
     useEffect(() => {
         setEditingRelease(null);
@@ -22,8 +25,8 @@ export const NewReleaseFlow: React.FC<NewReleaseFlowProps> = ({
 
     const handleSelectType = (type: ReleaseType) => {
         const targetPath = type === 'SINGLE' 
-            ? '/new-release/single' 
-            : '/new-release/album';
+            ? rolePath('/new-release/single') 
+            : rolePath('/new-release/album');
         navigate(targetPath);
     };
 

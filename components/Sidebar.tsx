@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { PlusCircle, ListMusic, Music4, Settings, LayoutDashboard, BarChart3, ClipboardList, DollarSign, Upload, UserPlus, FileText, Library, PieChart, Users, Shield, User, MessageSquare, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
@@ -8,6 +8,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
+  const location = useLocation();
   const [logo, setLogo] = useState<string | null>(null);
   const [systemTitle, setSystemTitle] = useState<string>('Aggregator & Publishing');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -92,6 +93,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
         : 'text-slate-500 hover:text-white hover:bg-[#aa91cc]/40'
     }`;
 
+  const isUserRole = userRole === 'User';
+  const routeForRole = (path: string) => {
+    if (!isUserRole) return path;
+    if (path === '/user-status' || path.startsWith('/user/')) return path;
+    return `/user${path}`;
+  };
+
+  const activeForRole = (path: string) => {
+    const target = routeForRole(path);
+    return location.pathname === target || location.pathname.startsWith(`${target}/`);
+  };
+
   return (
     <aside className="w-64 bg-brand-card border-r border-brand-border h-screen md:min-h-screen flex flex-col shadow-2xl transition-all duration-300 sticky top-0 overflow-y-auto pb-6 md:pb-0 sidebar-scroll">
       {/* Brand Logo */}
@@ -113,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
         
         {/* Dashboard Menu */}
         <div>
-          <NavLink to="/dashboard" className={({ isActive }) => getLinkClass(isActive)}>
+          <NavLink to={routeForRole('/dashboard')} className={({ isActive }) => getLinkClass(isActive)}>
             {({ isActive }) => (
               <>
                 <LayoutDashboard size={20} className={getIconClass(isActive)} />
@@ -135,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
           {expandedSections.aggregator && (
             <ul className="space-y-2">
             <li>
-              <NavLink to="/aggregator" end className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/aggregator')} end className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <BarChart3 size={20} className={getIconClass(isActive)} />
@@ -145,17 +158,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
               </NavLink>
             </li>
             <li>
-              <NavLink to={userRole === 'User' ? "/my-releases" : "/releases"} className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/my-releases')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <ListMusic size={20} className={getIconClass(isActive)} />
-                    {userRole === 'User' ? 'Rilis Saya' : 'Semua Rilis'}
+                    Rilis Saya
                   </>
                 )}
               </NavLink>
             </li>
             <li>
-              <NavLink to="/aggregator/artists" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/aggregator/artists')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <Users size={20} className={getIconClass(isActive)} />
@@ -180,7 +193,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
           {expandedSections.publishing && (
             <ul className="space-y-2">
             <li>
-              <NavLink to="/publishing/writer" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/publishing/writer')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <UserPlus size={20} className={getIconClass(isActive)} />
@@ -190,7 +203,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
               </NavLink>
             </li>
              <li>
-              <NavLink to="/publishing/songs" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/publishing/songs')} className={({ isActive }) => getLinkClass(isActive)}>
                  {({ isActive }) => (
                   <>
                     <ListMusic size={20} className={getIconClass(isActive)} />
@@ -203,229 +216,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
           )}
         </div>
 
-        {/* Report Section */}
-        {userRole !== 'User' && (
-        <div>
-          <h3 
-            className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
-            onClick={() => toggleSection('report')}
-          >
-            Report
-            {expandedSections.report ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </h3>
-          {expandedSections.report && (
-            <ul className="space-y-2">
-            
-            {/* Statistik Dropdown */}
-            <li>
-                <div 
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group font-bold text-[13px] text-slate-400 hover:bg-[#aa91cc] hover:text-white cursor-pointer"
-                    onClick={() => toggleSection('statistics')}
-                >
-                    <div className="flex items-center gap-3">
-                        <BarChart3 size={20} className="text-white/70 group-hover:text-white" />
-                        Statistik
-                    </div>
-                    {expandedSections.statistics ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-                {expandedSections.statistics && (
-                    <ul className="pl-4 mt-1 space-y-1 border-l border-brand-border ml-6">
-                        <li>
-                            <NavLink to="/statistics/aggregator" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Aggregator
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/statistics/publishing" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Publishing
-                            </NavLink>
-                        </li>
-                    </ul>
-                )}
-            </li>
-
-            {/* Laporan Dropdown */}
-            <li>
-                <div 
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group font-bold text-[13px] text-white/80 hover:bg-[#aa91cc] hover:text-white cursor-pointer"
-                    onClick={() => toggleSection('reportList')}
-                >
-                    <div className="flex items-center gap-3">
-                        <ClipboardList size={20} className="text-white/70 group-hover:text-white" />
-                        Laporan
-                    </div>
-                    {expandedSections.reportList ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-                {expandedSections.reportList && (
-                    <ul className="pl-4 mt-1 space-y-1 border-l border-white/10 ml-6">
-                        <li>
-                            <NavLink to="/reports/aggregator" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Aggregator
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/reports/publishing" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Publishing
-                            </NavLink>
-                        </li>
-                    </ul>
-                )}
-            </li>
-
-            {/* Pendapatan Dropdown - REMOVED */}
-            {/* <li>
-                <div 
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group font-bold text-[13px] text-white/80 hover:bg-[#aa91cc] hover:text-white cursor-pointer"
-                    onClick={() => toggleSection('revenue')}
-                >
-                    <div className="flex items-center gap-3">
-                        <DollarSign size={20} className="text-white/70 group-hover:text-white" />
-                        Pendapatan
-                    </div>
-                    {expandedSections.revenue ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-                {expandedSections.revenue && (
-                    <ul className="pl-4 mt-1 space-y-1 border-l border-white/10 ml-6">
-                        <li>
-                            <NavLink to="/revenue/aggregator" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Aggregator
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/revenue/publishing" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Publishing
-                            </NavLink>
-                        </li>
-                    </ul>
-            {/* End of Report Section */}
-          </ul>
-          )}
-        </div>
-        )}
-
-        {/* Laporan Utama Section */}
-        {userRole !== 'User' && (
-        <div>
-          <h3 
-            className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
-            onClick={() => toggleSection('reportUtama')}
-          >
-            Laporan Utama
-            {expandedSections.reportUtama ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </h3>
-          {expandedSections.reportUtama && (
-            <ul className="space-y-2">
-
-            {/* Import Laporan Dropdown */}
-            <li>
-                <div 
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group font-bold text-[13px] text-white/80 hover:bg-[#aa91cc] hover:text-white cursor-pointer"
-                    onClick={() => toggleSection('importReports')}
-                >
-                    <div className="flex items-center gap-3">
-                        <Upload size={20} className="text-white/70 group-hover:text-white" />
-                        Import Laporan
-                    </div>
-                    {expandedSections.importReports ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-                {expandedSections.importReports && (
-                    <ul className="pl-4 mt-1 space-y-1 border-l border-white/10 ml-6">
-                        <li>
-                            <NavLink to="/import-reports/aggregator" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Aggregator
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/import-reports/publishing" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Publishing
-                            </NavLink>
-                        </li>
-                    </ul>
-                )}
-            </li>
-            
-            {/* Pembayaran Dropdown */}
-            <li>
-                <div 
-                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group font-bold text-[13px] text-white/80 hover:bg-[#aa91cc] hover:text-white cursor-pointer"
-                    onClick={() => toggleSection('payments')}
-                >
-                    <div className="flex items-center gap-3">
-                        <DollarSign size={20} className="text-white/70 group-hover:text-white" />
-                        Pembayaran
-                    </div>
-                    {expandedSections.payments ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-                {expandedSections.payments && (
-                    <ul className="pl-4 mt-1 space-y-1 border-l border-white/10 ml-6">
-                        <li>
-                            <NavLink to="/reports/payments/aggregator" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Aggregator
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink to="/reports/payments/publishing" className={({ isActive }) => getSubLinkClass(isActive)}>
-                                Publishing
-                            </NavLink>
-                        </li>
-                    </ul>
-                )}
-            </li>
-          </ul>
-          )}
-        </div>
-        )}
-
-        {/* Kontrak Menu (Admin Only) - Moved outside of Report section */}
-        {userRole === 'Admin' && (
-        <div>
-          <h3 
-            className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
-            onClick={() => toggleSection('kontrak')}
-          >
-            Kontrak
-            {expandedSections.kontrak ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </h3>
-          {expandedSections.kontrak && (
-            <ul className="space-y-2">
-            <li>
-              <NavLink to="/contracts/aggregator" className={({ isActive }) => getLinkClass(isActive)}>
-                {({ isActive }) => (
-                  <>
-                    <FileText size={20} className={getIconClass(isActive)} />
-                    Aggregator
-                  </>
-                )}
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/contracts/publishing" className={({ isActive }) => getLinkClass(isActive)}>
-                {({ isActive }) => (
-                  <>
-                    <FileText size={20} className={getIconClass(isActive)} />
-                    Publishing
-                  </>
-                )}
-              </NavLink>
-            </li>
-          </ul>
-          )}
-        </div>
-        )}
-
-        {userRole === 'User' && (
+        {/* Laporan Section */}
         <div>
           <h3 
             className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
             onClick={() => toggleSection('reportUser')}
           >
-            Laporan User
+            Laporan
             {expandedSections.reportUser ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </h3>
           {expandedSections.reportUser && (
             <ul className="space-y-2">
             <li>
-              <NavLink to="/user/reports/analytics" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/user/reports/analytics')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <BarChart3 size={20} className={getIconClass(isActive)} />
@@ -435,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/user/reports/payments" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/user/reports/payments')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <DollarSign size={20} className={getIconClass(isActive)} />
@@ -447,47 +250,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
           </ul>
           )}
         </div>
-        )}
 
-        {/* System / Settings Section */}
-        {userRole !== 'User' && (
-        <div>
-            <h3 
-              className="px-4 text-[14px] font-bold text-white/60 uppercase tracking-wider mb-4 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
-              onClick={() => toggleSection('system')}
-            >
-              Sistem
-              {expandedSections.system ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </h3>
-            {expandedSections.system && (
-              <ul className="space-y-2">
-            <li>
-              <NavLink to="/settings" className={({ isActive }) => getLinkClass(isActive)}>
-                {({ isActive }) => (
-                  <>
-                    <Settings size={20} className={getIconClass(isActive)} />
-                    Pengaturan Sistem
-                  </>
-                )}
-              </NavLink>
-            </li>
-            {(userRole === 'Admin' || userRole === 'Operator') && (
-            <li>
-              <NavLink to="/users" className={({ isActive }) => getLinkClass(isActive)}>
-                {({ isActive }) => (
-                  <>
-                    <Users size={20} className={getIconClass(isActive)} />
-                    Manajemen User
-                  </>
-                )}
-              </NavLink>
-            </li>
-            )}
-          </ul>
-            )}
-        </div>
-        )}
-        {userRole === 'User' && (
+        {/* Data Saya Section */}
         <div>
           <h3 
             className="px-4 text-[14px] font-semibold text-white/60 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer hover:text-white transition-colors"
@@ -499,7 +263,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
           {expandedSections.dataSaya && (
             <ul className="space-y-2">
             <li>
-              <NavLink to="/me/profile" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/me/profile')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <User size={20} className={getIconClass(isActive)} />
@@ -511,14 +275,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
             <li>
               <div
                 className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-all duration-200 border-l-4 ${
-                  location.pathname.startsWith('/me/contracts')
+                  activeForRole('/me/contracts')
                     ? 'border-[#aa91cc] bg-[#aa91cc] text-white' 
                     : 'border-transparent text-white/70 hover:bg-[#aa91cc] hover:text-white'
                 }`}
                 onClick={() => toggleSection('kontrak')}
               >
                 <div className="flex items-center gap-3">
-                  <FileText size={20} className={location.pathname.startsWith('/me/contracts') ? 'text-blue-400' : 'text-white/50'} />
+                  <FileText size={20} className={activeForRole('/me/contracts') ? 'text-blue-400' : 'text-white/50'} />
                   <span className="font-medium text-[15px]">Kontrak</span>
                 </div>
                 {expandedSections.kontrak ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -527,12 +291,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
               {expandedSections.kontrak && (
                 <ul className="mt-1 ml-4 space-y-1 border-l border-white/10 pl-2">
                   <li>
-                    <NavLink to="/me/contracts/aggregator" className={({ isActive }) => getSubLinkClass(isActive)}>
+                    <NavLink to={routeForRole('/me/contracts/aggregator')} className={({ isActive }) => getSubLinkClass(isActive)}>
                       Aggregator
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink to="/me/contracts/publishing" className={({ isActive }) => getSubLinkClass(isActive)}>
+                    <NavLink to={routeForRole('/me/contracts/publishing')} className={({ isActive }) => getSubLinkClass(isActive)}>
                       Publishing
                     </NavLink>
                   </li>
@@ -540,9 +304,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
               )}
             </li>
             </ul>
-            )}
+          )}
         </div>
-        )}
 
         {/* Bantuan Section */}
         <div>
@@ -556,7 +319,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentUser, userRole }) => {
           {expandedSections.bantuan && (
             <ul className="space-y-2">
             <li>
-              <NavLink to="/tickets" className={({ isActive }) => getLinkClass(isActive)}>
+              <NavLink to={routeForRole('/tickets')} className={({ isActive }) => getLinkClass(isActive)}>
                 {({ isActive }) => (
                   <>
                     <MessageSquare size={20} className={getIconClass(isActive)} />

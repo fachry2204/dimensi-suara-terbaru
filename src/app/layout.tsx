@@ -16,8 +16,16 @@ const dm_sans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Dimensi Suara CMS",
-  description: "Dimensi Suara CMS Dashboard",
+  title: {
+    default: "Dimensi Suara",
+    template: "%s | Dimensi Suara",
+  },
+  description: "Dimensi Suara adalah platform aggregator musik, publishing digital, distribusi lagu, metadata rilis, dan laporan royalti musik.",
+  applicationName: "Dimensi Suara",
+  authors: [{ name: "Dimensi Suara" }],
+  creator: "Dimensi Suara",
+  publisher: "Dimensi Suara",
+  category: "Music Distribution",
 };
 
 export default function RootLayout({
@@ -26,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dm_sans.variable}`} data-bs-theme="light" suppressHydrationWarning>
+    <html lang="id" className={`${dm_sans.variable}`} data-bs-theme="light" suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider>
           <GlobalStateProvider>

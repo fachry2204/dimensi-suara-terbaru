@@ -40,9 +40,11 @@ export async function GET() {
       user: {
         id: user.id,
         name: user.name,
+        full_name: user.full_name || user.name,
         email: user.email,
         role: user.role,
         status: user.status,
+        profile_picture: user.profile_picture || null,
       },
     });
   } catch (error) {

@@ -39,7 +39,7 @@ export async function getReleases(
   userId: number,
   role: string
 ): Promise<any[]> {
-  let query = "SELECT r.*, u.username AS owner_name, u.full_name AS user_full_name, u.company_name FROM releases r LEFT JOIN users u ON r.user_id = u.id";
+  let query = "SELECT r.*, g.name AS genre_name, u.username AS owner_name, u.full_name AS user_full_name, u.company_name FROM releases r LEFT JOIN users u ON r.user_id = u.id LEFT JOIN genres g ON r.genre_id = g.id";
   const params: any[] = [];
 
   if (role !== "Admin") {
@@ -57,7 +57,7 @@ export async function getReleases(
     try {
       const placeholders = releaseIds.map(() => "?").join(",");
       const [trackRows] = await db.query<TrackRow[]>(
-        `SELECT id, release_id, track_number, isrc FROM tracks WHERE release_id IN (${placeholders}) ORDER BY release_id, track_number ASC`,
+        `SELECT id, release_id, track_number, isrc, genre, sub_genre FROM tracks WHERE release_id IN (${placeholders}) ORDER BY release_id, track_number ASC`,
         releaseIds
       );
       trackRows.forEach((t) => {
@@ -68,6 +68,8 @@ export async function getReleases(
           id: t.id,
           trackNumber: t.track_number,
           isrc: t.isrc,
+          genre: (t as any).genre,
+          subGenre: (t as any).sub_genre,
         });
       });
     } catch (e) {
@@ -111,6 +113,8 @@ export async function getReleases(
       version: r.version,
       type: r.release_type,
       aggregator: r.aggregator,
+      genre: r.genre || (r as any).genre_name || (tracksByRelease.get(r.id)?.[0]?.genre) || '-',
+      subGenre: r.sub_genre || (tracksByRelease.get(r.id)?.[0]?.subGenre) || '-',
       tracks: tracksByRelease.get(r.id) || [],
     };
   });
@@ -123,7 +127,7 @@ export async function getReleaseById(
   userId: number,
   role: string
 ): Promise<any | null> {
-  let query = "SELECT r.*, u.username AS owner_name, u.full_name AS user_full_name, u.company_name, u.full_name AS ownerDisplayName FROM releases r LEFT JOIN users u ON r.user_id = u.id WHERE r.id = ?";
+  let query = "SELECT r.*, g.name AS genre_name, u.username AS owner_name, u.full_name AS user_full_name, u.company_name, u.full_name AS ownerDisplayName FROM releases r LEFT JOIN users u ON r.user_id = u.id LEFT JOIN genres g ON r.genre_id = g.id WHERE r.id = ?";
   const params: any[] = [id];
 
   if (role !== "Admin") {
@@ -312,8 +316,8 @@ export async function getReleaseById(
     release_type: r.release_type || r.type,
     aggregator: r.aggregator,
     language: r.language,
-    genre: r.genre,
-    sub_genre: r.sub_genre,
+    genre: r.genre || (r as any).genre_name || (tracks.length > 0 ? tracks[0].genre : '') || '-',
+    sub_genre: r.sub_genre || (tracks.length > 0 ? tracks[0].subGenre : '') || '-',
     p_line: r.p_line,
     c_line: r.c_line,
     rejection_reason: r.rejection_reason,

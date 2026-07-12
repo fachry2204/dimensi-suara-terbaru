@@ -28,6 +28,7 @@ interface Props {
 export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, onNavigateToAll, userRole }) => {
   const navigate = useNavigate();
   const { getButtonColor } = useBranding();
+  const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
   
   // Calculate Stats
   const stats = {
@@ -71,7 +72,7 @@ export const AggregatorDashboard: React.FC<Props> = ({ releases, onViewRelease, 
                 <p className="text-slate-400 mt-0.5 text-[12px]">Selamat datang kembali, berikut ringkasan katalog Anda.</p>
            </div>
            <button 
-                onClick={() => navigate('/new-release')}
+                onClick={() => navigate(rolePath('/new-release'))}
                 className="flex items-center gap-2 px-4 py-2 text-white rounded-lg shadow-sm hover:opacity-90 transition-all text-xs font-bold"
                 style={{ backgroundColor: getButtonColor() }}
             >

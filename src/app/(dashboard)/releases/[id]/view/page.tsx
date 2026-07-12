@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 import { ReleaseData } from '@/types';
 import { api } from '@/utils/api';
 import { ReleaseDetailModal } from '../../../../../../components/ReleaseDetailModal';
@@ -11,6 +11,8 @@ export default function ReleaseDetailsPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
+  const pathname = usePathname();
+  const routePrefix = pathname?.startsWith('/user') ? '/user' : pathname?.startsWith('/admin') ? '/admin' : '';
   
   const [release, setRelease] = useState<ReleaseData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,14 @@ export default function ReleaseDetailsPage() {
     type: 'error'
   });
 
-  const [userRole, setUserRole] = useState('Admin'); // Placeholder, can be synced with real auth
+  const [userRole, setUserRole] = useState('User');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('cms_role') || 'User';
+      setUserRole(role);
+    }
+  }, []);
   const token = ''; // Handled implicitly by Next.js rewrites/cookies
   const [aggregators, setAggregators] = useState<string[]>([]);
 
@@ -122,6 +131,10 @@ export default function ReleaseDetailsPage() {
           rejectionReason: raw.rejection_reason || '',
           rejectionDescription: raw.rejection_description || ''
         };
+        if (mapped.type === 'SINGLE' && mapped.tracks.length > 0) {
+            const t0 = mapped.tracks[0];
+            (mapped as any).featuredArtists = (t0 as any).featuredArtists;
+        }
         (mapped as any).ownerDisplayName = ownerDisplayName;
         setRelease(mapped);
       } catch (e: any) {
@@ -138,7 +151,7 @@ export default function ReleaseDetailsPage() {
     return (
       <div className="p-8 w-full max-w-none">
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl">{error}</div>
-        <button onClick={() => router.push('/releases')} className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg font-medium">Kembali ke Rilis</button>
+        <button onClick={() => router.push(`${routePrefix}/releases`)} className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-lg font-medium">Kembali ke Rilis</button>
       </div>
     );
   }
@@ -149,11 +162,11 @@ export default function ReleaseDetailsPage() {
       <ReleaseDetailModal 
         release={release}
         isOpen={true}
-        onClose={() => router.push('/releases')}
+        onClose={() => router.push(`${routePrefix}/releases`)}
         onUpdate={async (r) => {
           try {
             await api.updateReleaseWorkflow(token, r);
-            router.push('/releases');
+            router.push(`${routePrefix}/releases`);
           } catch (e: any) {
             setAlertState({
                 isOpen: true,
@@ -165,14 +178,15 @@ export default function ReleaseDetailsPage() {
         }}
         availableAggregators={aggregators}
         mode="view"
+        hideDistributionTab={true}
         onEdit={(r) => {
-          router.push(`/releases/${r.id}/edit`);
+          router.push(`${routePrefix}/releases/${r.id}/edit`);
         }}
         onDelete={async (r) => {
             if (!confirm('Apakah Anda yakin ingin menghapus rilis ini?')) return;
             try {
                 await api.deleteRelease(token, r.id!);
-                router.push('/releases');
+                router.push(`${routePrefix}/releases`);
             } catch (e: any) {
                 setAlertState({
                     isOpen: true,

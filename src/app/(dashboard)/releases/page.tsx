@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Disc, Music, Calendar, Eye, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Globe, ChevronLeft, ChevronRight, List, Plus, Users } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ReleaseData } from '@/types';
 import { formatDMY } from '@/utils/date';
@@ -23,13 +23,14 @@ interface SortConfig {
 
 export default function ReleasesPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const routePrefix = pathname?.startsWith('/user') ? '/user' : pathname?.startsWith('/admin') ? '/admin' : '';
   const { getButtonColor } = useBranding();
-  const [activeStatusTab, setActiveStatusTab] = useState<string>('ALL');
+  const [activeStatusTab, setActiveStatusTab] = useState<string>('PENDING');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [releases, setReleases] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState('Admin'); // Placeholder
 
   useEffect(() => {
     const fetchReleases = async () => {
@@ -59,8 +60,8 @@ export default function ReleasesPage() {
 
   // Define Tabs
   const tabs = [
-    { id: 'ALL', label: 'Semua Rilis', statusMap: null },
     { id: 'PENDING', label: 'Menunggu', statusMap: 'Pending' },
+    { id: 'ALL', label: 'Semua Rilis', statusMap: null },
     { id: 'REQUEST_EDIT', label: 'Minta Revisi', statusMap: 'Request Edit' },
     { id: 'PROCESSING', label: 'Proses', statusMap: 'Processing' },
     { id: 'RELEASED', label: 'Rilis', statusMap: 'Live' },
@@ -106,20 +107,18 @@ export default function ReleasesPage() {
         }
     }
     
-    // Search Filter (Expanded to include Aggregator)
+    // Search Filter
     const searchLower = searchQuery.toLowerCase();
     
     // Safely handle potential undefined/null fields
     const title = release.title || '';
     const artists = Array.isArray(release.primaryArtists) ? release.primaryArtists : (typeof release.primaryArtists === 'string' ? [release.primaryArtists] : []);
     const upc = release.upc || '';
-    const aggregator = release.aggregator || '';
 
     const searchMatch = 
         title.toLowerCase().includes(searchLower) || 
         artists.some(a => (typeof a === 'string' ? a : (a?.name || '')).toLowerCase().includes(searchLower)) ||
-        upc.includes(searchLower) ||
-        aggregator.toLowerCase().includes(searchLower);
+        upc.includes(searchLower);
 
     return statusMatch && searchMatch;
   });
@@ -227,6 +226,14 @@ export default function ReleasesPage() {
 
   return (
     <div className="p-4 md:p-8 w-full max-w-none min-h-screen">
+        {pathname?.startsWith('/admin') && (
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-800 transition-all shadow-md shadow-red-600/20 mb-6 w-fit"
+          >
+            ← Menuju Dashboard
+          </Link>
+        )}
         {/* META COUNTS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard 
@@ -285,7 +292,7 @@ export default function ReleasesPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
                     <button
-                        onClick={() => router.push('/new-release')}
+                        onClick={() => router.push(`${routePrefix}/new-release`)}
                         className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-full hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 text-xs font-bold whitespace-nowrap"
                         style={{ background: getButtonColor() }}
                         title="Buat Rilis Baru"
@@ -298,7 +305,7 @@ export default function ReleasesPage() {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={`Cari judul, artis, UPC${(userRole === 'Admin' || userRole === 'Operator') ? ', agregator' : ''}...`} 
+                            placeholder="Cari judul, artis, UPC..."
                             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-full focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 bg-white shadow-sm transition-all text-xs text-slate-800"
                         />
                         <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -362,7 +369,6 @@ export default function ReleasesPage() {
                             <ThSortable label="Tipe" sortKey="type" />
                             <ThSortable label="Tanggal Rilis" sortKey="date" />
                             <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider">Tanggal Submit</th>
-                            {(userRole === 'Admin' || userRole === 'Operator') && <ThSortable label="Agregator" sortKey="aggregator" />}
                             <ThSortable label="Status" sortKey="status" />
                             <th className="px-4 py-2 text-[13px] text-slate-500 tracking-wider text-right">Aksi</th>
                         </tr>
@@ -459,18 +465,6 @@ export default function ReleasesPage() {
                                             {release.submissionDate ? formatDMY(release.submissionDate) : 'N/A'}
                                         </div>
                                     </td>
-                                    {(userRole === 'Admin' || userRole === 'Operator') && (
-                                    <td className="px-4 py-2 text-[13px]">
-                                        {release.aggregator ? (
-                                            <div className="flex items-center gap-1 text-[13px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 w-fit">
-                                                <Music size={10} />
-                                                {release.aggregator}
-                                            </div>
-                                        ) : (
-                                            <span className="text-[13px] text-slate-300 italic">Belum diatur</span>
-                                        )}
-                                    </td>
-                                    )}
                                     <td className="px-4 py-2">
                                         <div className="flex flex-col items-start gap-1">
                                             <span 
@@ -483,7 +477,7 @@ export default function ReleasesPage() {
                                     </td>
                                     <td className="px-4 py-2 text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Link href={`/releases/${release.id}/view`}
+                                            <Link href={`${routePrefix}/releases/${release.id}/view`}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all text-[14px] font-medium shadow-sm whitespace-nowrap"
                                                 title="Lihat dan Kelola"
                                             >

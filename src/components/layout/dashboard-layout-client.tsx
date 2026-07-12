@@ -7,8 +7,11 @@ import { DashboardHeader } from './dashboard-header';
 
 export function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState('User');
-  const [userRole, setUserRole] = useState('Admin'); // Placeholder
+  const [currentUser, setCurrentUser] = useState('');
+  const [userRole, setUserRole] = useState('');
+  const [currentUserData, setCurrentUserData] = useState<any>(null);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
   useEffect(() => {
     // Client-side fallback check (middleware should handle this, but for redundancy)
@@ -18,11 +21,15 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
           if (!res.ok) throw new Error('Unauthenticated');
           return res.json();
         });
-        setCurrentUser(profile.username || profile.email || 'User');
-        setUserRole(profile.role || 'Admin');
+        setCurrentUser(profile.username || profile.email || '');
+        setUserRole(profile.role || 'User');
+        setCurrentUserData(profile);
+        setIsImpersonating(document.cookie.split(';').some((cookie) => cookie.trim() === 'dimensi_impersonating=1'));
       } catch (err) {
         console.log('Unauthenticated, redirecting to login');
         window.location.href = '/login';
+      } finally {
+        setIsAuthLoaded(true);
       }
     };
     checkAuth();
@@ -35,6 +42,24 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
       console.error('Logout error', e);
     }
     window.location.href = '/login';
+  };
+
+  const handleStopImpersonating = async () => {
+    try {
+      const res = await fetch('/api/admin/impersonate/stop', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Gagal kembali ke admin');
+      }
+
+      window.location.href = data?.redirectTo || '/admin/users';
+    } catch (error: any) {
+      alert(error?.message || 'Gagal kembali ke admin');
+    }
   };
 
   return (
@@ -61,11 +86,28 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
 
       {/* Main Content Area */}
       <main className="flex-1 w-full md:ml-0 overflow-x-hidden min-h-screen flex flex-col relative">
-        <DashboardHeader 
-          currentUser={currentUser} 
-          userRole={userRole} 
-          onLogout={handleLogout} 
-        />
+        {/* Only render header after auth is confirmed — prevents admin-profile flicker */}
+        {isAuthLoaded ? (
+          <DashboardHeader 
+            currentUser={currentUser} 
+            userRole={userRole}
+            currentUserData={currentUserData}
+            isImpersonating={isImpersonating}
+            onStopImpersonating={handleStopImpersonating}
+            onLogout={handleLogout} 
+          />
+        ) : (
+          // Skeleton header while auth is loading
+          <header className="sticky top-0 z-30 backdrop-blur-xl border-b border-white/10 px-6 py-3 flex items-center justify-between shadow-sm h-[57px]"
+            style={{ background: 'rgba(15, 15, 18, 0.8)' }}
+          >
+            <div className="h-4 w-32 rounded bg-white/10 animate-pulse" />
+            <div className="flex items-center gap-4">
+              <div className="h-8 w-8 rounded-full bg-white/10 animate-pulse" />
+              <div className="h-8 w-24 rounded bg-white/10 animate-pulse" />
+            </div>
+          </header>
+        )}
         <div className="flex-1 p-6">
           {children}
         </div>

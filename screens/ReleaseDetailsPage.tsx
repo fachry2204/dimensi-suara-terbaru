@@ -18,6 +18,7 @@ interface Props {
 export const ReleaseDetailsPage: React.FC<Props> = ({ token, userRole, aggregators, onReleaseUpdated, onEditRelease, onDeleteRelease, resolveOwnerName }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
   const [release, setRelease] = useState<ReleaseData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +119,7 @@ export const ReleaseDetailsPage: React.FC<Props> = ({ token, userRole, aggregato
     return (
       <div className="p-8 w-full max-w-none">
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl">{error}</div>
-        <button onClick={() => navigate('/releases')} className="mt-4 px-4 py-2 bg-slate-100 rounded-lg">Back</button>
+        <button onClick={() => navigate(rolePath('/releases'))} className="mt-4 px-4 py-2 bg-slate-100 rounded-lg">Back</button>
       </div>
     );
   }
@@ -129,12 +130,12 @@ export const ReleaseDetailsPage: React.FC<Props> = ({ token, userRole, aggregato
       <ReleaseDetailModal 
         release={release}
         isOpen={true}
-        onClose={() => navigate('/releases')}
+        onClose={() => navigate(rolePath('/releases'))}
         onUpdate={async (r) => {
           try {
             await api.updateReleaseWorkflow(token, r);
             if (onReleaseUpdated) onReleaseUpdated(r);
-            navigate('/releases');
+            navigate(rolePath('/releases'));
           } catch (e: any) {
             setAlertState({
                 isOpen: true,
@@ -154,6 +155,7 @@ export const ReleaseDetailsPage: React.FC<Props> = ({ token, userRole, aggregato
         onDelete={onDeleteRelease}
         userRole={userRole}
         token={token}
+        hideDistributionTab={true}
         onCoverArtUpdated={(newUrl) => {
              setRelease(prev => prev ? ({ 
                  ...prev, 

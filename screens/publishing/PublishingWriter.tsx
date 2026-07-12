@@ -31,6 +31,7 @@ interface Props {
 export const PublishingWriter: React.FC<Props> = ({ token, userRole }) => {
     const navigate = useNavigate();
     const { getButtonColor } = useBranding();
+    const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
     const [creators, setCreators] = useState<Creator[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -133,7 +134,7 @@ export const PublishingWriter: React.FC<Props> = ({ token, userRole }) => {
     const handlePreview = (creator: Creator) => {
         // setPreviewCreator(creator);
         // setShowPreviewModal(true);
-        navigate(`/publishing/writers/${creator.id}`);
+        navigate(rolePath(`/publishing/writers/${creator.id}`));
     };
 
     const openEditModal = (creator: Creator) => {

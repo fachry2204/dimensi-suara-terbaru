@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useBranding } from '@/contexts/BrandingContext';
 import { api } from '@/utils/api';
 import {
@@ -20,6 +21,7 @@ interface Song {
 }
 
 export default function PublishingPage() {
+  const pathname = usePathname();
   const { getButtonColor } = useBranding();
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,6 +67,14 @@ export default function PublishingPage() {
 
   return (
     <div className="space-y-8 p-2">
+      {pathname?.startsWith('/admin') && (
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-800 transition-all shadow-md shadow-red-600/20 w-fit"
+        >
+          ← Menuju Dashboard
+        </Link>
+      )}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>

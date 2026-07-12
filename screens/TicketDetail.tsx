@@ -31,6 +31,7 @@ interface TicketDetailProps {
 const TicketDetail: React.FC<TicketDetailProps> = ({ token, userRole, onAuthExpired }) => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
     const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'warning' | 'info' | 'success' }>({
         isOpen: false,
         title: '',
@@ -117,7 +118,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({ token, userRole, onAuthExpi
         <div className="p-6 w-full max-w-none h-[calc(100vh-80px)] flex flex-col">
             <div className="flex items-center gap-4 mb-6">
                 <button 
-                    onClick={() => navigate('/tickets')}
+                    onClick={() => navigate(rolePath('/tickets'))}
                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
                     <ArrowLeft size={24} className="text-gray-600" />

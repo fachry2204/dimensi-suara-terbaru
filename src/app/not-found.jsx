@@ -42,7 +42,7 @@ export default function NotFound() {
                 <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#f158d0]">Halaman Tidak Ditemukan</p>
                 <h1 className="mt-3 text-4xl font-black leading-tight text-white md:text-5xl">Halaman tidak ditemukan</h1>
                 <p className="mt-4 max-w-sm text-sm leading-6 text-white/72">
-                  Link yang kamu buka tidak tersedia atau sudah dipindahkan. Silakan kembali ke dashboard untuk melanjutkan pekerjaan.
+                  Link yang kamu buka tidak tersedia atau sudah dipindahkan. Silakan kembali ke halaman sebelumnya atau masuk lagi dengan akun yang sesuai.
                 </p>
               </div>
             </div>
@@ -76,11 +76,11 @@ export default function NotFound() {
 
             <button
               type="button"
-              onClick={() => router.push('/aggregator')}
+              onClick={() => router.push('/')}
               className="mt-6 inline-flex items-center gap-2 rounded-[6px] bg-[#f158d0] px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(241,88,208,0.28)] transition hover:bg-[#d93ab9]"
             >
               <Home size={18} />
-              Ke Dashboard
+              Ke Beranda
             </button>
           </div>
         </section>

@@ -8,11 +8,13 @@ import { assetUrl } from '@/utils/url';
 
 interface WriterDetailProps {
     token: string;
+    userRole?: string;
 }
 
-const PublishingWriterDetail: React.FC<WriterDetailProps> = ({ token }) => {
+const PublishingWriterDetail: React.FC<WriterDetailProps> = ({ token, userRole }) => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
     const [creator, setCreator] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ const PublishingWriterDetail: React.FC<WriterDetailProps> = ({ token }) => {
             <div className="p-8 text-center">
                 <div className="text-red-500 mb-4">{error || 'Data tidak ditemukan'}</div>
                 <button 
-                    onClick={() => navigate('/publishing/writer')}
+                    onClick={() => navigate(rolePath('/publishing/writer'))}
                     className="text-indigo-600 hover:text-indigo-800 font-medium"
                 >
                     Kembali ke Daftar Pencipta
@@ -68,7 +70,7 @@ const PublishingWriterDetail: React.FC<WriterDetailProps> = ({ token }) => {
         <div className="p-8">
             <div className="mb-6 flex items-center gap-4">
                 <button 
-                    onClick={() => navigate('/publishing/writer')}
+                    onClick={() => navigate(rolePath('/publishing/writer'))}
                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 >
                     <ArrowLeft size={24} className="text-slate-600" />

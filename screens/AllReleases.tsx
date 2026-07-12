@@ -28,7 +28,8 @@ interface SortConfig {
 export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availableAggregators, error, userRole }) => {
   const navigate = useNavigate();
   const { getButtonColor } = useBranding();
-  const [activeStatusTab, setActiveStatusTab] = useState<string>('ALL');
+  const rolePath = (path: string) => userRole === 'User' ? `/user${path}` : path;
+  const [activeStatusTab, setActiveStatusTab] = useState<string>('PENDING');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Sorting State
@@ -46,8 +47,8 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
 
   // Define Tabs
   const tabs = [
-    { id: 'ALL', label: 'Semua Rilis', statusMap: null },
     { id: 'PENDING', label: 'Pending', statusMap: 'Pending' },
+    { id: 'ALL', label: 'Semua Rilis', statusMap: null },
     { id: 'REQUEST_EDIT', label: 'Request Edit', statusMap: 'Request Edit' },
     { id: 'PROCESSING', label: 'Proses', statusMap: 'Processing' },
     { id: 'RELEASED', label: 'Rilis', statusMap: 'Live' },
@@ -341,7 +342,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                     <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
                 </div>
                 <button
-                    onClick={() => navigate('/new-release')}
+                    onClick={() => navigate(rolePath('/new-release'))}
                     className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors text-xs font-normal shadow-md shadow-blue-100"
                     title="Buat Rilis Baru"
                 >
@@ -479,7 +480,7 @@ export const AllReleases: React.FC<Props> = ({ releases, onViewDetails, availabl
                                     <td className="px-4 py-2 text-right">
                                         <div className="flex justify-end gap-2">
                                             <Link 
-                                                to={`/releases/${release.id}/view`}
+                                                to={rolePath(`/releases/${release.id}/view`)}
                                                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all text-[14px] font-medium shadow-sm whitespace-nowrap"
                                                 title="View & Manage"
                                             >
