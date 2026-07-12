@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { chromium, type Page } from "playwright";
+import type { Browser, Page } from "playwright";
 import { mkdir, readFile } from "fs/promises";
 import path from "path";
 import { requireRole } from "@/lib/auth";
 import { db, type RowDataPacket } from "@/lib/db";
+import { browserInstallMessage, isPlaywrightBrowserMissing, launchSoundOnBrowser } from "@/lib/soundon/browser";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -55,15 +56,6 @@ function normalizeReleaseTitle(value: string) {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function isPlaywrightBrowserMissing(error: any) {
-  const message = String(error?.message || "");
-  return (
-    message.includes("Executable doesn't exist") ||
-    message.includes("playwright install") ||
-    message.includes("browserType.launch")
-  );
 }
 
 async function getSavedStorageStatePath() {
@@ -499,7 +491,7 @@ async function searchReleaseOnPage(page: Page, title: string): Promise<ScrapedRe
 }
 
 export async function POST(request: Request) {
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+  let browser: Browser | null = null;
 
   try {
     await requireRole(["Admin", "admin", "Operator", "operator"]);
@@ -516,7 +508,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User ID dan Password SoundOn belum disimpan di Setting" }, { status: 400 });
     }
 
-    browser = await chromium.launch({ headless: true });
+    browser = await launchSoundOnBrowser();
     const storageState = await getSavedStorageStatePath();
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
@@ -564,7 +556,7 @@ export async function POST(request: Request) {
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     if (isPlaywrightBrowserMissing(error)) {
       return NextResponse.json(
-        { error: "Browser Playwright belum terpasang di server. Jalankan perintah: npm run playwright:install lalu restart Node.js app." },
+        { error: browserInstallMessage() },
         { status: 500 }
       );
     }

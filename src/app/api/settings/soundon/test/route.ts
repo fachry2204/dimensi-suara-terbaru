@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { chromium, type Page } from "playwright";
+import type { Browser, Page } from "playwright";
 import { mkdir, readFile } from "fs/promises";
 import path from "path";
 import { requireRole } from "@/lib/auth";
 import { db, type RowDataPacket } from "@/lib/db";
+import { browserInstallMessage, isPlaywrightBrowserMissing, launchSoundOnBrowser } from "@/lib/soundon/browser";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,15 +32,6 @@ async function getSoundOnConfig(): Promise<SoundOnConfig> {
   } catch {
     return {};
   }
-}
-
-function isPlaywrightBrowserMissing(error: any) {
-  const message = String(error?.message || "");
-  return (
-    message.includes("Executable doesn't exist") ||
-    message.includes("playwright install") ||
-    message.includes("browserType.launch")
-  );
 }
 
 async function saveStorageState(page: Page) {
@@ -180,7 +172,7 @@ async function testSoundOnLogin(page: Page, config: Required<SoundOnConfig>) {
 }
 
 export async function POST() {
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+  let browser: Browser | null = null;
 
   try {
     await requireRole(["Admin", "admin", "Operator", "operator"]);
@@ -193,7 +185,7 @@ export async function POST() {
       );
     }
 
-    browser = await chromium.launch({ headless: true });
+    browser = await launchSoundOnBrowser();
     const storageState = await getSavedStorageStatePath();
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
@@ -225,7 +217,7 @@ export async function POST() {
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     if (isPlaywrightBrowserMissing(error)) {
       return NextResponse.json(
-        { error: "Browser Playwright belum terpasang di server. Jalankan perintah: npm run playwright:install lalu restart Node.js app." },
+        { error: browserInstallMessage() },
         { status: 500 }
       );
     }
