@@ -57,6 +57,15 @@ function normalizeReleaseTitle(value: string) {
     .trim();
 }
 
+function isPlaywrightBrowserMissing(error: any) {
+  const message = String(error?.message || "");
+  return (
+    message.includes("Executable doesn't exist") ||
+    message.includes("playwright install") ||
+    message.includes("browserType.launch")
+  );
+}
+
 async function getSavedStorageStatePath() {
   try {
     await readFile(SOUNDON_STORAGE_STATE_PATH, "utf8");
@@ -553,6 +562,12 @@ export async function POST(request: Request) {
     console.error("API Error - POST /api/admin/soundon/check:", error);
     if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (isPlaywrightBrowserMissing(error)) {
+      return NextResponse.json(
+        { error: "Browser Playwright belum terpasang di server. Jalankan perintah: npm run playwright:install lalu restart Node.js app." },
+        { status: 500 }
+      );
+    }
     if (error.message === "LOGIN_FORM_NOT_FOUND") return NextResponse.json({ error: "Form login SoundOn tidak ditemukan" }, { status: 502 });
     if (error.message === "SOUNDON_LOGIN_FAILED") return NextResponse.json({ error: "Login SoundOn gagal. Periksa User ID dan Password." }, { status: 502 });
     if (error.message === "SOUNDON_LOGIN_REQUIRED") return NextResponse.json({ error: "Session SoundOn expired. Sistem perlu login ulang." }, { status: 502 });

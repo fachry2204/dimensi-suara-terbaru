@@ -12,6 +12,10 @@ const publicRoutes = [
 export default function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
+
   const isPublicRoute = publicRoutes.some(
     (route) =>
       pathname === route ||

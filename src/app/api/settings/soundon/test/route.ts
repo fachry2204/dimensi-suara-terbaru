@@ -33,6 +33,15 @@ async function getSoundOnConfig(): Promise<SoundOnConfig> {
   }
 }
 
+function isPlaywrightBrowserMissing(error: any) {
+  const message = String(error?.message || "");
+  return (
+    message.includes("Executable doesn't exist") ||
+    message.includes("playwright install") ||
+    message.includes("browserType.launch")
+  );
+}
+
 async function saveStorageState(page: Page) {
   await mkdir(SOUNDON_SESSION_DIR, { recursive: true });
   await page.context().storageState({ path: SOUNDON_STORAGE_STATE_PATH });
@@ -214,6 +223,12 @@ export async function POST() {
     console.error("API Error - POST /api/settings/soundon/test:", error);
     if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (isPlaywrightBrowserMissing(error)) {
+      return NextResponse.json(
+        { error: "Browser Playwright belum terpasang di server. Jalankan perintah: npm run playwright:install lalu restart Node.js app." },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ error: error.message || "Tes login SoundOn gagal" }, { status: 500 });
   } finally {
     await browser?.close().catch(() => {});
