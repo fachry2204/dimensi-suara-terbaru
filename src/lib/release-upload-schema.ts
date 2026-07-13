@@ -61,11 +61,11 @@ export async function ensureReleaseUploadTable() {
 }
 
 export function getUploadTempDir(uploadId: string) {
-  return path.join(process.cwd(), "public", "uploads", "tmp", uploadId);
+  return path.join(getWritableUploadsDir(), "tmp", uploadId);
 }
 
 export function getUploadAudioDir() {
-  return path.join(process.cwd(), "public", "uploads", "audio");
+  return path.join(getWritableUploadsDir(), "audio");
 }
 
 export function isValidUploadId(uploadId: string) {
@@ -78,8 +78,32 @@ export function resolveUploadTempDir(uploadId: string) {
   return fs.existsSync(tempDir) ? tempDir : legacyTempDir;
 }
 
+export function getWritableUploadsDir() {
+  return process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
+}
+
 export function ensureDirectory(dir: string) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+export function cleanupStaleUploadTempDirs(maxAgeMs = 24 * 60 * 60 * 1000) {
+  const tmpRoot = path.join(getWritableUploadsDir(), "tmp");
+  if (!fs.existsSync(tmpRoot)) return;
+
+  const now = Date.now();
+  for (const entry of fs.readdirSync(tmpRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+
+    const fullPath = path.join(tmpRoot, entry.name);
+    try {
+      const stat = fs.statSync(fullPath);
+      if (now - stat.mtimeMs > maxAgeMs) {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+      }
+    } catch {
+      // Ignore folders that disappear while cleanup is running.
+    }
   }
 }

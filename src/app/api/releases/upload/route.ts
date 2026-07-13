@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { getWritableUploadsDir } from "@/lib/release-upload-schema";
 import fs from "fs";
 import path from "path";
 
@@ -28,8 +29,7 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Create target directory inside public/uploads/releases/temp
-    const targetDir = path.join(process.cwd(), 'public', 'uploads', 'releases', 'temp', session.userId.toString());
+    const targetDir = path.join(getWritableUploadsDir(), 'releases', 'temp', session.userId.toString());
     
     if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });

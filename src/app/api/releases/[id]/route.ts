@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { db, withTransaction, PoolConnection } from "@/lib/db";
+import { getWritableUploadsDir } from "@/lib/release-upload-schema";
 import fs from "fs";
 import pathLib from "path";
 import { getReleaseById, deleteRelease } from "@/repositories/release.repository";
@@ -114,14 +115,15 @@ export async function POST(
     const primaryArtistName = (typeof p === 'object' && p !== null && p.name) ? p.name : (p || 'Unknown_Artist');
     const artistDirName = sanitizeName(primaryArtistName);
     const releaseDirName = sanitizeName(`${primaryArtistName} - ${title}`);
-    const targetDir = pathLib.join(process.cwd(), 'public', 'uploads', 'releases', artistDirName, releaseDirName);
+    const uploadsDir = getWritableUploadsDir();
+    const targetDir = pathLib.join(uploadsDir, 'releases', artistDirName, releaseDirName);
 
     if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true });
     }
 
     if (coverArt && coverArt.includes('/uploads/releases/temp/')) {
-        const absTempPath = pathLib.join(process.cwd(), 'public', coverArt.replace(/^\//, ''));
+        const absTempPath = pathLib.join(uploadsDir, coverArt.replace(/^\/?uploads\//, ''));
         if (fs.existsSync(absTempPath)) {
             const ext = pathLib.extname(absTempPath) || '.jpg';
             const newName = `${sanitizeName(primaryArtistName + ' - ' + title)}${ext}`;
@@ -201,7 +203,7 @@ export async function POST(
                         const [uploadRows]: any = await conn.query('SELECT file_path FROM release_uploads WHERE upload_session_id = ?', [fileRef]);
                         if (!uploadRows || uploadRows.length === 0) return fileRef;
                         const existingPath = uploadRows[0].file_path;
-                        const absExisting = pathLib.join(process.cwd(), 'public', existingPath.replace(/^\//, ''));
+                        const absExisting = pathLib.join(uploadsDir, existingPath.replace(/^\/?uploads\//, ''));
                         if (!fs.existsSync(absExisting)) return fileRef;
                         const ext = pathLib.extname(absExisting) || '.wav';
                         const newName = type === 'master' ? `${masterName}${ext}` : `${clipName}${ext}`;
@@ -212,7 +214,7 @@ export async function POST(
                         return newRelPath;
                     }
                     if (fileRef.includes('/uploads/releases/temp/') || fileRef.includes('/uploads/audio/')) {
-                        const absTemp = pathLib.join(process.cwd(), 'public', fileRef.replace(/^\//, ''));
+                        const absTemp = pathLib.join(uploadsDir, fileRef.replace(/^\/?uploads\//, ''));
                         if (!fs.existsSync(absTemp)) return fileRef;
                         const ext = pathLib.extname(absTemp) || '.wav';
                         const newName = type === 'master' ? `${masterName}${ext}` : `${clipName}${ext}`;

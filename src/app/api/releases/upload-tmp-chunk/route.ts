@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import {
     ensureDirectory,
     ensureReleaseUploadTable,
+    cleanupStaleUploadTempDirs,
     getUploadAudioDir,
+    getWritableUploadsDir,
     isValidUploadId,
     resolveUploadTempDir,
 } from "@/lib/release-upload-schema";
@@ -32,6 +34,7 @@ export async function POST(req: Request) {
 
     if (data.releaseUploadMode === true || data.releaseUploadMode === "true") {
         await ensureReleaseUploadTable();
+        cleanupStaleUploadTempDirs();
 
         if (!releaseUploadId || !isValidUploadId(releaseUploadId)) {
             return NextResponse.json({ success: false, message: "Upload session tidak valid." }, { status: 400 });
@@ -195,8 +198,7 @@ export async function POST(req: Request) {
         // Needs to wait for write to finish
         await new Promise((resolve) => writeStream.on('finish', () => resolve(true)));
         
-        // Also copy it to public so it's accessible via URL for the frontend
-        const publicDir = path.join(process.cwd(), 'public', 'uploads', 'releases', 'temp', session.userId.toString());
+        const publicDir = path.join(getWritableUploadsDir(), 'releases', 'temp', session.userId.toString());
         if (!fs.existsSync(publicDir)) {
             fs.mkdirSync(publicDir, { recursive: true });
         }
