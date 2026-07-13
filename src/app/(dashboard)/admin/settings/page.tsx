@@ -18,15 +18,19 @@ import {
   Upload,
   Zap,
 } from "lucide-react";
+import { assetUrl } from "@/utils/url";
 
 const settingGroups = [
-  ["Branding", ["Logo", "Nama System"], Settings],
   ["Role & Akses", ["Setting Role"], Shield],
   ["Email", ["SMTP Email"], Mail],
   ["Omnichannel", ["Omnichannel Setting"], KeyRound],
   ["Website", ["Log Data Website", "Update Website", "Backup Website"], Database],
   ["Integrasi", ["Setting Google Drive", "Setting Payment Gateway"], HardDrive],
 ];
+
+function tabKey(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
 
 export default function AdminSettingsPage() {
   const [soundOnUserId, setSoundOnUserId] = useState("");
@@ -37,11 +41,30 @@ export default function AdminSettingsPage() {
   const [isSavingSoundOn, setIsSavingSoundOn] = useState(false);
   const [isTestingSoundOn, setIsTestingSoundOn] = useState(false);
   const [soundOnMessage, setSoundOnMessage] = useState("");
+  const [systemName, setSystemName] = useState("");
+  const [logoPath, setLogoPath] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isLoadingBranding, setIsLoadingBranding] = useState(true);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [brandingMessage, setBrandingMessage] = useState("");
   const [contractTemplates, setContractTemplates] = useState<Record<"PERSONAL" | "COMPANY", any>>({ PERSONAL: null, COMPANY: null });
   const [contractTemplateFiles, setContractTemplateFiles] = useState<Record<"PERSONAL" | "COMPANY", File | null>>({ PERSONAL: null, COMPANY: null });
   const [isLoadingContractTemplate, setIsLoadingContractTemplate] = useState(true);
   const [uploadingContractType, setUploadingContractType] = useState<"PERSONAL" | "COMPANY" | null>(null);
   const [contractTemplateMessage, setContractTemplateMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("branding");
+
+  const settingTabs = [
+    { key: "branding", label: "Branding", Icon: Settings },
+    { key: "soundon", label: "SoundOn", Icon: Zap },
+    { key: "kontrak", label: "Format Kontrak", Icon: FileSignature },
+    ...settingGroups.map(([title, , Icon]: any) => ({
+      key: tabKey(String(title)),
+      label: String(title),
+      Icon,
+    })),
+  ];
+  const activeSettingGroup = settingGroups.find(([title]: any) => tabKey(String(title)) === activeTab);
 
   useEffect(() => {
     fetch("/api/settings/soundon", { credentials: "include", cache: "no-store" })
@@ -55,6 +78,16 @@ export default function AdminSettingsPage() {
       .catch(() => {})
       .finally(() => setIsLoadingSoundOn(false));
 
+    fetch("/api/settings/branding", { credentials: "include", cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setSystemName(data.system_name || data.login_title || "Dimensi Suara");
+        setLogoPath(data.logo || "");
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingBranding(false));
+
     fetch("/api/admin/contract-template", { credentials: "include", cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => setContractTemplates({
@@ -64,6 +97,42 @@ export default function AdminSettingsPage() {
       .catch(() => {})
       .finally(() => setIsLoadingContractTemplate(false));
   }, []);
+
+  async function saveBrandingSetting(event: React.FormEvent) {
+    event.preventDefault();
+    setIsSavingBranding(true);
+    setBrandingMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("system_name", systemName);
+      formData.append("login_title", systemName);
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      const response = await fetch("/api/settings/branding", {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal menyimpan branding.");
+      }
+
+      const branding = data.branding || {};
+      setSystemName(branding.system_name || branding.login_title || systemName);
+      setLogoPath(branding.logo || logoPath);
+      setLogoFile(null);
+      setBrandingMessage("Branding berhasil disimpan.");
+    } catch (error: any) {
+      setBrandingMessage(error.message || "Gagal menyimpan branding.");
+    } finally {
+      setIsSavingBranding(false);
+    }
+  }
 
   async function saveSoundOnSetting(event: React.FormEvent) {
     event.preventDefault();
@@ -174,7 +243,98 @@ export default function AdminSettingsPage() {
       </Link>
       <h1 className="mt-6 text-3xl font-black">Setting System</h1>
 
-      <section className="mt-6 rounded-lg bg-white p-5 text-slate-900">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="flex min-w-max gap-2">
+          {settingTabs.map(({ key, label, Icon }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black transition ${
+                  isActive
+                    ? "bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-200"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "branding" ? "hidden" : ""}`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-black">
+            <Settings size={18} className="text-fuchsia-500" /> Branding
+          </h2>
+          {logoPath && (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase text-emerald-700">
+              <CheckCircle2 size={12} /> Logo Tersimpan
+            </span>
+          )}
+        </div>
+
+        <form onSubmit={saveBrandingSetting} className="mt-5 grid gap-5 lg:grid-cols-[180px_1fr_auto] lg:items-end">
+          <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+            <span className="text-xs font-bold uppercase text-slate-500">Preview Logo</span>
+            <div className="mt-3 flex h-24 items-center justify-center rounded border border-dashed border-slate-200 bg-white p-3">
+              {logoPath ? (
+                <img src={assetUrl(logoPath)} alt="Logo system" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-xs font-semibold text-slate-400">Belum ada logo</span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-bold uppercase text-slate-500">Logo</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
+                disabled={isLoadingBranding || isSavingBranding}
+                className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm"
+              />
+              <span className="mt-1 block text-[11px] font-semibold text-slate-400">
+                {logoFile ? logoFile.name : "Upload PNG, JPG, WEBP, atau SVG."}
+              </span>
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold uppercase text-slate-500">Nama System</span>
+              <input
+                value={systemName}
+                onChange={(event) => setSystemName(event.target.value)}
+                disabled={isLoadingBranding || isSavingBranding}
+                className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Nama System"
+              />
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoadingBranding || isSavingBranding || !systemName.trim()}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-orange-500 px-8 text-sm font-bold text-white shadow-lg shadow-orange-100 hover:bg-orange-600 disabled:opacity-60"
+          >
+            {isSavingBranding ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            Simpan
+          </button>
+        </form>
+
+        {brandingMessage && (
+          <p className={`mt-3 text-xs font-bold ${brandingMessage.includes("berhasil") ? "text-emerald-600" : "text-red-600"}`}>
+            {brandingMessage}
+          </p>
+        )}
+      </section>
+
+      <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "soundon" ? "hidden" : ""}`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-black">
             <Zap size={18} className="text-orange-500" /> SoundOn Login
@@ -237,7 +397,7 @@ export default function AdminSettingsPage() {
         )}
       </section>
 
-      <section className="mt-6 rounded-lg bg-white p-5 text-slate-900">
+      <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "kontrak" ? "hidden" : ""}`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-black">
             <FileSignature size={18} className="text-fuchsia-500" /> Format Kontrak
@@ -306,26 +466,29 @@ export default function AdminSettingsPage() {
         )}
       </section>
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        {settingGroups.map(([title, items, Icon]: any) => (
-          <div key={title} className="rounded-lg bg-white p-5 text-slate-900">
-            <h2 className="flex items-center gap-2 text-lg font-black"><Icon size={18} className="text-fuchsia-500" /> {title}</h2>
-            <div className="mt-4 space-y-3">
-              {items.map((item: string) => (
-                <label key={item} className="block">
-                  <span className="text-xs font-bold uppercase text-slate-500">{item}</span>
-                  {item.includes("Upload") ? (
-                    <div className="mt-1 flex items-center gap-2 rounded border border-dashed border-slate-300 p-3 text-sm text-slate-500">
-                      <Upload size={16} /> Upload file Word
-                    </div>
-                  ) : (
-                    <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" placeholder={item} />
-                  )}
-                </label>
-              ))}
+      <section className={`mt-6 ${activeSettingGroup ? "" : "hidden"}`}>
+        {activeSettingGroup && (() => {
+          const [title, items, Icon]: any = activeSettingGroup;
+          return (
+            <div className="rounded-lg bg-white p-5 text-slate-900">
+              <h2 className="flex items-center gap-2 text-lg font-black"><Icon size={18} className="text-fuchsia-500" /> {title}</h2>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {items.map((item: string) => (
+                  <label key={item} className="block">
+                    <span className="text-xs font-bold uppercase text-slate-500">{item}</span>
+                    {item.includes("Upload") ? (
+                      <div className="mt-1 flex items-center gap-2 rounded border border-dashed border-slate-300 p-3 text-sm text-slate-500">
+                        <Upload size={16} /> Upload file Word
+                      </div>
+                    ) : (
+                      <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" placeholder={item} />
+                    )}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })()}
       </section>
     </main>
   );

@@ -158,17 +158,6 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check permissions if needed, but UI already restricts it
-    if (!token) {
-        setAlertState({
-            isOpen: true,
-            title: 'Sesi Berakhir',
-            message: 'Session expired. Please login again.',
-            type: 'error'
-        });
-        return;
-    }
-
     // 1. Strict File Type Check
     if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
         setAlertState({
@@ -231,15 +220,14 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
 
         const response = await fetch(`${API_BASE_URL}/releases/${release.id}/cover-art`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: formData,
+            credentials: 'include'
         });
 
         if (!response.ok) {
             const err = await response.json().catch(() => ({ message: 'Upload failed' }));
-            throw new Error(err.message || 'Failed to upload cover art');
+            throw new Error(err.message || err.error || 'Failed to upload cover art');
         }
 
         const data = await response.json();

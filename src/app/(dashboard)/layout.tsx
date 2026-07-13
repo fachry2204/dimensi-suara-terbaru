@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/layout/apps-layout';
 import { LayoutDashboard, LogOut, Settings, Music2, ChevronDown } from 'lucide-react';
+import { UserAnnouncementPopup } from '@/components/UserAnnouncementPopup';
 
 // ─── Admin Header ─────────────────────────────────────────────────────────────
 function AdminHeader() {
@@ -117,6 +118,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [currentRole, setCurrentRole] = useState('');
   const isAdminPath = pathname === '/admin' || pathname?.startsWith('/admin/');
 
   useEffect(() => {
@@ -129,6 +131,7 @@ export default function DashboardLayout({
         }
         const data = await res.json();
         const role = String(data?.user?.role || data?.role || '').toLowerCase();
+        setCurrentRole(role);
         
         if (isAdminPath) {
           if (role !== 'admin' && role !== 'operator') {
@@ -175,6 +178,7 @@ export default function DashboardLayout({
   return (
     <MainLayout>
       {children}
+      {currentRole === 'user' && <UserAnnouncementPopup />}
     </MainLayout>
   );
 }

@@ -1,38 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { ensureSystemSchema } from "@/lib/system-schema";
 
 export async function POST() {
   try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS system_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        check_type VARCHAR(100) NOT NULL,
-        status VARCHAR(50) NOT NULL,
-        details TEXT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS security_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_identifier VARCHAR(255) NULL,
-        ip_address VARCHAR(100) NULL,
-        country VARCHAR(100) NULL,
-        attack_type VARCHAR(100) NULL,
-        details TEXT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
+    const result = await ensureSystemSchema();
 
     await db.query(
       `INSERT INTO system_logs (check_type, status, details) VALUES (?, ?, ?)`,
-      ["DB_INTEGRITY_CHECK", "FIXED", JSON.stringify({ action: "Ensured required log tables" })]
+      ["DB_INTEGRITY_CHECK", result.status, JSON.stringify(result)]
     ).catch(() => null);
 
     return NextResponse.json({
-      message: "Database structure checked",
-      status: "FIXED",
+      message:
+        result.status === "FIXED"
+          ? "Database berhasil diperbaiki tanpa menghapus data lama"
+          : "Database diperiksa, tetapi sebagian kolom perlu dicek manual",
+      status: result.status,
+      result,
     });
   } catch (error: any) {
     console.error("API Error - POST /api/settings/system/fix-db:", error);

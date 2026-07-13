@@ -3,13 +3,15 @@ import "server-only";
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
 
-const authSecret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
+function getSecretKey() {
+  const authSecret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
 
-if (!authSecret) {
-  throw new Error("JWT_SECRET atau AUTH_SECRET wajib diatur");
+  if (!authSecret) {
+    throw new Error("JWT_SECRET atau AUTH_SECRET wajib diatur");
+  }
+
+  return new TextEncoder().encode(authSecret);
 }
-
-const secretKey = new TextEncoder().encode(authSecret);
 
 export interface SessionPayload {
   userId: number;
@@ -32,13 +34,13 @@ export async function createSessionToken(
     })
     .setIssuedAt()
     .setExpirationTime("8h")
-    .sign(secretKey);
+    .sign(getSecretKey());
 }
 
 export async function verifySessionToken(
   token: string
 ): Promise<SessionPayload> {
-  const { payload } = await jwtVerify(token, secretKey);
+  const { payload } = await jwtVerify(token, getSecretKey());
 
   return {
     userId: Number(payload.userId),

@@ -1,42 +1,21 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { inspectSystemSchema } from "@/lib/system-schema";
 
 export async function GET() {
   try {
-    const requiredTables = [
-      "users",
-      "releases",
-      "tracks",
-      "settings",
-      "login_settings",
-      "songs",
-      "writers",
-      "song_writers",
-      "genres",
-      "subgenres",
-      "notifications",
-      "tickets",
-      "ticket_replies",
-      "security_logs",
-      "system_logs",
-    ];
-
-    const [rows]: any = await db.query(
-      `SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()`
-    );
-
-    const existing = new Set(rows.map((row: any) => row.TABLE_NAME || row.table_name));
-    const missing = requiredTables.filter((table) => !existing.has(table));
-    const status = missing.length === 0 ? "OK" : "WARNING";
+    const inspection = await inspectSystemSchema();
 
     await db.query(
       `INSERT INTO system_logs (check_type, status, details) VALUES (?, ?, ?)`,
-      ["DB_INTEGRITY_CHECK", status, JSON.stringify({ missing })]
+      ["DB_INTEGRITY_CHECK", inspection.status, JSON.stringify(inspection)]
     ).catch(() => null);
 
     return NextResponse.json({
-      status,
-      missing,
+      status: inspection.status,
+      missing: inspection.missingTables,
+      missingTables: inspection.missingTables,
+      missingColumns: inspection.missingColumns,
       checked_at: new Date().toISOString(),
     });
   } catch (error: any) {

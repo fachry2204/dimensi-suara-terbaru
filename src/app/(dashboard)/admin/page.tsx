@@ -8,6 +8,7 @@ import {
   Headphones,
   LineChart,
   MessageCircle,
+  Megaphone,
   Newspaper,
   Settings,
   Ticket,
@@ -79,6 +80,14 @@ const adminCards = [
     description: "Omnichannel chat untuk layanan client.",
     tone: "bg-cyan-600",
     bgTone: "bg-cyan-50 hover:bg-cyan-100 border-cyan-100/80 text-cyan-950",
+  },
+  {
+    title: "Pengumuman",
+    href: "/admin/announcements",
+    icon: Megaphone,
+    description: "Buat popup pengumuman interaktif untuk dashboard user.",
+    tone: "bg-pink-500",
+    bgTone: "bg-pink-50 hover:bg-pink-100 border-pink-100/80 text-pink-950",
   },
   {
     title: "Setting",

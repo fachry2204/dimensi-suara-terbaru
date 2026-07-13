@@ -24,9 +24,9 @@ function parseArtists(value: any) {
 export async function GET() {
   try {
     const [rows]: any = await db.query(
-      `SELECT id, title, release_type, type, primary_artists, cover_art, planned_release_date, original_release_date, submission_date
+      `SELECT id, title, release_type, type, status, primary_artists, cover_art, planned_release_date, original_release_date, submission_date
        FROM releases
-       WHERE status = 'Processing'
+       WHERE LOWER(status) IN ('rilis', 'live', 'released')
        ORDER BY COALESCE(planned_release_date, original_release_date, submission_date) DESC
        LIMIT 12`
     );
@@ -37,6 +37,7 @@ export async function GET() {
           title: row.title || "Untitled",
           artist: parseArtists(row.primary_artists) || "Unknown Artist",
           type: row.release_type || row.type || "Single",
+          status: row.status || "Rilis",
           coverArt: row.cover_art || "",
           releaseDate: row.planned_release_date || row.original_release_date || row.submission_date || null,
         }))

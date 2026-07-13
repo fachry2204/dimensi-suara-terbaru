@@ -75,6 +75,7 @@ type UpcomingRelease = {
   title: string;
   artist: string;
   type: string;
+  status?: string;
   date: string;
   coverArt?: string;
   gradient?: string;
@@ -162,6 +163,7 @@ export default function LandingPage() {
             title: release.title || "Untitled",
             artist: release.artist || "Unknown Artist",
             type: release.type || "Single",
+            status: release.status || "Rilis",
             date: formatReleaseDate(release.releaseDate),
             coverArt: release.coverArt ? assetUrl(release.coverArt) : "",
           }))
@@ -176,6 +178,7 @@ export default function LandingPage() {
     title,
     artist,
     type,
+    status: "Rilis",
     date,
     gradient,
   }));
@@ -190,6 +193,15 @@ export default function LandingPage() {
     if (!releaseItems.length) return;
     setReleaseStartIndex((current) => (current + 1) % releaseItems.length);
   };
+
+  useEffect(() => {
+    if (!canSlideReleases) return;
+    const timer = window.setInterval(() => {
+      setReleaseStartIndex((current) => (current + 1) % releaseItems.length);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [canSlideReleases, releaseItems.length]);
+
   const goToLogin = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     window.location.assign("/login");
@@ -507,7 +519,9 @@ export default function LandingPage() {
                   <div className="mt-1 truncate text-[13px] leading-5 text-white/44" title={release.artist}>{release.artist}</div>
                   <div className="mt-2 whitespace-nowrap text-[13px] text-white/44">{release.date}</div>
                 </div>
-                <span className={`self-start whitespace-nowrap rounded-[5px] px-3 py-1.5 text-[13px] font-bold ${release.type === "EP" ? "bg-[#5637ff]/18 text-[#8c76ff]" : "bg-[#ff3f70]/16 text-[#ff4f91]"}`}>{release.type}</span>
+                <span className="self-start whitespace-nowrap rounded-[5px] bg-emerald-400/15 px-3 py-1.5 text-[13px] font-bold uppercase text-emerald-300">
+                  {release.status || "Rilis"}
+                </span>
               </div>
             ))}
           </div>

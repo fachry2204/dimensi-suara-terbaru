@@ -11,8 +11,20 @@ const noStoreHeaders = {
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
 };
 
+async function ensureBrandingColumns() {
+  const [systemNameColumns] = await db.query<RowDataPacket[]>(
+    "SHOW COLUMNS FROM login_settings LIKE 'system_name'"
+  );
+
+  if (systemNameColumns.length === 0) {
+    await db.query("ALTER TABLE login_settings ADD COLUMN system_name VARCHAR(255) NULL");
+  }
+}
+
 export async function GET() {
   try {
+    await ensureBrandingColumns();
+
     const [rows] = await db.query<RowDataPacket[]>(
       "SELECT * FROM login_settings WHERE id = 1"
     );
@@ -22,6 +34,7 @@ export async function GET() {
         logo: null,
         favicon_url: null,
         login_background: null,
+        system_name: "Dimensi Suara",
         login_title: "Agregator & Publishing Musik",
         login_footer: "Protected CMS Area. Authorized personnel only.",
         login_button_color: "linear-gradient(to right, #2563eb, #0891b2)",
@@ -43,6 +56,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     await requireUser();
+    await ensureBrandingColumns();
 
     const formData = await request.formData();
     const uploadDir = path.join(process.cwd(), "public", "uploads", "settings");
@@ -62,6 +76,7 @@ export async function PUT(request: Request) {
 
     const fields = [
       "login_title",
+      "system_name",
       "login_footer",
       "login_button_color",
       "login_form_bg_color",
@@ -108,6 +123,14 @@ export async function PUT(request: Request) {
 
     if (updates.length > 0) {
       await db.query(`UPDATE login_settings SET ${updates.join(", ")} WHERE id = 1`, values);
+    }
+
+    const systemName = formData.get("system_name");
+    if (systemName !== null) {
+      await db.query(
+        "INSERT INTO settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+        ["system_name", String(systemName)]
+      ).catch(() => {});
     }
 
     const [rows] = await db.query<RowDataPacket[]>(
