@@ -16,7 +16,7 @@ interface ChunkUploaderProps {
   existingFileRef?: string | null;
 }
 
-const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for proxy stability
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks keep proxy-safe uploads faster on Plesk
 
 function createUploadId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -140,11 +140,6 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
       // 1. Upload chunks. The server creates the upload session on the first chunk.
       for (let i = 0; i < totalChunks; i++) {
-        // Delay 100ms antar chunk untuk mencegah kemacetan socket/proxy pada server lokal
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
         const start = i * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
         const chunk = selectedFile.slice(start, end);

@@ -12,6 +12,9 @@ import fs from "fs";
 import path from "path";
 import * as mm from "music-metadata";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const session = await requireUser();
@@ -44,7 +47,9 @@ export async function POST(req: Request) {
         }
 
         const metaPath = path.join(activeTempDir, "meta.json");
-        if (!fs.existsSync(metaPath)) {
+        const isFirstChunk = Number(chunkIndex) === 0;
+
+        if (isFirstChunk || !fs.existsSync(metaPath)) {
             fs.writeFileSync(metaPath, JSON.stringify({
                 fileName: filename,
                 fileSize: data.fileSize,
@@ -52,19 +57,18 @@ export async function POST(req: Request) {
                 totalChunks,
                 filePurpose: data.filePurpose,
             }));
-        }
 
-        await db.execute(
-            `INSERT INTO release_uploads (upload_session_id, file_purpose, original_name, mime_type, file_size, status)
-             VALUES (?, ?, ?, ?, ?, 'PENDING')
-             ON DUPLICATE KEY UPDATE
-               file_purpose = VALUES(file_purpose),
-               original_name = VALUES(original_name),
-               mime_type = VALUES(mime_type),
-               file_size = VALUES(file_size),
-               updated_at = CURRENT_TIMESTAMP`,
-            [releaseUploadId, data.filePurpose, filename, data.mimeType, data.fileSize]
-        );
+            await db.execute(
+                `INSERT INTO release_uploads (upload_session_id, file_purpose, original_name, mime_type, file_size, status)
+                 VALUES (?, ?, ?, ?, ?, 'PENDING')
+                 ON DUPLICATE KEY UPDATE
+                   file_purpose = VALUES(file_purpose),
+                   original_name = VALUES(original_name),
+                   mime_type = VALUES(mime_type),
+                   file_size = VALUES(file_size)`,
+                [releaseUploadId, data.filePurpose, filename, data.mimeType, data.fileSize]
+            );
+        }
 
         if (!fs.existsSync(activeTempDir)) {
             return NextResponse.json({ success: false, message: "Upload session not found" }, { status: 404 });
@@ -227,7 +231,11 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: "Terjadi kesalahan pada server saat upload chunk" },
+      {
+        success: false,
+        error: error?.message || "Terjadi kesalahan pada server saat upload chunk",
+        message: error?.message || "Terjadi kesalahan pada server saat upload chunk",
+      },
       { status: 500 }
     );
   }
