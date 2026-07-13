@@ -18,6 +18,13 @@ interface ChunkUploaderProps {
 
 const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for proxy stability
 
+function createUploadId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 const readJsonResponse = async (res: Response, endpoint?: string) => {
   const text = await res.text();
   if (!text) return {};
@@ -127,28 +134,11 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
     const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
 
     try {
-      // 1. Init upload
-      const initRes = await fetch('/api/uploads/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          filePurpose,
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          mimeType: selectedFile.type,
-          totalChunks
-        })
-      });
-
-      const initData = await readJsonResponse(initRes);
-      if (!initRes.ok || !initData.success) throw new Error(initData.message || 'Failed to initialize upload');
-      
-      const currentUploadId = initData.uploadId;
+      const currentUploadId = createUploadId();
       setUploadId(currentUploadId);
       let completeData: any = null;
 
-      // 2. Upload chunks
+      // 1. Upload chunks. The server creates the upload session on the first chunk.
       for (let i = 0; i < totalChunks; i++) {
         // Delay 100ms antar chunk untuk mencegah kemacetan socket/proxy pada server lokal
         if (i > 0) {
@@ -166,7 +156,9 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
           chunkIndex: i,
           totalChunks,
           filename: selectedFile.name,
-          filePurpose
+          filePurpose,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type
         }));
         formData.append('chunk', chunk, selectedFile.name);
 

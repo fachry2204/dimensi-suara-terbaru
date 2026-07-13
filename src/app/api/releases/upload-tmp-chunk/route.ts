@@ -40,6 +40,33 @@ export async function POST(req: Request) {
 
         const activeTempDir = resolveUploadTempDir(releaseUploadId);
         if (!fs.existsSync(activeTempDir)) {
+            ensureDirectory(activeTempDir);
+        }
+
+        const metaPath = path.join(activeTempDir, "meta.json");
+        if (!fs.existsSync(metaPath)) {
+            fs.writeFileSync(metaPath, JSON.stringify({
+                fileName: filename,
+                fileSize: data.fileSize,
+                mimeType: data.mimeType,
+                totalChunks,
+                filePurpose: data.filePurpose,
+            }));
+        }
+
+        await db.execute(
+            `INSERT INTO release_uploads (upload_session_id, file_purpose, original_name, mime_type, file_size, status)
+             VALUES (?, ?, ?, ?, ?, 'PENDING')
+             ON DUPLICATE KEY UPDATE
+               file_purpose = VALUES(file_purpose),
+               original_name = VALUES(original_name),
+               mime_type = VALUES(mime_type),
+               file_size = VALUES(file_size),
+               updated_at = CURRENT_TIMESTAMP`,
+            [releaseUploadId, data.filePurpose, filename, data.mimeType, data.fileSize]
+        );
+
+        if (!fs.existsSync(activeTempDir)) {
             return NextResponse.json({ success: false, message: "Upload session not found" }, { status: 404 });
         }
 
@@ -51,7 +78,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true, done: false, chunkIndex });
         }
 
-        const metaPath = path.join(activeTempDir, "meta.json");
         if (!fs.existsSync(metaPath)) {
             return NextResponse.json({ success: false, message: "Metadata upload tidak ditemukan." }, { status: 404 });
         }
