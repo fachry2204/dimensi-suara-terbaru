@@ -762,6 +762,44 @@ const tableDefinitions: TableDefinition[] = [
     columns: [nullableInt("user_id"), nullableText("title"), nullableLongText("message"), { name: "is_read", definition: "TINYINT(1) NULL DEFAULT 0" }, createdAt],
   },
   {
+    name: "release_uploads",
+    createSql: `
+      CREATE TABLE IF NOT EXISTS release_uploads (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        upload_session_id VARCHAR(100) NULL,
+        release_id BIGINT UNSIGNED NULL,
+        track_id BIGINT UNSIGNED NULL,
+        file_purpose VARCHAR(50) NULL,
+        original_name VARCHAR(500) NULL,
+        mime_type VARCHAR(150) NULL,
+        file_size BIGINT UNSIGNED NULL,
+        file_path VARCHAR(500) NULL,
+        duration_seconds INT NULL,
+        sample_rate INT NULL,
+        bit_depth INT NULL,
+        status VARCHAR(30) NULL DEFAULT 'PENDING',
+        created_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `,
+    columns: [
+      nullableText("upload_session_id", 100),
+      nullableBigInt("release_id"),
+      nullableBigInt("track_id"),
+      nullableText("file_purpose", 50),
+      nullableText("original_name", 500),
+      nullableText("mime_type", 150),
+      nullableBigInt("file_size"),
+      nullableText("file_path", 500),
+      nullableInt("duration_seconds"),
+      nullableInt("sample_rate"),
+      nullableInt("bit_depth"),
+      { name: "status", definition: "VARCHAR(30) NULL DEFAULT 'PENDING'" },
+      createdAt,
+      updatedAt,
+    ],
+  },
+  {
     name: "system_logs",
     createSql: `
       CREATE TABLE IF NOT EXISTS system_logs (

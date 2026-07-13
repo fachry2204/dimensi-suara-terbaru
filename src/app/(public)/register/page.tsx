@@ -156,6 +156,26 @@ export default function RegisterScreen() {
   const [isWilayahLoading, setIsWilayahLoading] = useState(false);
   const [isPostalLoading, setIsPostalLoading] = useState(false);
 
+  const resetIndonesianRegion = () => {
+    setProvince('');
+    setCity('');
+    setDistrict('');
+    setSubdistrict('');
+    setPostalCode('');
+    setProvinceCode('');
+    setRegencyCode('');
+    setDistrictCode('');
+    setVillageCode('');
+    setRegencies([]);
+    setDistricts([]);
+    setVillages([]);
+  };
+
+  const getDefaultCropRect = (field: 'ktp' | 'npwp' | 'nib' | 'kemenkumham' | 'signature') => {
+    if (field === 'signature') return { x: 110, y: 150, w: 500, h: 180 };
+    return { x: 96, y: 72, w: 528, h: 336 };
+  };
+
   console.log('RegisterScreen rendering... checkingRegistration:', checkingRegistration, 'step:', step);
 
   useEffect(() => {
@@ -439,6 +459,9 @@ export default function RegisterScreen() {
       setCropFile(file);
       setCropImageUrl(url);
       setCropScale(1);
+      setCropAngle(0);
+      setCropTranslate({ x: 0, y: 0 });
+      setCropRect(getDefaultCropRect(field));
       return;
     }
     handleDocChange(field, file);
@@ -839,7 +862,11 @@ export default function RegisterScreen() {
             <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Negara</label>
             <select
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={(e) => {
+                const nextCountry = e.target.value;
+                setCountry(nextCountry);
+                resetIndonesianRegion();
+              }}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
             >
               <option value="">Pilih negara</option>
@@ -884,7 +911,11 @@ export default function RegisterScreen() {
           <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>Negara</label>
           <select
             value={country}
-            onChange={(e) => setCountry(e.target.value)}
+            onChange={(e) => {
+              const nextCountry = e.target.value;
+              setCountry(nextCountry);
+              resetIndonesianRegion();
+            }}
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
           >
             <option value="">Pilih negara</option>
@@ -1418,20 +1449,15 @@ export default function RegisterScreen() {
             <p className="text-[10px] font-semibold text-slate-800">Crop {cropField.toUpperCase()}</p>
             <div className="w-full flex items-center justify-center">
               <div
+                data-crop-stage="true"
                 className="relative bg-slate-100 rounded-xl overflow-hidden"
                 style={{ width: 720, height: 480 }}
                 onMouseDown={(e) => {
                   const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
                   const x = e.clientX - rect.left;
                   const y = e.clientY - rect.top;
-                  const inRect = x >= cropRect.x && x <= cropRect.x + cropRect.w && y >= cropRect.y && y <= cropRect.y + cropRect.h;
-                  if (inRect) {
-                    setCropDragMode('moveRect');
-                    setCropDragStart({ x, y, rect: { ...cropRect } });
-                  } else {
-                    setCropDragMode('moveImage');
-                    setCropDragStart({ x, y, translate: { ...cropTranslate } });
-                  }
+                  setCropDragMode('moveImage');
+                  setCropDragStart({ x, y, translate: { ...cropTranslate } });
                 }}
                 onMouseMove={(e) => {
                   if (!cropDragMode || !cropDragStart) return;
@@ -1512,14 +1538,14 @@ export default function RegisterScreen() {
                   className="absolute border-2 border-white/80 shadow-inner"
                   style={{ left: cropRect.x, top: cropRect.y, width: cropRect.w, height: cropRect.h, boxShadow: '0 0 0 9999px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.3)', borderRadius: 6 }}
                 >
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('tl'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: -5, top: -5, cursor: 'nwse-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('tr'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, right: -5, top: -5, cursor: 'nesw-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('bl'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: -5, bottom: -5, cursor: 'nesw-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('br'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, right: -5, bottom: -5, cursor: 'nwse-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('t'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: '50%', top: -5, transform: 'translateX(-50%)', cursor: 'ns-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('b'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: '50%', bottom: -5, transform: 'translateX(-50%)', cursor: 'ns-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('l'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: -5, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', borderRadius: 2 }} />
-                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = (e.currentTarget.parentElement as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('r'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, right: -5, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('tl'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: -5, top: -5, cursor: 'nwse-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('tr'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, right: -5, top: -5, cursor: 'nesw-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('bl'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: -5, bottom: -5, cursor: 'nesw-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('br'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, right: -5, bottom: -5, cursor: 'nwse-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('t'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: '50%', top: -5, transform: 'translateX(-50%)', cursor: 'ns-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('b'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: '50%', bottom: -5, transform: 'translateX(-50%)', cursor: 'ns-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('l'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, left: -5, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', borderRadius: 2 }} />
+                  <div onMouseDown={(e) => { e.stopPropagation(); const rect = ((e.currentTarget as HTMLDivElement).closest('[data-crop-stage]') as HTMLDivElement).getBoundingClientRect(); setCropDragMode('resize'); setCropResizeHandle('r'); setCropDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top, rect: { ...cropRect } }); }} className="absolute bg-white border border-slate-400" style={{ width: 10, height: 10, right: -5, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', borderRadius: 2 }} />
                 </div>
               </div>
             </div>
