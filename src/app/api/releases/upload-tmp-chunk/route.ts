@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { db } from "@/lib/db";
+import {
+    ensureDirectory,
+    ensureReleaseUploadTable,
+    getUploadAudioDir,
+    isValidUploadId,
+    resolveUploadTempDir,
+} from "@/lib/release-upload-schema";
 import fs from "fs";
 import path from "path";
+import * as mm from "music-metadata";
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +24,111 @@ export async function POST(req: Request) {
     }
     
     const { field, fileId, chunkIndex, totalChunks, filename } = data;
+    const releaseUploadId = String(data.uploadId || data.releaseUploadId || "").trim();
     const chunk = formData.get('chunk') as File;
+
+    if (data.releaseUploadMode === true || data.releaseUploadMode === "true") {
+        await ensureReleaseUploadTable();
+
+        if (!releaseUploadId || !isValidUploadId(releaseUploadId)) {
+            return NextResponse.json({ success: false, message: "Upload session tidak valid." }, { status: 400 });
+        }
+
+        if (!chunk || chunkIndex === undefined || totalChunks === undefined) {
+            return NextResponse.json({ success: false, message: "Missing chunk data" }, { status: 400 });
+        }
+
+        const activeTempDir = resolveUploadTempDir(releaseUploadId);
+        if (!fs.existsSync(activeTempDir)) {
+            return NextResponse.json({ success: false, message: "Upload session not found" }, { status: 404 });
+        }
+
+        const arrayBuffer = await chunk.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        fs.writeFileSync(path.join(activeTempDir, `chunk-${chunkIndex}`), buffer);
+
+        if (Number(chunkIndex) !== Number(totalChunks) - 1) {
+            return NextResponse.json({ success: true, done: false, chunkIndex });
+        }
+
+        const metaPath = path.join(activeTempDir, "meta.json");
+        if (!fs.existsSync(metaPath)) {
+            return NextResponse.json({ success: false, message: "Metadata upload tidak ditemukan." }, { status: 404 });
+        }
+
+        const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+        const ext = path.extname(meta.fileName || filename || "") || (meta.mimeType === "audio/flac" ? ".flac" : ".wav");
+        const finalDir = getUploadAudioDir();
+        ensureDirectory(finalDir);
+
+        const finalFilename = `${releaseUploadId}${ext}`;
+        const finalPath = path.join(finalDir, finalFilename);
+        const writeStream = fs.createWriteStream(finalPath);
+
+        for (let i = 0; i < Number(totalChunks); i++) {
+            const chunkPath = path.join(activeTempDir, `chunk-${i}`);
+            if (!fs.existsSync(chunkPath)) {
+                return NextResponse.json({ success: false, message: "Upload belum selesai." }, { status: 400 });
+            }
+            writeStream.write(fs.readFileSync(chunkPath));
+        }
+
+        await new Promise((resolve, reject) => {
+            writeStream.on("finish", () => resolve(true));
+            writeStream.on("error", reject);
+            writeStream.end();
+        });
+
+        const metadata = await mm.parseFile(finalPath);
+        const format = metadata.format;
+
+        if (!format) {
+            fs.unlinkSync(finalPath);
+            return NextResponse.json({ success: false, message: "File audio rusak atau tidak dapat dibaca." }, { status: 400 });
+        }
+
+        const codecName = (format.container || format.codec || "").toUpperCase();
+        if (codecName !== "WAVE" && codecName !== "FLAC") {
+            fs.unlinkSync(finalPath);
+            return NextResponse.json({ success: false, message: "Format audio harus WAV atau FLAC." }, { status: 400 });
+        }
+
+        const bitDepth = format.bitsPerSample || 16;
+        if (bitDepth < 16) {
+            fs.unlinkSync(finalPath);
+            return NextResponse.json({ success: false, message: "Bit depth audio minimal 16-bit." }, { status: 400 });
+        }
+
+        const duration = format.duration || 0;
+        if (meta.filePurpose === "SOCIAL_MEDIA_AUDIO" && (duration < 30 || duration > 60)) {
+            fs.unlinkSync(finalPath);
+            return NextResponse.json({ success: false, message: "Durasi file sosial media harus antara 30 hingga 60 detik." }, { status: 400 });
+        }
+
+        const sampleRate = format.sampleRate || 44100;
+        const relativePath = `/uploads/audio/${finalFilename}`;
+
+        await db.execute(
+            `UPDATE release_uploads
+             SET status = 'COMPLETED', file_path = ?, duration_seconds = ?, sample_rate = ?, bit_depth = ?
+             WHERE upload_session_id = ?`,
+            [relativePath, Math.round(duration), sampleRate, bitDepth, releaseUploadId]
+        );
+
+        fs.rmSync(activeTempDir, { recursive: true, force: true });
+
+        return NextResponse.json({
+            success: true,
+            done: true,
+            data: {
+                filePath: relativePath,
+                duration,
+                sampleRate,
+                bitDepth,
+                format: codecName,
+            },
+        });
+    }
     
     if (!chunk || !fileId || chunkIndex === undefined || !totalChunks) {
         return NextResponse.json({ error: "Missing chunk data" }, { status: 400 });

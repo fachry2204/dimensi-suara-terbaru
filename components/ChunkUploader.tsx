@@ -18,7 +18,7 @@ interface ChunkUploaderProps {
 
 const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for proxy stability
 
-const readJsonResponse = async (res: Response) => {
+const readJsonResponse = async (res: Response, endpoint?: string) => {
   const text = await res.text();
   if (!text) return {};
 
@@ -27,7 +27,7 @@ const readJsonResponse = async (res: Response) => {
   } catch {
     const isHtml = text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html');
     const message = isHtml
-      ? `Server mengembalikan halaman error (${res.status}). Silakan ulangi upload.`
+      ? `Server mengembalikan halaman error (${res.status})${endpoint ? ` pada ${endpoint}` : ''}. Silakan ulangi upload.`
       : text.slice(0, 200);
     throw new Error(message);
   }
@@ -146,6 +146,7 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
       
       const currentUploadId = initData.uploadId;
       setUploadId(currentUploadId);
+      let completeData: any = null;
 
       // 2. Upload chunks
       for (let i = 0; i < totalChunks; i++) {
@@ -159,44 +160,51 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
         const chunk = selectedFile.slice(start, end);
 
         const formData = new FormData();
-        formData.append('uploadId', currentUploadId);
-        formData.append('chunkIndex', i.toString());
+        formData.append('data', JSON.stringify({
+          releaseUploadMode: true,
+          uploadId: currentUploadId,
+          chunkIndex: i,
+          totalChunks,
+          filename: selectedFile.name,
+          filePurpose
+        }));
         formData.append('chunk', chunk, selectedFile.name);
 
-        const chunkRes = await fetch('/api/uploads/chunk', {
+        const chunkEndpoint = '/api/releases/upload-tmp-chunk';
+        const chunkRes = await fetch(chunkEndpoint, {
           method: 'POST',
           credentials: 'include',
           body: formData
         });
 
+        let chunkData: any = null;
         if (!chunkRes.ok) {
           let errMsg = 'Terjadi kesalahan saat upload, silakan ulangi.';
           try {
-            const errData = await readJsonResponse(chunkRes);
+            const errData = await readJsonResponse(chunkRes, chunkEndpoint);
             if (errData && errData.message) {
               errMsg = `${errData.message}. Silakan ulangi.`;
+            } else if (errData && errData.error) {
+              errMsg = `${errData.error}. Silakan ulangi.`;
             }
           } catch (jsonErr: any) {
             errMsg = jsonErr.message || errMsg;
           }
           throw new Error(errMsg);
         }
+
+        chunkData = await readJsonResponse(chunkRes, chunkEndpoint);
+        if (chunkData.done) {
+          completeData = chunkData;
+        }
         
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
 
-      // 3. Complete and Validate
+      // 3. Validate completed data from the last chunk
       setStatus('VALIDATING');
-      const completeRes = await fetch('/api/uploads/complete', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploadId: currentUploadId })
-      });
-
-      const completeData = await readJsonResponse(completeRes);
-      if (!completeRes.ok || !completeData.success) {
-        throw new Error(completeData.message || 'File tidak valid atau rusak');
+      if (!completeData || !completeData.success) {
+        throw new Error(completeData?.message || 'File tidak valid atau rusak');
       }
 
       setDuration(completeData.data?.duration || null);
