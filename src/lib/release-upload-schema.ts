@@ -68,6 +68,16 @@ export function getUploadAudioDir() {
   return path.join(process.cwd(), "public", "uploads", "audio");
 }
 
+export function isValidUploadId(uploadId: string) {
+  return /^[A-Za-z0-9_-]+$/.test(uploadId);
+}
+
+export function resolveUploadTempDir(uploadId: string) {
+  const tempDir = getUploadTempDir(uploadId);
+  const legacyTempDir = path.join(process.cwd(), "uploads", "temp", uploadId);
+  return fs.existsSync(tempDir) ? tempDir : legacyTempDir;
+}
+
 export function ensureDirectory(dir: string) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

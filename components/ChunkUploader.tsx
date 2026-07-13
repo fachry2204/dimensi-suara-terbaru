@@ -159,10 +159,11 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
         const chunk = selectedFile.slice(start, end);
 
         const formData = new FormData();
+        formData.append('uploadId', currentUploadId);
         formData.append('chunkIndex', i.toString());
         formData.append('chunk', chunk, selectedFile.name);
 
-        const chunkRes = await fetch(`/api/uploads/${currentUploadId}/chunk`, {
+        const chunkRes = await fetch('/api/uploads/chunk', {
           method: 'POST',
           credentials: 'include',
           body: formData
@@ -186,9 +187,11 @@ export const ChunkUploader: React.FC<ChunkUploaderProps> = ({
 
       // 3. Complete and Validate
       setStatus('VALIDATING');
-      const completeRes = await fetch(`/api/uploads/${currentUploadId}/complete`, {
+      const completeRes = await fetch('/api/uploads/complete', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadId: currentUploadId })
       });
 
       const completeData = await readJsonResponse(completeRes);
