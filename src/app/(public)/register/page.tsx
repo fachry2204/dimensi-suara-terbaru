@@ -693,6 +693,10 @@ export default function RegisterScreen() {
 
   const goPrevStep = () => {
     setRegError('');
+    if (step === 1) {
+      setAccountType(null);
+      return;
+    }
     if (step > 1) setStep(step - 1);
   };
 
@@ -791,25 +795,55 @@ export default function RegisterScreen() {
     </div>
   );
 
-  const renderStep1 = () => (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 mb-4">
+  const renderAccountTypeSelection = () => (
+    <div className="space-y-6 py-4">
+      <div className="text-center">
+        <p className="text-[10px] uppercase tracking-[0.24em] text-pink-500 font-bold">Pilih Tipe Akun</p>
+        <h1 className="mt-2 text-2xl font-extrabold text-slate-950">Daftar sebagai siapa?</h1>
+        <p className="mt-2 text-sm text-slate-500">Pilih tipe akun terlebih dahulu, lalu lanjut mengisi data pendaftaran.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           type="button"
           onClick={() => handleSelectAccountType('PERSONAL')}
-          className={`account-type-option account-type-personal flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-medium
-            ${accountType === 'PERSONAL' ? 'account-type-active' : ''}`}
+          className="group min-h-[180px] rounded-2xl border border-pink-100 bg-gradient-to-br from-white to-pink-50 p-6 text-left shadow-lg shadow-pink-950/5 transition-all hover:-translate-y-1 hover:border-pink-300 hover:shadow-pink-500/20"
         >
-          Personal
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white shadow-lg shadow-pink-500/20">
+            <CheckCircle2 size={22} />
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-950">Personal</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Untuk pemilik karya individu yang mendaftarkan rilis atas nama pribadi.</p>
+          <p className="mt-5 text-sm font-bold text-pink-600 group-hover:text-purple-600">Pilih Personal</p>
         </button>
         <button
           type="button"
           onClick={() => handleSelectAccountType('COMPANY')}
-          className={`account-type-option account-type-company flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-medium
-            ${accountType === 'COMPANY' ? 'account-type-active' : ''}`}
+          className="group min-h-[180px] rounded-2xl border border-purple-100 bg-gradient-to-br from-white to-purple-50 p-6 text-left shadow-lg shadow-purple-950/5 transition-all hover:-translate-y-1 hover:border-purple-300 hover:shadow-purple-500/20"
         >
-          <Building2 size={14} />
-          Perusahaan
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[#8b5cf6] to-[#38bdf8] text-white shadow-lg shadow-purple-500/20">
+            <Building2 size={22} />
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-950">Perusahaan</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Untuk label, badan usaha, atau perusahaan yang mengelola katalog rilis.</p>
+          <p className="mt-5 text-sm font-bold text-purple-600 group-hover:text-sky-600">Pilih Perusahaan</p>
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderStep1 = () => (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-bold">Tipe Akun</p>
+          <p className="text-sm font-extrabold text-slate-950">{accountType === 'COMPANY' ? 'Perusahaan' : 'Personal'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setAccountType(null)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-pink-600 hover:border-pink-300"
+        >
+          Ubah Pilihan
         </button>
       </div>
       {accountType === 'COMPANY' && (
@@ -1314,19 +1348,22 @@ export default function RegisterScreen() {
   );
 
   return (
-    <div className="register-screen min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
+    <div className="register-screen min-h-screen flex items-center justify-center bg-[#050713] p-4 relative overflow-hidden">
       {/* Background Layer with Opacity */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-500 bg-black"
+        className="absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-500"
         style={{ 
             backgroundImage: branding.login_background ? `url(${assetUrl(branding.login_background)})` : undefined,
             opacity: (branding.login_bg_opacity ?? 100) / 100
         }}
       />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_22%_12%,rgba(255,61,143,0.28),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(139,92,246,0.34),transparent_34%),linear-gradient(135deg,#050713_0%,#090b1a_46%,#18091f_100%)]" />
+      <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-[#ff3d8f]/15 blur-3xl" />
+      <div className="absolute -left-20 bottom-16 h-80 w-80 rounded-full bg-[#4f7cff]/15 blur-3xl" />
 
       <div 
-        className={`w-full max-w-3xl rounded-3xl p-6 md:p-8 animate-fade-in-up relative z-10 
-            ${branding.login_glass_effect !== 'true' ? 'backdrop-blur-sm shadow-2xl shadow-blue-900/10 border border-white/50' : ''}`}
+        className={`w-full max-w-3xl rounded-3xl p-6 md:p-8 animate-fade-in-up relative z-10 overflow-hidden
+            ${branding.login_glass_effect !== 'true' ? 'backdrop-blur-xl shadow-2xl shadow-pink-950/30 border border-white/20' : ''}`}
         style={branding.login_glass_effect === 'true' ? {
             background: 'rgba(255, 255, 255, 0.1)',
             backdropFilter: 'blur(16px)',
@@ -1338,39 +1375,41 @@ export default function RegisterScreen() {
         {/* Form Background Layer with Opacity - Only when NOT glass effect */}
         {branding.login_glass_effect !== 'true' && (
             <div 
-                className="absolute inset-0 rounded-3xl -z-10 transition-opacity duration-300 bg-white"
+                className="absolute inset-0 rounded-3xl -z-10 transition-opacity duration-300 bg-white/95"
                 style={{ 
-                    background: branding.login_form_bg_color || '#ffffff',
-                    opacity: (branding.login_form_bg_opacity ?? 90) / 100
+                    background: branding.login_form_bg_color || 'rgba(255, 255, 255, 0.95)',
+                    opacity: Math.max((branding.login_form_bg_opacity ?? 95) / 100, 0.94)
                 }}
             />
         )}
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#ff3d8f] via-[#8b5cf6] to-[#38bdf8]" />
 
         <div className="flex items-center justify-between mb-6">
           <button
             type="button"
             onClick={() => router.push('/login')}
-            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-700"
-            style={{ color: branding.login_form_text_color }}
+            className="flex items-center gap-1 text-[10px] font-semibold text-slate-500 hover:text-pink-600 transition-colors"
           >
             <ChevronLeft size={12} />
             Kembali ke Login
           </button>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold" style={{ color: branding.login_form_text_color, opacity: 0.7 }}>Pendaftaran Akun</p>
-            <p className="text-[10px] font-bold text-slate-800" style={{ color: branding.login_form_text_color }}>{accountType === 'COMPANY' ? 'Perusahaan' : accountType === 'PERSONAL' ? 'Personal' : 'Pilih Tipe Akun'}</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-pink-500 font-bold">Pendaftaran Akun</p>
+            <p className="text-[10px] font-bold text-slate-900">{accountType === 'COMPANY' ? 'Perusahaan' : accountType === 'PERSONAL' ? 'Personal' : 'Pilih Tipe Akun'}</p>
           </div>
         </div>
-        <div className="flex items-center justify-between mb-4">
-          {[1, 2, 3, 4].map((s) => (
-            <div key={s} className="flex-1 flex items-center">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step === s ? 'bg-blue-600 text-white' : step > s ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                {step > s ? <CheckCircle2 size={10} /> : s}
+        {accountType && (
+          <div className="flex items-center justify-between mb-4">
+            {[1, 2, 3, 4].map((s) => (
+              <div key={s} className="flex-1 flex items-center">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm ${step === s ? 'bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white' : step > s ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                  {step > s ? <CheckCircle2 size={10} /> : s}
+                </div>
+                {s < 4 && <div className={`flex-1 h-[2px] mx-1 ${step > s ? 'bg-gradient-to-r from-emerald-500 to-[#8b5cf6]' : 'bg-slate-200'}`} />}
               </div>
-              {s < 4 && <div className={`flex-1 h-[2px] mx-1 ${step > s ? 'bg-green-500' : 'bg-slate-200'}`} />}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         {regError && (
           <div className="mb-4 bg-red-50 text-red-600 text-[10px] p-3 rounded-xl flex items-center gap-2 border border-red-100">
             <AlertCircle size={14} />
@@ -1378,46 +1417,48 @@ export default function RegisterScreen() {
           </div>
         )}
         <div className="mb-6">
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-          {step === 4 && renderStep4()}
+          {!accountType && renderAccountTypeSelection()}
+          {accountType && step === 1 && renderStep1()}
+          {accountType && step === 2 && renderStep2()}
+          {accountType && step === 3 && renderStep3()}
+          {accountType && step === 4 && renderStep4()}
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={goPrevStep}
-            disabled={step === 1}
-            className={`flex-1 py-2 rounded-xl border text-[10px] font-semibold ${step === 1 ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-300 text-slate-700 hover:border-slate-400'}`}
-          >
-            Sebelumnya
-          </button>
-          {step < 4 ? (
+        {accountType && (
+          <div className="flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={goNextStep}
-              disabled={(step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup))}
-              className={`flex-1 py-2 rounded-xl text-[10px] font-semibold shadow-md shadow-blue-500/25 active:scale-95 ${
-                (step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup))
-                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:brightness-110'
-              }`}
+              onClick={goPrevStep}
+              className="flex-1 py-2 rounded-xl border border-slate-300 text-[10px] font-semibold text-slate-700 transition-all hover:border-pink-300 hover:text-pink-600"
             >
-              Lanjut
+              Sebelumnya
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRegisterSubmit}
-              disabled={isRegistering}
-              className={`flex-1 py-2 rounded-xl text-[10px] font-semibold shadow-md shadow-blue-500/25 active:scale-95 ${
-                isRegistering ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:brightness-110'
-              }`}
-            >
-              {isRegistering ? 'Memproses...' : 'Kirim Pendaftaran'}
-            </button>
-          )}
-        </div>
+            {step < 4 ? (
+              <button
+                type="button"
+                onClick={goNextStep}
+                disabled={(step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup))}
+                className={`flex-1 py-2 rounded-xl text-[10px] font-semibold shadow-md shadow-pink-500/25 active:scale-95 transition-all ${
+                  (step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup))
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white hover:brightness-110'
+                }`}
+              >
+                Lanjut
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRegisterSubmit}
+                disabled={isRegistering}
+                className={`flex-1 py-2 rounded-xl text-[10px] font-semibold shadow-md shadow-pink-500/25 active:scale-95 transition-all ${
+                  isRegistering ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white hover:brightness-110'
+                }`}
+              >
+                {isRegistering ? 'Memproses...' : 'Kirim Pendaftaran'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {regErrorModalOpen && regError && (
@@ -1434,7 +1475,7 @@ export default function RegisterScreen() {
               <button
                 type="button"
                 onClick={() => setRegErrorModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-semibold hover:bg-blue-700"
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white text-[10px] font-semibold hover:brightness-110"
               >
                 Mengerti
               </button>
@@ -1568,7 +1609,7 @@ export default function RegisterScreen() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={cancelCrop} className="px-4 py-2 rounded-xl border border-slate-200 text-[10px] text-slate-700">Batal</button>
-              <button type="button" onClick={applyCrop} className="px-4 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-semibold hover:bg-blue-700">Simpan Crop</button>
+              <button type="button" onClick={applyCrop} className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white text-[10px] font-semibold hover:brightness-110">Simpan Crop</button>
             </div>
           </div>
         </div>
