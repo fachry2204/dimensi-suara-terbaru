@@ -12,10 +12,14 @@ const parseResponse = async (res: Response) => {
         throw err;
     }
     if (!res.ok) {
-        // Try read json, else text
+        let responseText = '';
         try {
-            const j = await res.json();
+            responseText = await res.text();
+            const j = responseText ? JSON.parse(responseText) : {};
             let msg = j.error || j.message || 'Request failed';
+            if (j.details && typeof j.details === 'string') {
+                msg += `: ${j.details}`;
+            }
             if (j.duplicate && Array.isArray(j.duplicate) && j.duplicate.length > 0) {
                 msg += ` (Duplikasi: ${j.duplicate.join(', ')})`;
             }
@@ -23,8 +27,11 @@ const parseResponse = async (res: Response) => {
             (err as any).status = res.status;
             err.payload = j;
             throw err;
-        } catch {
-            const t = await res.text().catch(() => '');
+        } catch (error: any) {
+            if (error?.payload) {
+                throw error;
+            }
+            const t = responseText;
             // Suppressed console.error to avoid Next.js dev overlay for handled network errors
             const msg = t || (res.status === 404 ? 'Resource not found (404)' : `Request failed (Status: ${res.status} ${res.statusText})`);
             const err: any = new Error(msg);

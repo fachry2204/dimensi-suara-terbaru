@@ -235,6 +235,10 @@ export async function POST(request: Request) {
     if (error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.json({ error: "Terjadi kesalahan pada server", details: error.message }, { status: 500 });
+    return NextResponse.json({
+      error: error?.message || "Terjadi kesalahan pada server",
+      message: error?.message || "Terjadi kesalahan pada server",
+      details: error?.stack || error?.message,
+    }, { status: 500 });
   }
 }

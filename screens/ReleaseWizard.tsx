@@ -605,13 +605,18 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                                         <button
                                             type="button"
                                             onClick={() => focusMissingField(field)}
-                                            className={`w-full text-left px-3 py-2 rounded-md border transition-colors ${
+                                            className={`w-full text-left px-3 py-2 rounded-md border transition-colors font-semibold ${
                                                 field.targetId
-                                                    ? 'border-red-100 bg-red-50/60 hover:bg-red-100 text-slate-800'
-                                                    : 'border-slate-100 bg-slate-50 text-slate-700 cursor-default'
+                                                    ? '!border-red-200 !bg-red-50 hover:!bg-red-100 !text-red-900'
+                                                    : '!border-slate-200 !bg-slate-50 !text-slate-800 cursor-default'
                                             }`}
+                                            style={{
+                                                color: field.targetId ? '#7f1d1d' : '#1f2937',
+                                                backgroundColor: field.targetId ? '#fef2f2' : '#f8fafc',
+                                            }}
                                         >
-                                            <strong>{field.label}</strong> is required
+                                            <strong style={{ color: field.targetId ? '#991b1b' : '#111827' }}>{field.label}</strong>
+                                            <span style={{ color: field.targetId ? '#7f1d1d' : '#334155' }}> is required</span>
                                         </button>
                                     </li>
                                 ))}
