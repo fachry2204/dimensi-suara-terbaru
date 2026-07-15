@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Edit3, Eye, X } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Eye, KeyRound, X } from "lucide-react";
 import { UserContractStatus } from "@/components/admin/users/UserContractStatus";
 
 interface UserDetails {
@@ -111,7 +111,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [resetPasswordMessage, setResetPasswordMessage] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<string | null>(null);
 
   // Editable percentage fields
@@ -170,6 +172,34 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       setTimeout(() => setSaveSuccess(false), 3000);
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function resetUserPassword() {
+    if (!user || isResettingPassword) return;
+    const confirmed = window.confirm("Reset password user ini ke password standar User123!?");
+    if (!confirmed) return;
+
+    setIsResettingPassword(true);
+    setResetPasswordMessage(null);
+
+    try {
+      const res = await fetch(`/api/admin/users/${id}/reset-password`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Gagal reset password user");
+      }
+
+      setResetPasswordMessage(data?.message || "Password user berhasil direset ke User123!");
+      setTimeout(() => setResetPasswordMessage(null), 5000);
+    } catch (err: any) {
+      setResetPasswordMessage(err?.message || "Gagal reset password user");
+    } finally {
+      setIsResettingPassword(false);
     }
   }
 
@@ -317,6 +347,14 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             <ArrowLeft size={16} /> Kembali ke Daftar User
           </Link>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={resetUserPassword}
+              disabled={isResettingPassword}
+              className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60 transition-all shadow-md shadow-amber-500/20"
+            >
+              <KeyRound size={14} /> {isResettingPassword ? "Mereset..." : "Reset Password"}
+            </button>
             <Link href={`/admin/users/${user.id}/edit`} className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20">
               <Edit3 size={14} /> Edit Data
             </Link>
@@ -332,6 +370,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-blue-600">{user.email}</p>
           <p className="text-xs text-slate-500 mt-0.5">Role: {user.role}</p>
           <p className="text-xs text-slate-500">Joined: {new Date(user.created_at).toISOString().split("T")[0]}</p>
+          {resetPasswordMessage && (
+            <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold ${
+              resetPasswordMessage.toLowerCase().includes("gagal")
+                ? "bg-red-50 text-red-700"
+                : "bg-emerald-50 text-emerald-700"
+            }`}>
+              {resetPasswordMessage}
+            </p>
+          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">

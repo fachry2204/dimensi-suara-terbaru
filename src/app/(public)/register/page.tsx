@@ -335,6 +335,10 @@ export default function RegisterScreen() {
       setRegencyCode('');
       setDistrictCode('');
       setVillageCode('');
+      setCity('');
+      setDistrict('');
+      setSubdistrict('');
+      setPostalCode('');
       return;
     }
     const loadRegencies = async () => {
@@ -361,6 +365,9 @@ export default function RegisterScreen() {
       setVillages([]);
       setDistrictCode('');
       setVillageCode('');
+      setDistrict('');
+      setSubdistrict('');
+      setPostalCode('');
       return;
     }
     const loadDistricts = async () => {
@@ -385,6 +392,8 @@ export default function RegisterScreen() {
     if (!districtCode) {
       setVillages([]);
       setVillageCode('');
+      setSubdistrict('');
+      setPostalCode('');
       return;
     }
     const loadVillages = async () => {
@@ -923,20 +932,27 @@ export default function RegisterScreen() {
                   setDistrict('');
                   setSubdistrict('');
                   setPostalCode('');
+                  setRegencyCode('');
+                  setDistrictCode('');
+                  setVillageCode('');
+                  setRegencies([]);
+                  setDistricts([]);
+                  setVillages([]);
                 }}
+                disabled={isWilayahLoading && provinces.length === 0}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
               >
-                <option value="">Pilih provinsi</option>
+                <option value="">{isWilayahLoading && provinces.length === 0 ? 'Memuat provinsi...' : 'Pilih provinsi'}</option>
                 {provinces.map((p) => (<option key={p.code} value={p.code}>{p.name}</option>))}
               </select>
             ) : (
-              <input
-                type="text"
-                value={province}
-                onChange={(e) => setProvince(e.target.value)}
+              <select
+                value=""
+                disabled
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
-                placeholder="Provinsi"
-              />
+              >
+                <option>{isWilayahLoading ? 'Memuat provinsi...' : 'Provinsi belum tersedia'}</option>
+              </select>
             )}
           </div>
         </div>
@@ -970,25 +986,30 @@ export default function RegisterScreen() {
                   onChange={(e) => {
                     const code = e.target.value;
                     setRegencyCode(code);
-                    const selected = regencies.find((r) => r.code === code);
-                    setCity(selected?.name || '');
-                    setDistrict('');
-                    setSubdistrict('');
-                    setPostalCode('');
-                  }}
+                  const selected = regencies.find((r) => r.code === code);
+                  setCity(selected?.name || '');
+                  setDistrict('');
+                  setSubdistrict('');
+                  setPostalCode('');
+                  setDistrictCode('');
+                  setVillageCode('');
+                  setDistricts([]);
+                  setVillages([]);
+                }}
+                  disabled={!provinceCode || isWilayahLoading}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
                 >
-                  <option value="">Pilih kota / kabupaten</option>
+                  <option value="">{!provinceCode ? 'Pilih provinsi dahulu' : isWilayahLoading ? 'Memuat kota / kabupaten...' : 'Pilih kota / kabupaten'}</option>
                   {regencies.map((r) => (<option key={r.code} value={r.code}>{r.name}</option>))}
                 </select>
               ) : (
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                <select
+                  value=""
+                  disabled
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
-                  placeholder="Kota / Kabupaten"
-                />
+                >
+                  <option>{!provinceCode ? 'Pilih provinsi dahulu' : isWilayahLoading ? 'Memuat kota / kabupaten...' : 'Kota / kabupaten belum tersedia'}</option>
+                </select>
               )}
             </div>
           </div>
@@ -1005,20 +1026,23 @@ export default function RegisterScreen() {
                     setDistrict(selected?.name || '');
                     setSubdistrict('');
                     setPostalCode('');
+                    setVillageCode('');
+                    setVillages([]);
                   }}
+                  disabled={!regencyCode || isWilayahLoading}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
                 >
-                  <option value="">Pilih kecamatan</option>
+                  <option value="">{!regencyCode ? 'Pilih kota / kabupaten dahulu' : isWilayahLoading ? 'Memuat kecamatan...' : 'Pilih kecamatan'}</option>
                   {districts.map((d) => (<option key={d.code} value={d.code}>{d.name}</option>))}
                 </select>
               ) : (
-                <input
-                  type="text"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
+                <select
+                  value=""
+                  disabled
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
-                  placeholder="Kecamatan"
-                />
+                >
+                  <option>{!regencyCode ? 'Pilih kota / kabupaten dahulu' : isWilayahLoading ? 'Memuat kecamatan...' : 'Kecamatan belum tersedia'}</option>
+                </select>
               )}
             </div>
             <div className="space-y-2">
@@ -1032,6 +1056,7 @@ export default function RegisterScreen() {
                     const selected = villages.find((v) => v.code === code);
                     const name = selected?.name || '';
                     setSubdistrict(name);
+                    setPostalCode('');
                     if (!name || !district || !city || !province) {
                       setPostalCode('');
                       return;
@@ -1053,19 +1078,20 @@ export default function RegisterScreen() {
                       setIsPostalLoading(false);
                     }
                   }}
+                  disabled={!districtCode || isWilayahLoading}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
                 >
-                  <option value="">Pilih kelurahan</option>
+                  <option value="">{!districtCode ? 'Pilih kecamatan dahulu' : isWilayahLoading ? 'Memuat kelurahan...' : 'Pilih kelurahan'}</option>
                   {villages.map((v) => (<option key={v.code} value={v.code}>{v.name}</option>))}
                 </select>
               ) : (
-                <input
-                  type="text"
-                  value={subdistrict}
-                  onChange={(e) => setSubdistrict(e.target.value)}
+                <select
+                  value=""
+                  disabled
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
-                  placeholder="Kelurahan"
-                />
+                >
+                  <option>{!districtCode ? 'Pilih kecamatan dahulu' : isWilayahLoading ? 'Memuat kelurahan...' : 'Kelurahan belum tersedia'}</option>
+                </select>
               )}
             </div>
             <div className="space-y-2">
@@ -1073,9 +1099,9 @@ export default function RegisterScreen() {
               <input
                 type="text"
                 value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
+                readOnly
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px] max-w-[160px]"
-                placeholder={isPostalLoading ? 'Mencari kodepos...' : 'Kodepos'}
+                placeholder={!villageCode ? 'Pilih kelurahan' : isPostalLoading ? 'Mencari kodepos...' : 'Kodepos otomatis'}
               />
             </div>
           </div>
