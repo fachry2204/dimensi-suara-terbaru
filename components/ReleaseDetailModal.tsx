@@ -23,6 +23,17 @@ interface Props {
   hideDistributionTab?: boolean;
 }
 
+const audioPreviewUrl = (filePath: string) => {
+  if (!filePath.includes('/uploads/')) return assetUrl(filePath);
+
+  const relativePath = `/uploads/${filePath.split('/uploads/')[1]}`;
+  const params = new URLSearchParams({
+    filePath: relativePath,
+    inline: '1',
+  });
+  return `${API_BASE_URL}/releases/download?${params.toString()}`;
+};
+
 export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, onUpdate, availableAggregators, mode = 'edit', onEdit, onDelete, userRole, isUpdatingCoverArt, token, onCoverArtUpdated, hideDistributionTab = false }) => {
   const [activeTab, setActiveTab] = useState<'INFO' | 'DISTRIBUTION'>('INFO');
   
@@ -127,12 +138,12 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
     release.tracks.forEach(t => {
         if ((t as any).audioFile) {
             const af: any = (t as any).audioFile;
-            if (typeof af === 'string') newUrls[`${t.id}_full`] = assetUrl(af);
+            if (typeof af === 'string') newUrls[`${t.id}_full`] = audioPreviewUrl(af);
             else if (af instanceof Blob) newUrls[`${t.id}_full`] = URL.createObjectURL(af);
         }
         if ((t as any).audioClip) {
             const ac: any = (t as any).audioClip;
-            if (typeof ac === 'string') newUrls[`${t.id}_clip`] = assetUrl(ac);
+            if (typeof ac === 'string') newUrls[`${t.id}_clip`] = audioPreviewUrl(ac);
             else if (ac instanceof Blob) newUrls[`${t.id}_clip`] = URL.createObjectURL(ac);
         }
     });

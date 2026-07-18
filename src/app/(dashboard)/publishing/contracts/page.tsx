@@ -15,8 +15,11 @@ import {
 } from 'lucide-react';
 import { useBranding } from '@/contexts/BrandingContext';
 import { assetUrl } from '@/utils/url';
+import { usePathname } from 'next/navigation';
 
 export default function PublishingContractPage() {
+    const pathname = usePathname();
+    const isAggregator = pathname.includes('/aggregator/');
     const { getButtonColor } = useBranding();
     const [user, setUser] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -63,9 +66,24 @@ export default function PublishingContractPage() {
     };
 
     // Fallback publishing split percentage if null
-    const sharePercentage = user?.publishing_percentage !== undefined && user?.publishing_percentage !== null
-        ? `${user.publishing_percentage}%`
+    const percentageField = isAggregator ? user?.aggregator_percentage : user?.publishing_percentage;
+    const sharePercentage = percentageField !== undefined && percentageField !== null
+        ? `${percentageField}%`
         : "75%"; // Default fallback split
+
+    const contractTerms = isAggregator
+        ? [
+            { label: 'Distribusi Musik Digital', desc: 'Dimensi Suara mendistribusikan rekaman musik yang disetujui ke platform digital dan mitra distribusi yang tersedia.' },
+            { label: 'Kepemilikan Master', desc: 'Hak kepemilikan master tetap berada pada pemilik hak. Dimensi Suara memperoleh izin distribusi selama masa perjanjian.' },
+            { label: 'Metadata dan Materi Rilis', desc: 'Pemilik akun bertanggung jawab atas keakuratan metadata, audio, artwork, serta legalitas seluruh materi yang dikirimkan.' },
+            { label: 'Bagi Hasil Bersih', desc: 'Pendapatan bersih hasil distribusi dibagikan sesuai persentase aggregator yang tercantum pada akun.' },
+          ]
+        : [
+            { label: 'Administrasi Hak Cipta', desc: 'Dimensi Suara Publishing bertindak sebagai administrator yang mengumpulkan royalti ciptaan (Mechanical & Performance) dari LMK lokal/global serta platform digital.' },
+            { label: 'Kepemilikan Hak Moral & Ekonomi', desc: 'Hak moral atas lagu selamanya milik Pencipta asli. Pencipta melisensikan hak ekonomi pengelolaan (publishing rights) kepada administrator selama masa perjanjian.' },
+            { label: 'Lagu Terdaftar', desc: 'Perjanjian ini berlaku bagi seluruh katalog ciptaan lagu yang didaftarkan secara eksplisit oleh Pencipta melalui dashboard portal.' },
+            { label: 'Bagi Hasil Bersih', desc: 'Pembagian persentase hasil bersih dikreditkan langsung ke saldo akun setelah dikurangi biaya administrasi pemrosesan global.' },
+          ];
 
     const contractDoc = user?.contract_doc_path || '';
 
@@ -86,9 +104,9 @@ export default function PublishingContractPage() {
                         <div className="rounded-xl flex items-center justify-center text-white shadow-lg" style={{ background: getButtonColor(), width: '40px', height: '40px', minWidth: '40px' }}>
                             <FileText size={20} />
                         </div>
-                        <span>Kontrak Kerja Publishing</span>
+                        <span>Kontrak Kerja {isAggregator ? 'Aggregator' : 'Publishing'}</span>
                     </h1>
-                    <p className="text-slate-500 text-sm mt-1">Lihat status kontrak kerjasama pengumpulan royalti hak cipta lagu dan pembagian hasil publishing Anda</p>
+                    <p className="text-slate-500 text-sm mt-1">{isAggregator ? 'Lihat status kontrak distribusi musik dan pembagian hasil aggregator Anda' : 'Lihat status kontrak kerjasama pengumpulan royalti hak cipta lagu dan pembagian hasil publishing Anda'}</p>
                 </div>
             </div>
 
@@ -105,7 +123,7 @@ export default function PublishingContractPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex items-center justify-between">
                                 <div>
-                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5">Bagi Hasil Publishing (RevShare)</p>
+                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1.5">Bagi Hasil {isAggregator ? 'Aggregator' : 'Publishing'} (RevShare)</p>
                                     <h3 className="text-3xl font-extrabold text-slate-800">{sharePercentage}</h3>
                                     <p className="text-xs text-slate-400 mt-1.5 font-medium">Dari pendapatan royalti ciptaan terkumpul</p>
                                 </div>
@@ -128,14 +146,9 @@ export default function PublishingContractPage() {
 
                         {/* Details Card */}
                         <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
-                            <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">Ketentuan Umum Hak Cipta & Publishing</h2>
+                            <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wider">Ketentuan Umum {isAggregator ? 'Distribusi & Aggregator' : 'Hak Cipta & Publishing'}</h2>
                             <div className="divide-y divide-slate-100 text-sm">
-                                {[
-                                    { label: 'Administrasi Hak Cipta', desc: 'Dimensi Suara Publishing bertindak sebagai administrator yang mengumpulkan royalti ciptaan (Mechanical & Performance) dari LMK lokal/global serta platform digital.' },
-                                    { label: 'Kepemilikan Hak Moral & Ekonomi', desc: 'Hak moral atas lagu selamanya milik Pencipta asli. Pencipta melisensikan hak ekonomi pengelolaan (publishing rights) kepada administrator selama masa perjanjian.' },
-                                    { label: 'Lagu Terdaftar', desc: 'Perjanjian ini berlaku bagi seluruh katalog ciptaan lagu yang didaftarkan secara eksplisit oleh Pencipta melalui dashboard portal.' },
-                                    { label: 'Bagi Hasil Bersih', desc: 'Pembagian persentase hasil bersih dikreditkan langsung ke saldo akun setelah dikurangi biaya administrasi pemrosesan global.' }
-                                ].map((item, i) => (
+                                {contractTerms.map((item, i) => (
                                     <div key={i} className="py-4 first:pt-0 last:pb-0">
                                         <h3 className="font-bold text-slate-800 text-sm mb-1">{item.label}</h3>
                                         <p className="text-slate-600 leading-relaxed text-xs font-medium">{item.desc}</p>

@@ -106,7 +106,7 @@ export const SidebarMenu = [
             {
                 name: 'Kontrak',
                 icon: <Icons.FileText />,
-                path: '/user/publishing/contracts',
+                path: '/user/aggregator/contracts',
             },
             {
                 name: 'Tiket Bantuan',

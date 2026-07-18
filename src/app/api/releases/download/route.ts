@@ -40,13 +40,53 @@ export async function GET(request: Request) {
     }
 
     const requestedName = url.searchParams.get("fileName") || path.basename(filePath);
+    const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+    const isInline = url.searchParams.get("inline") === "1";
+    const range = request.headers.get("range");
+
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+      if (!match) {
+        return new Response(null, {
+          status: 416,
+          headers: { "Content-Range": `bytes */${fileStat.size}` },
+        });
+      }
+
+      const start = match[1] ? Number(match[1]) : 0;
+      const requestedEnd = match[2] ? Number(match[2]) : fileStat.size - 1;
+      const end = Math.min(requestedEnd, fileStat.size - 1);
+
+      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= fileStat.size) {
+        return new Response(null, {
+          status: 416,
+          headers: { "Content-Range": `bytes */${fileStat.size}` },
+        });
+      }
+
+      const stream = Readable.toWeb(createReadStream(filePath, { start, end })) as ReadableStream;
+      return new Response(stream, {
+        status: 206,
+        headers: {
+          "Accept-Ranges": "bytes",
+          "Content-Type": contentType,
+          "Content-Length": String(end - start + 1),
+          "Content-Range": `bytes ${start}-${end}/${fileStat.size}`,
+          "Content-Disposition": isInline ? "inline" : contentDisposition(requestedName),
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
+
     const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
 
     return new Response(stream, {
       headers: {
-        "Content-Type": MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream",
+        "Accept-Ranges": "bytes",
+        "Content-Type": contentType,
         "Content-Length": String(fileStat.size),
-        "Content-Disposition": contentDisposition(requestedName),
+        "Content-Disposition": isInline ? "inline" : contentDisposition(requestedName),
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },

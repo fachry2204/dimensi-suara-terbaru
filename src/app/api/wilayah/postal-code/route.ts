@@ -13,6 +13,24 @@ function getPostalCodeFromRow(row: any) {
   return row?.postalcode || row?.postal_code || row?.kodepos || row?.kode_pos || row?.code || row?.zip;
 }
 
+async function searchPostalCodes(query: string) {
+  const res = await fetch(`https://kodepos.vercel.app/search?q=${encodeURIComponent(query)}`, {
+    cache: "no-store",
+    headers: { Accept: "application/json" },
+  });
+
+  if (!res.ok) return [];
+
+  const payload = await res.json();
+  return Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload?.results)
+      ? payload.results
+      : Array.isArray(payload)
+        ? payload
+        : [];
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -21,32 +39,41 @@ export async function GET(request: Request) {
     const district = url.searchParams.get("district") || "";
     const village = url.searchParams.get("village") || "";
 
-    const query = [village, district, city, province].filter(Boolean).join(" ");
-    if (!query) {
+    const queries = [
+      [village, district, city, province],
+      [village, district, city],
+      [village, district],
+      [village],
+    ]
+      .map((parts) => parts.filter(Boolean).join(" "))
+      .filter((query, index, all) => query && all.indexOf(query) === index);
+
+    if (!queries.length) {
       return NextResponse.json({ code: "" });
     }
 
-    const res = await fetch(`https://kodepos.vercel.app/search?q=${encodeURIComponent(query)}`, {
-      next: { revalidate: 60 * 60 * 24 * 30 },
-    });
-
-    if (!res.ok) {
-      return NextResponse.json({ code: "" });
+    let rows: any[] = [];
+    for (const query of queries) {
+      rows = await searchPostalCodes(query);
+      if (rows.length) break;
     }
 
-    const payload = await res.json();
-    const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
     const villageKey = normalizeText(village);
     const districtKey = normalizeText(district);
     const cityKey = normalizeText(city);
+    const provinceKey = normalizeText(province);
 
     const matched =
       rows.find((row: any) => {
         const rowVillage = normalizeText(String(row?.village || row?.kelurahan || row?.urban || ""));
         const rowDistrict = normalizeText(String(row?.district || row?.kecamatan || row?.subdistrict || ""));
         const rowCity = normalizeText(String(row?.regency || row?.city || row?.kabupaten || ""));
-        return (!villageKey || rowVillage.includes(villageKey)) && (!districtKey || rowDistrict.includes(districtKey)) && (!cityKey || rowCity.includes(cityKey));
-      }) || rows[0];
+        const rowProvince = normalizeText(String(row?.province || row?.provinsi || ""));
+        return (!villageKey || rowVillage === villageKey) &&
+          (!districtKey || rowDistrict === districtKey) &&
+          (!cityKey || rowCity === cityKey) &&
+          (!provinceKey || !rowProvince || rowProvince === provinceKey);
+      }) || null;
 
     return NextResponse.json({ code: matched ? String(getPostalCodeFromRow(matched) || "") : "" });
   } catch {
