@@ -405,11 +405,54 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
         </div>
     );
 
+    const renderOwnerSelector = () => {
+        if (String(userRole || '').toLowerCase() !== 'admin' || initialData) return null;
+
+        return (
+            <div id="release-owner-selector" className="rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-sm scroll-mt-24">
+                <div className="mb-3">
+                    <label htmlFor="release-owner" className="block text-sm font-bold text-slate-900">
+                        Rilis Ini Milik User <span className="text-red-500">*</span>
+                    </label>
+                    <p className="mt-1 text-xs text-slate-600">Pilih akun yang akan tercatat sebagai pemilik Single atau Album ini.</p>
+                </div>
+                <select
+                    id="release-owner"
+                    value={data.userId ? String(data.userId) : ''}
+                    onChange={(event) => {
+                        const ownerId = event.target.value;
+                        const owner = releaseOwners.find(item => String(item.id) === ownerId);
+                        updateData({ userId: ownerId || undefined });
+                        if (owner) {
+                            setUserType(String(owner.account_type || '').toLowerCase() === 'company' ? 'Company' : 'Personal');
+                        }
+                    }}
+                    disabled={isLoadingOwners}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-wait disabled:bg-slate-100"
+                >
+                    <option value="">{isLoadingOwners ? 'Memuat daftar user...' : 'Pilih user pemilik rilis'}</option>
+                    {releaseOwners.map(owner => {
+                        const name = owner.full_name || owner.company_name || owner.username || `User #${owner.id}`;
+                        return <option key={owner.id} value={owner.id}>{name} — {owner.email || 'tanpa email'}</option>;
+                    })}
+                </select>
+                {ownerLoadError ? (
+                    <p className="mt-2 text-xs font-semibold text-red-600">{ownerLoadError}. Muat ulang halaman untuk mencoba kembali.</p>
+                ) : data.userId ? (
+                    <p className="mt-2 text-xs font-semibold text-emerald-700">Pemilik dipilih. Rilis akan masuk ke Data Rilis user tersebut.</p>
+                ) : (
+                    <p className="mt-2 text-xs text-slate-600">Wajib dipilih sebelum mengunggah dan mengirim rilis.</p>
+                )}
+            </div>
+        );
+    };
+
     const renderStep = () => {
         switch (currentStep) {
             case Step.INFO:
                 return (
                     <div className="space-y-6">
+                        {renderOwnerSelector()}
                         <Step1ReleaseInfo
                             data={data}
                             updateData={updateData}
@@ -519,39 +562,6 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                         <h1 className="text-sm font-bold text-slate-900 tracking-tight">{title}</h1>
                     </div>
                 </div>
-
-                {String(userRole || '').toLowerCase() === 'admin' && !initialData && (
-                    <div id="release-owner-selector" className="mb-6 rounded-lg border border-blue-200 bg-blue-50/60 p-4 shadow-sm scroll-mt-24">
-                        <label htmlFor="release-owner" className="mb-2 block text-xs font-bold text-slate-800">
-                            Pemilik Rilis <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                            id="release-owner"
-                            value={data.userId ? String(data.userId) : ''}
-                            onChange={(event) => {
-                                const ownerId = event.target.value;
-                                const owner = releaseOwners.find(item => String(item.id) === ownerId);
-                                updateData({ userId: ownerId || undefined });
-                                if (owner) {
-                                    setUserType(String(owner.account_type || '').toLowerCase() === 'company' ? 'Company' : 'Personal');
-                                }
-                            }}
-                            disabled={isLoadingOwners}
-                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-wait disabled:bg-slate-100"
-                        >
-                            <option value="">{isLoadingOwners ? 'Memuat daftar user...' : 'Pilih user pemilik rilis'}</option>
-                            {releaseOwners.map(owner => {
-                                const name = owner.full_name || owner.company_name || owner.username || `User #${owner.id}`;
-                                return <option key={owner.id} value={owner.id}>{name} — {owner.email || 'tanpa email'}</option>;
-                            })}
-                        </select>
-                        {ownerLoadError ? (
-                            <p className="mt-2 text-xs font-semibold text-red-600">{ownerLoadError}. Muat ulang halaman untuk mencoba kembali.</p>
-                        ) : (
-                            <p className="mt-2 text-xs text-slate-600">Single atau album akan tersimpan pada akun user yang dipilih dan tampil di Data Rilis miliknya.</p>
-                        )}
-                    </div>
-                )}
 
                 {/* Stepper */}
                 <StepIndicator currentStep={currentStep} releaseType={type} onStepClick={(s) => { if (s <= currentStep) setCurrentStep(s); }} />
