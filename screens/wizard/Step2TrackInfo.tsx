@@ -833,7 +833,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                         label="File Audio Master"
                                         accept=".wav,.flac"
                                         filePurpose="MASTER_AUDIO"
-                                        required={userRole !== 'Admin'}
+                                        required={String(userRole || '').toLowerCase() !== 'admin'}
                                         existingUploadId={isUploadSessionId(track.audioFile) ? track.audioFile as string : null}
                                         existingFileRef={typeof track.audioFile === 'string' && !isUploadSessionId(track.audioFile) ? track.audioFile : null}
                                         onUploadComplete={(id) => updateTrack(track.id, { audioFile: id, tempAudioPath: id })}
@@ -843,7 +843,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                         label="Clip Audio / Audio Media Sosial"
                                         accept=".wav,.flac"
                                         filePurpose="SOCIAL_MEDIA_AUDIO"
-                                        required={userRole !== 'Admin'}
+                                        required={String(userRole || '').toLowerCase() !== 'admin'}
                                         existingUploadId={isUploadSessionId(track.audioClip) ? track.audioClip as string : null}
                                         existingFileRef={typeof track.audioClip === 'string' && !isUploadSessionId(track.audioClip) ? track.audioClip : null}
                                         onUploadComplete={(id) => updateTrack(track.id, { audioClip: id, tempClipPath: id, previewStart: 0 })}
@@ -876,7 +876,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     {/* FULL AUDIO */}
                                     <div className="md:col-span-2 space-y-3">
                                         <label className="block text-xs font-medium text-slate-700 mb-2 flex items-center justify-between">
-                                            <span>Audio Penuh (WAV 24-bit / 48kHz) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</span>
+                                            <span>Audio Penuh (WAV 24-bit / 48kHz) {String(userRole || '').toLowerCase() !== 'admin' && <span className="text-red-500">*</span>}</span>
                                             {isProcessingAudio && (
                                               <span className="text-xs text-blue-500 flex items-center gap-2">
                                                 <Loader2 size={14} className="animate-spin"/>
@@ -964,7 +964,7 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                                     {/* AUDIO CLIP */}
                                     <div className="md:col-span-2 space-y-3">
                                         <label className="block text-xs font-medium text-slate-700 mb-2 flex items-center justify-between">
-                                            <span>Audio Clip (59s, 24-bit / 48kHz) {userRole !== 'Admin' && <span className="text-red-500">*</span>}</span>
+                                            <span>Audio Clip (59s, 24-bit / 48kHz) {String(userRole || '').toLowerCase() !== 'admin' && <span className="text-red-500">*</span>}</span>
                                             {isProcessingClip && (
                                               <span className="text-xs text-orange-500 flex items-center gap-2">
                                                 <Loader2 size={14} className="animate-spin"/>

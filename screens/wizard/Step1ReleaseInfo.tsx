@@ -33,13 +33,15 @@ interface Props {
   updateData: (updates: any) => void;
   releaseType?: ReleaseType;
   coverArtUploader?: React.ReactNode;
+  userRole?: string;
 }
 
-export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseType = 'SINGLE', coverArtUploader }) => {
+export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseType = 'SINGLE', coverArtUploader, userRole }) => {
   const { genres, loading: genresLoading } = useGenres();
   const { subgenres, loading: subgenresLoading } = useSubGenres(data.genreId);
   const [userType, setUserType] = useState<string>('Personal');
   const originalDateInputRef = React.useRef<HTMLInputElement>(null);
+  const isAdmin = String(userRole || '').toLowerCase() === 'admin';
   const isInstrumentalChecked =
     data.isInstrumental === true ||
     data.isInstrumental === 1 ||
@@ -121,7 +123,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
             label="File Audio Master" 
             accept=".wav,.flac" 
             filePurpose="MASTER_AUDIO"
-            required
+            required={!isAdmin}
             existingUploadId={data.masterUploadId || null}
             onUploadComplete={(id) => updateData({ masterUploadId: id })}
             onRemove={() => updateData({ masterUploadId: null })}
@@ -130,7 +132,7 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
             label="Audio Media Sosial" 
             accept=".wav,.flac" 
             filePurpose="SOCIAL_MEDIA_AUDIO"
-            required
+            required={!isAdmin}
             existingUploadId={data.socialMediaUploadId || null}
             onUploadComplete={(id) => updateData({ socialMediaUploadId: id })}
             onRemove={() => updateData({ socialMediaUploadId: null })}

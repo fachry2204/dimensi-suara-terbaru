@@ -22,15 +22,24 @@ export default function EditReleasePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [userRole, setUserRole] = useState('Admin'); // Placeholder, sync with real auth
+  const [userRole, setUserRole] = useState('User');
   const token = ''; // Handled implicitly by Next.js rewrites/cookies
 
   useEffect(() => {
-    // Safe check for browser environment
-    if (typeof window !== 'undefined') {
-        const role = localStorage.getItem('cms_role') || 'Admin';
-        setUserRole(role);
-    }
+    let cancelled = false;
+    fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Gagal membaca sesi');
+        return response.json();
+      })
+      .then((body) => {
+        if (!cancelled) setUserRole(body?.user?.role || body?.role || 'User');
+      })
+      .catch(() => {
+        if (!cancelled) setUserRole('User');
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {

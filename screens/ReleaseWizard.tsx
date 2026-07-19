@@ -6,7 +6,7 @@ import { Step1ReleaseInfo } from './wizard/Step1ReleaseInfo';
 import { Step2TrackInfo } from './wizard/Step2TrackInfo';
 import { Step3ReleaseDetail } from './wizard/Step3ReleaseDetail';
 import { Step4Review } from './wizard/Step4Review';
-import { ChevronLeft, ChevronRight, AlertTriangle, X, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, Check, Search, X, Loader2, Plus } from 'lucide-react';
 import { api } from '@/utils/api';
 
 type MissingFieldItem = {
@@ -25,6 +25,12 @@ type ReleaseOwnerOption = {
     status?: string;
     account_type?: string;
 };
+
+const getReleaseOwnerName = (owner: ReleaseOwnerOption) =>
+    owner.full_name || owner.company_name || owner.username || `User #${owner.id}`;
+
+const getReleaseOwnerLabel = (owner: ReleaseOwnerOption) =>
+    `${getReleaseOwnerName(owner)} — ${owner.email || 'tanpa email'}`;
 
 interface Props {
     type: ReleaseType;
@@ -59,6 +65,7 @@ const INITIAL_DATA: ReleaseData = {
 };
 
 export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialData, userRole, token }) => {
+    const isAdmin = String(userRole || '').toLowerCase() === 'admin';
     const [currentStep, setCurrentStep] = useState<number>(Step.INFO);
     const [showExitModal, setShowExitModal] = useState(false);
     const [missingFields, setMissingFields] = useState<MissingFieldItem[]>([]);
@@ -70,8 +77,26 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     const [releaseOwners, setReleaseOwners] = useState<ReleaseOwnerOption[]>([]);
     const [isLoadingOwners, setIsLoadingOwners] = useState(false);
     const [ownerLoadError, setOwnerLoadError] = useState('');
+    const [ownerSearch, setOwnerSearch] = useState('');
+    const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
+    const ownerSelectorRef = React.useRef<HTMLDivElement>(null);
 
     const [data, setData] = useState<ReleaseData>(() => initialData ? initialData : INITIAL_DATA);
+
+    const selectedReleaseOwner = useMemo(
+        () => releaseOwners.find(owner => String(owner.id) === String(data.userId || '')) || null,
+        [data.userId, releaseOwners]
+    );
+    const filteredReleaseOwners = useMemo(() => {
+        const query = ownerSearch.trim().toLowerCase();
+        if (!query) return releaseOwners;
+        return releaseOwners.filter(owner => [
+            owner.full_name,
+            owner.company_name,
+            owner.username,
+            owner.email,
+        ].some(value => String(value || '').toLowerCase().includes(query)));
+    }, [ownerSearch, releaseOwners]);
 
     // Stable object URL for cover art preview — revoked on change to avoid memory leaks
     const coverArtUrl = useMemo(() => {
@@ -89,6 +114,19 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
             }
         };
     }, [coverArtUrl]);
+
+    useEffect(() => {
+        if (!isOwnerMenuOpen) return;
+
+        const closeOwnerMenu = (event: MouseEvent) => {
+            if (!ownerSelectorRef.current?.contains(event.target as Node)) {
+                setIsOwnerMenuOpen(false);
+                setOwnerSearch('');
+            }
+        };
+        document.addEventListener('mousedown', closeOwnerMenu);
+        return () => document.removeEventListener('mousedown', closeOwnerMenu);
+    }, [isOwnerMenuOpen]);
 
     // If viewing existing data, we might want to ensure tracks exist
     useEffect(() => {
@@ -113,7 +151,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     }, [initialData, token]);
 
     useEffect(() => {
-        if (String(userRole || '').toLowerCase() !== 'admin') return;
+        if (!isAdmin) return;
 
         let cancelled = false;
         setIsLoadingOwners(true);
@@ -139,7 +177,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
             });
 
         return () => { cancelled = true; };
-    }, [userRole]);
+    }, [isAdmin]);
 
     const updateData = (updates: Partial<ReleaseData> | ((prev: ReleaseData) => Partial<ReleaseData>)) => {
         setData(prev => {
@@ -219,14 +257,14 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     };
 
     const handleNext = () => {
-        if (String(userRole || '').toLowerCase() === 'admin' && !data.userId) {
+        if (isAdmin && !data.userId) {
             setMissingFields([{ label: 'Pemilik Rilis', targetId: 'release-owner-selector' }]);
             setShowMissingWarning(true);
             return;
         }
 
         // ADMIN OVERRIDE: Skip validation if Admin
-        if (userRole === 'Admin') {
+        if (isAdmin) {
             if (currentStep < Step.REVIEW) {
                 setCurrentStep(prev => prev + 1);
             }
@@ -406,7 +444,14 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     );
 
     const renderOwnerSelector = () => {
-        if (String(userRole || '').toLowerCase() !== 'admin' || initialData) return null;
+        if (!isAdmin || initialData) return null;
+
+        const selectOwner = (owner: ReleaseOwnerOption) => {
+            updateData({ userId: String(owner.id) });
+            setUserType(String(owner.account_type || '').toLowerCase() === 'company' ? 'Company' : 'Personal');
+            setOwnerSearch('');
+            setIsOwnerMenuOpen(false);
+        };
 
         return (
             <div id="release-owner-selector" className="rounded-xl border border-blue-200 bg-blue-50/60 p-5 shadow-sm scroll-mt-24">
@@ -416,26 +461,85 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                     </label>
                     <p className="mt-1 text-xs text-slate-600">Pilih akun yang akan tercatat sebagai pemilik Single atau Album ini.</p>
                 </div>
-                <select
-                    id="release-owner"
-                    value={data.userId ? String(data.userId) : ''}
-                    onChange={(event) => {
-                        const ownerId = event.target.value;
-                        const owner = releaseOwners.find(item => String(item.id) === ownerId);
-                        updateData({ userId: ownerId || undefined });
-                        if (owner) {
-                            setUserType(String(owner.account_type || '').toLowerCase() === 'company' ? 'Company' : 'Personal');
-                        }
-                    }}
-                    disabled={isLoadingOwners}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-wait disabled:bg-slate-100"
-                >
-                    <option value="">{isLoadingOwners ? 'Memuat daftar user...' : 'Pilih user pemilik rilis'}</option>
-                    {releaseOwners.map(owner => {
-                        const name = owner.full_name || owner.company_name || owner.username || `User #${owner.id}`;
-                        return <option key={owner.id} value={owner.id}>{name} — {owner.email || 'tanpa email'}</option>;
-                    })}
-                </select>
+                <div ref={ownerSelectorRef} className="relative">
+                    <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-400" />
+                    <input
+                        id="release-owner"
+                        type="text"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded={isOwnerMenuOpen}
+                        aria-controls="release-owner-options"
+                        autoComplete="off"
+                        disabled={isLoadingOwners}
+                        value={isOwnerMenuOpen ? ownerSearch : (selectedReleaseOwner ? getReleaseOwnerLabel(selectedReleaseOwner) : ownerSearch)}
+                        placeholder={isLoadingOwners ? 'Memuat daftar user...' : 'Cari nama atau email user...'}
+                        onFocus={() => {
+                            setOwnerSearch('');
+                            setIsOwnerMenuOpen(true);
+                        }}
+                        onChange={(event) => {
+                            setOwnerSearch(event.target.value);
+                            setIsOwnerMenuOpen(true);
+                            if (data.userId) updateData({ userId: undefined });
+                        }}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Escape') {
+                                setIsOwnerMenuOpen(false);
+                                setOwnerSearch('');
+                            }
+                            if (event.key === 'Enter' && isOwnerMenuOpen && filteredReleaseOwners.length > 0) {
+                                event.preventDefault();
+                                selectOwner(filteredReleaseOwners[0]);
+                            }
+                        }}
+                        className="w-full rounded-lg border border-slate-300 bg-white py-3 pl-10 pr-11 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-wait disabled:bg-slate-100"
+                    />
+                    <ChevronDown
+                        size={18}
+                        className={`pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-transform ${isOwnerMenuOpen ? 'rotate-180' : ''}`}
+                    />
+
+                    {isOwnerMenuOpen && !isLoadingOwners && (
+                        <div id="release-owner-options" role="listbox" className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                            {filteredReleaseOwners.length > 0 ? filteredReleaseOwners.slice(0, 50).map(owner => {
+                                const isSelected = String(owner.id) === String(data.userId || '');
+                                return (
+                                    <div
+                                        key={owner.id}
+                                        role="option"
+                                        aria-selected={isSelected}
+                                        tabIndex={0}
+                                        onMouseDown={(event) => {
+                                            event.preventDefault();
+                                            selectOwner(owner);
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                selectOwner(owner);
+                                            }
+                                        }}
+                                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 outline-none transition hover:bg-blue-50 focus:bg-blue-50 ${isSelected ? 'bg-blue-50' : ''}`}
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-bold text-slate-800">{getReleaseOwnerName(owner)}</p>
+                                            <p className="truncate text-xs text-slate-500">{owner.email || 'Tanpa email'}</p>
+                                        </div>
+                                        {isSelected && <Check size={17} className="shrink-0 text-blue-600" />}
+                                    </div>
+                                );
+                            }) : (
+                                <div className="px-4 py-8 text-center text-sm font-semibold text-slate-400">User tidak ditemukan.</div>
+                            )}
+                            {filteredReleaseOwners.length > 50 && (
+                                <p className="border-t border-slate-100 px-3 py-2 text-center text-xs text-slate-400">
+                                    Ketik nama atau email yang lebih spesifik untuk mempersempit hasil.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
                 {ownerLoadError ? (
                     <p className="mt-2 text-xs font-semibold text-red-600">{ownerLoadError}. Muat ulang halaman untuk mencoba kembali.</p>
                 ) : data.userId ? (
@@ -458,6 +562,7 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                             updateData={updateData}
                             releaseType={type}
                             coverArtUploader={type === 'ALBUM' ? renderCoverArtUploader() : null}
+                            userRole={userRole}
                         />
                     </div>
                 );

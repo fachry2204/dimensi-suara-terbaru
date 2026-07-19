@@ -16,6 +16,7 @@ interface Props {
 }
 
 export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, userType, token: propToken }) => {
+  const isAdmin = String(userRole || '').toLowerCase() === 'admin';
   const { genres } = useGenres();
   const { subgenres } = useSubGenres(data.genreId);
 
@@ -83,7 +84,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
     // --- VALIDATION START ---
     const errors: string[] = [];
 
-    if (String(userRole || '').toLowerCase() === 'admin' && !data.userId) {
+    if (isAdmin && !data.userId) {
       errors.push("Pemilik rilis wajib dipilih oleh Admin.");
     }
 
@@ -94,7 +95,7 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
     }
 
     // Skip metadata validation if Admin
-    if (userRole !== 'Admin') {
+    if (!isAdmin) {
       // 1. Validate Release Level
       if (!data.coverArt) {
         errors.push("Cover Art wajib diisi.");
@@ -383,14 +384,16 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
         }
       }
       // Verify: ensure audio/clip exist via tmp path or server URL
-      prepped.tracks.forEach((t: any, idx: number) => {
-        const audioOk = (typeof t.audioFile === 'string' && t.audioFile.trim().length > 0) ||
-          (typeof t.tempAudioPath === 'string' && t.tempAudioPath.trim().length > 0);
-        if (!audioOk) uploadErrors.push(`Track ${idx + 1}: Audio file belum ada di server (TMP).`);
-        const clipOk = (typeof t.audioClip === 'string' && t.audioClip.trim().length > 0) ||
-          (typeof t.tempClipPath === 'string' && t.tempClipPath.trim().length > 0);
-        if (!clipOk) uploadErrors.push(`Track ${idx + 1}: Audio clip belum ada di server (TMP).`);
-      });
+      if (!isAdmin) {
+        prepped.tracks.forEach((t: any, idx: number) => {
+          const audioOk = (typeof t.audioFile === 'string' && t.audioFile.trim().length > 0) ||
+            (typeof t.tempAudioPath === 'string' && t.tempAudioPath.trim().length > 0);
+          if (!audioOk) uploadErrors.push(`Track ${idx + 1}: Audio file belum ada di server (TMP).`);
+          const clipOk = (typeof t.audioClip === 'string' && t.audioClip.trim().length > 0) ||
+            (typeof t.tempClipPath === 'string' && t.tempClipPath.trim().length > 0);
+          if (!clipOk) uploadErrors.push(`Track ${idx + 1}: Audio clip belum ada di server (TMP).`);
+        });
+      }
       if (uploadErrors.length > 0) {
         setValidationErrors(uploadErrors);
         setShowValidationModal(true);

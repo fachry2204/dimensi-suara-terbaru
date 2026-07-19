@@ -16,17 +16,11 @@ interface Props {
 export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseType, userRole }) => {
   const dateInputRef = React.useRef<HTMLInputElement>(null);
   const originalDateInputRef = React.useRef<HTMLInputElement>(null);
-  
+  const isAdmin = String(userRole || '').toLowerCase() === 'admin';
   const minDate = new Date();
-  // Admin can select any date (including past or immediate future)
-  if (userRole !== 'Admin') {
-    minDate.setDate(minDate.getDate() + 14);
-  } else {
-    // For admin, allow any date by setting min very far back or just today
-    minDate.setFullYear(2000); 
-  }
+  minDate.setDate(minDate.getDate() + 14);
   const minDateStr = minDate.toISOString().split('T')[0];
-  const isDateInvalid = userRole !== 'Admin' && data.plannedReleaseDate && data.plannedReleaseDate < minDateStr;
+  const isDateInvalid = !isAdmin && data.plannedReleaseDate && data.plannedReleaseDate < minDateStr;
 
   const preReleaseSocialRef = React.useRef<HTMLInputElement>(null);
   const preReleaseYTRef = React.useRef<HTMLInputElement>(null);
@@ -197,7 +191,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                     <input 
                         ref={dateInputRef}
                         type="date" 
-                        min={minDateStr}
+                        min={isAdmin ? undefined : minDateStr}
                         value={data.plannedReleaseDate}
                         onChange={(e) => {
                             const newDate = e.target.value;
@@ -241,7 +235,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                     </p>
                 )}
                 <p className="text-xs text-blue-500 mt-2 font-medium">
-                    Recommended: Set date at least 14 days from today
+                    {isAdmin ? 'Admin dapat memilih tanggal rilis secara bebas.' : 'Recommended: Set date at least 14 days from today'}
                 </p>
             </div>
 
@@ -252,7 +246,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                         <input 
                             ref={preReleaseSocialRef}
                             type="date" 
-                            min={preReleaseMinMax || minDateStr}
+                            min={preReleaseMinMax || (isAdmin ? undefined : minDateStr)}
                             max={preReleaseMinMax || undefined}
                             disabled={!data.plannedReleaseDate}
                             value={data.preReleaseSocialMedia || ''}
@@ -279,7 +273,7 @@ export const Step3ReleaseDetail: React.FC<Props> = ({ data, updateData, releaseT
                         <input 
                             ref={preReleaseYTRef}
                             type="date" 
-                            min={preReleaseMinMax || minDateStr}
+                            min={preReleaseMinMax || (isAdmin ? undefined : minDateStr)}
                             max={preReleaseMinMax || undefined}
                             disabled={!data.plannedReleaseDate}
                             value={data.preReleaseYoutubeMusic || ''}
