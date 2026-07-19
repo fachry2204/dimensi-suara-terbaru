@@ -8,7 +8,7 @@ interface Props {
 
 export const ReleaseTypeSelection: React.FC<Props> = ({ onSelect }) => {
   return (
-    <div className="h-full flex flex-col items-center justify-start px-4 py-8 animate-fade-in-up">
+    <div className="release-type-selection h-full flex flex-col items-center justify-start px-4 py-8 animate-fade-in-up">
       <div className="text-center mb-8">
          <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2 tracking-tight">
             What are you releasing?
@@ -21,8 +21,7 @@ export const ReleaseTypeSelection: React.FC<Props> = ({ onSelect }) => {
         <button 
           type="button"
           onClick={() => onSelect('SINGLE')}
-          className="w-full min-h-[230px] flex flex-col items-start p-6 bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-300 transition-all duration-300 group relative overflow-hidden text-left focus:outline-none focus:ring-4 focus:ring-blue-500/15"
-          style={{ borderRadius: '16px' }}
+          className="release-type-card w-full min-h-[230px] flex flex-col items-start p-6 bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-300 transition-all duration-300 group relative overflow-hidden text-left focus:outline-none focus:ring-4 focus:ring-blue-500/15"
         >
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
           
@@ -44,8 +43,7 @@ export const ReleaseTypeSelection: React.FC<Props> = ({ onSelect }) => {
         <button 
            type="button"
            onClick={() => onSelect('ALBUM')}
-           className="w-full min-h-[230px] flex flex-col items-start p-6 bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-300 transition-all duration-300 group relative overflow-hidden text-left focus:outline-none focus:ring-4 focus:ring-purple-500/15"
-           style={{ borderRadius: '16px' }}
+           className="release-type-card w-full min-h-[230px] flex flex-col items-start p-6 bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-300 transition-all duration-300 group relative overflow-hidden text-left focus:outline-none focus:ring-4 focus:ring-purple-500/15"
         >
            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
 

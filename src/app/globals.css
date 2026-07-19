@@ -926,4 +926,17 @@ body:has(#admin-portal) .hk-pg-wrapper {
   min-height: 100vh !important;
 }
 
+/* New Release uses selectable cards, not the global pill-button treatment. */
+.release-type-selection button.release-type-card {
+  width: 100% !important;
+  min-height: 230px !important;
+  border-radius: 16px !important;
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.release-type-selection button.release-type-card:hover {
+  background-color: #ffffff !important;
+}
 
