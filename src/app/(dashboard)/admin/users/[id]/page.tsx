@@ -224,6 +224,55 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     );
   }
 
+  const isStaffAccount = ["admin", "operator"].includes(String(user.role || "").toLowerCase());
+
+  if (isStaffAccount) {
+    return (
+      <main className="space-y-6 py-6 text-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/admin/users" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-800">
+            <ArrowLeft size={16} /> Kembali ke Data Admin
+          </Link>
+          <button
+            type="button"
+            onClick={resetUserPassword}
+            disabled={isResettingPassword}
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-amber-600 disabled:cursor-wait disabled:opacity-60"
+          >
+            <KeyRound size={14} /> {isResettingPassword ? "Mereset..." : "Reset Password"}
+          </button>
+        </div>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500">Detail Admin</p>
+          <h1 className="mt-2 text-2xl font-black text-slate-900">{user.full_name || user.username}</h1>
+          <p className="mt-1 text-sm text-slate-500">Data akun internal dipisahkan dari data client user.</p>
+
+          <dl className="mt-6 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+            {[
+              ["Role", user.role],
+              ["Nama", user.full_name || user.username],
+              ["Email", user.email],
+              ["Password", "••••••••"],
+            ].map(([label, value]) => (
+              <div key={label} className="grid gap-1 px-5 py-4 sm:grid-cols-[140px_1fr] sm:items-center">
+                <dt className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</dt>
+                <dd className={`font-semibold text-slate-800 ${label === "Password" ? "tracking-[0.2em]" : ""}`}>{value || "-"}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <p className="mt-3 text-xs text-slate-400">Password tidak dapat ditampilkan karena disimpan dalam bentuk terenkripsi.</p>
+          {resetPasswordMessage && (
+            <p className={`mt-4 rounded-lg px-4 py-3 text-sm font-bold ${resetPasswordMessage.toLowerCase().includes("gagal") ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+              {resetPasswordMessage}
+            </p>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   const currentStatusLabel = STATUS_MAP[user.status] || user.status;
 
   // All document fields
