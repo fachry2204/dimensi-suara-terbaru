@@ -15,6 +15,17 @@ type MissingFieldItem = {
     trackId?: string;
 };
 
+type ReleaseOwnerOption = {
+    id: number;
+    username?: string;
+    email?: string;
+    full_name?: string;
+    company_name?: string;
+    role?: string;
+    status?: string;
+    account_type?: string;
+};
+
 interface Props {
     type: ReleaseType;
     onBack: () => void;
@@ -56,6 +67,9 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     const [isProcessingCover, setIsProcessingCover] = useState(false);
     const [showAudioProcessingWarning, setShowAudioProcessingWarning] = useState(false);
     const [userType, setUserType] = useState<'Company' | 'Personal' | null>(null);
+    const [releaseOwners, setReleaseOwners] = useState<ReleaseOwnerOption[]>([]);
+    const [isLoadingOwners, setIsLoadingOwners] = useState(false);
+    const [ownerLoadError, setOwnerLoadError] = useState('');
 
     const [data, setData] = useState<ReleaseData>(() => initialData ? initialData : INITIAL_DATA);
 
@@ -97,6 +111,35 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
         };
         fetchUserType();
     }, [initialData, token]);
+
+    useEffect(() => {
+        if (String(userRole || '').toLowerCase() !== 'admin') return;
+
+        let cancelled = false;
+        setIsLoadingOwners(true);
+        setOwnerLoadError('');
+
+        fetch('/api/users', { credentials: 'include', cache: 'no-store' })
+            .then(async response => {
+                if (!response.ok) throw new Error('Gagal memuat daftar user');
+                return response.json();
+            })
+            .then((users: ReleaseOwnerOption[]) => {
+                if (cancelled) return;
+                const clientUsers = Array.isArray(users)
+                    ? users.filter(user => String(user.role || '').toLowerCase() === 'user')
+                    : [];
+                setReleaseOwners(clientUsers);
+            })
+            .catch(error => {
+                if (!cancelled) setOwnerLoadError(error?.message || 'Gagal memuat daftar user');
+            })
+            .finally(() => {
+                if (!cancelled) setIsLoadingOwners(false);
+            });
+
+        return () => { cancelled = true; };
+    }, [userRole]);
 
     const updateData = (updates: Partial<ReleaseData> | ((prev: ReleaseData) => Partial<ReleaseData>)) => {
         setData(prev => {
@@ -176,6 +219,12 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     };
 
     const handleNext = () => {
+        if (String(userRole || '').toLowerCase() === 'admin' && !data.userId) {
+            setMissingFields([{ label: 'Pemilik Rilis', targetId: 'release-owner-selector' }]);
+            setShowMissingWarning(true);
+            return;
+        }
+
         // ADMIN OVERRIDE: Skip validation if Admin
         if (userRole === 'Admin') {
             if (currentStep < Step.REVIEW) {
@@ -470,6 +519,39 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
                         <h1 className="text-sm font-bold text-slate-900 tracking-tight">{title}</h1>
                     </div>
                 </div>
+
+                {String(userRole || '').toLowerCase() === 'admin' && !initialData && (
+                    <div id="release-owner-selector" className="mb-6 rounded-lg border border-blue-200 bg-blue-50/60 p-4 shadow-sm scroll-mt-24">
+                        <label htmlFor="release-owner" className="mb-2 block text-xs font-bold text-slate-800">
+                            Pemilik Rilis <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            id="release-owner"
+                            value={data.userId ? String(data.userId) : ''}
+                            onChange={(event) => {
+                                const ownerId = event.target.value;
+                                const owner = releaseOwners.find(item => String(item.id) === ownerId);
+                                updateData({ userId: ownerId || undefined });
+                                if (owner) {
+                                    setUserType(String(owner.account_type || '').toLowerCase() === 'company' ? 'Company' : 'Personal');
+                                }
+                            }}
+                            disabled={isLoadingOwners}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-wait disabled:bg-slate-100"
+                        >
+                            <option value="">{isLoadingOwners ? 'Memuat daftar user...' : 'Pilih user pemilik rilis'}</option>
+                            {releaseOwners.map(owner => {
+                                const name = owner.full_name || owner.company_name || owner.username || `User #${owner.id}`;
+                                return <option key={owner.id} value={owner.id}>{name} — {owner.email || 'tanpa email'}</option>;
+                            })}
+                        </select>
+                        {ownerLoadError ? (
+                            <p className="mt-2 text-xs font-semibold text-red-600">{ownerLoadError}. Muat ulang halaman untuk mencoba kembali.</p>
+                        ) : (
+                            <p className="mt-2 text-xs text-slate-600">Single atau album akan tersimpan pada akun user yang dipilih dan tampil di Data Rilis miliknya.</p>
+                        )}
+                    </div>
+                )}
 
                 {/* Stepper */}
                 <StepIndicator currentStep={currentStep} releaseType={type} onStepClick={(s) => { if (s <= currentStep) setCurrentStep(s); }} />

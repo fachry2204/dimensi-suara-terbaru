@@ -83,7 +83,17 @@ export const Step4Review: React.FC<Props> = ({ data, onSave, onBack, userRole, u
     // --- VALIDATION START ---
     const errors: string[] = [];
 
-    // Skip validation if Admin
+    if (String(userRole || '').toLowerCase() === 'admin' && !data.userId) {
+      errors.push("Pemilik rilis wajib dipilih oleh Admin.");
+    }
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setShowValidationModal(true);
+      return;
+    }
+
+    // Skip metadata validation if Admin
     if (userRole !== 'Admin') {
       // 1. Validate Release Level
       if (!data.coverArt) {

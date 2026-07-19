@@ -80,6 +80,27 @@ export async function POST(request: Request) {
     const genreId = data.genreId || data.genre_id || null;
     const subgenreId = data.subgenreId || data.subgenre_id || null;
     const subGenre = data.subGenre || data.sub_genre || '';
+    let ownerUserId = session.userId;
+
+    if (String(session.role || '').toLowerCase() === 'admin') {
+        if (data.userId === undefined || data.userId === null || data.userId === '') {
+            return NextResponse.json({ error: "Admin wajib memilih user pemilik rilis" }, { status: 400 });
+        }
+
+        const requestedOwnerId = Number(data.userId);
+        if (!Number.isInteger(requestedOwnerId) || requestedOwnerId <= 0) {
+            return NextResponse.json({ error: "User pemilik rilis tidak valid" }, { status: 400 });
+        }
+
+        const [ownerRows]: any = await db.query(
+            "SELECT id FROM users WHERE id = ? AND LOWER(role) = 'user' LIMIT 1",
+            [requestedOwnerId]
+        );
+        if (!Array.isArray(ownerRows) || ownerRows.length === 0) {
+            return NextResponse.json({ error: "User pemilik rilis tidak ditemukan" }, { status: 404 });
+        }
+        ownerUserId = requestedOwnerId;
+    }
 
     const resultData = await withTransaction(async (conn: PoolConnection) => {
         // 1. Insert Release
@@ -87,7 +108,7 @@ export async function POST(request: Request) {
           `INSERT INTO releases (user_id, title, version, type, release_type, cover_art, status, submission_date, p_line, c_line, language, genre, sub_genre, primary_artists, planned_release_date, original_release_date, pre_release_social_media, pre_release_youtube_music, genre_id, subgenre_id)
            VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            session.userId, title, version, releaseType, dbReleaseType, coverArt, 
+            ownerUserId, title, version, releaseType, dbReleaseType, coverArt,
             pLine, cLine, language, data.genre || '', subGenre,
             JSON.stringify(primaryArtists),
             plannedReleaseDate, originalReleaseDate, preReleaseSocialMedia, preReleaseYoutubeMusic,
