@@ -118,8 +118,10 @@ function formatSoundOnStatus(status: any): string {
   const s = String(status ?? "").trim();
   if (s === "2" || s.toLowerCase() === "delivered" || s.toLowerCase() === "live") return "Delivered";
   if (s === "1" || s.toLowerCase() === "submitted" || s.toLowerCase() === "in review" || s.toLowerCase() === "under review") return "In Review";
-  if (s === "3" || s.toLowerCase() === "takedown" || s.toLowerCase() === "rejected") return "Takedown";
+  if (s === "3" || s.toLowerCase() === "not approved" || s.toLowerCase() === "not_approved") return "Not Approved";
   if (s === "4" || s.toLowerCase() === "draft") return "Draft";
+  if (s.toLowerCase() === "rejected") return "Not Approved";
+  if (s.toLowerCase() === "takedown") return "Takedown";
   return s || "Delivered";
 }
 
@@ -130,7 +132,16 @@ function extractIsrcFromItem(item: any): string {
   if (item.song_isrc) return String(item.song_isrc);
   if (item.isrcCode) return String(item.isrcCode);
 
-  const songList = item.song_list || item.songs || item.tracks || item.song_info_list || item.songList || [];
+  const songList =
+    item.song_list ||
+    item.songs ||
+    item.tracks ||
+    item.song_info_list ||
+    item.songList ||
+    item.trackList ||
+    item.track_list ||
+    [];
+
   if (Array.isArray(songList) && songList.length > 0) {
     for (const song of songList) {
       const isrc = song.isrc || song.isrc_code || song.song_isrc || song.isrcCode;
@@ -211,10 +222,10 @@ export async function checkReleaseHttpFetch(title: string, upc?: string) {
               let itemIsrc = extractIsrcFromItem(item);
               const albumId = item.album_id || item.id || item.albumId;
 
-              // If ISRC is not in album list, fetch album detail
+              // If ISRC is not in album list item, try fetching Album Detail
               if (!itemIsrc && albumId) {
                 try {
-                  const detailUrl = `https://www.soundon.global/api/album/detail?album_id=${encodeURIComponent(albumId)}`;
+                  const detailUrl = `https://www.soundon.global/api/album/detail?albumId=${encodeURIComponent(albumId)}&album_id=${encodeURIComponent(albumId)}`;
                   const detailRes = await fetch(detailUrl, {
                     headers: {
                       "User-Agent":
@@ -228,7 +239,41 @@ export async function checkReleaseHttpFetch(title: string, upc?: string) {
                   if (detailRes.status === 200) {
                     const detailJson = await detailRes.json().catch(() => null);
                     if (detailJson) {
-                      itemIsrc = extractIsrcFromItem(detailJson.data || detailJson);
+                      itemIsrc = extractIsrcFromItem(detailJson.data?.albumDetail || detailJson.data || detailJson);
+                    }
+                  }
+                } catch {}
+              }
+
+              // Also try fetching Song List / Search Song if ISRC is still missing
+              if (!itemIsrc) {
+                try {
+                  const songRes = await fetch("https://www.soundon.global/api/song/list", {
+                    method: "POST",
+                    headers: {
+                      "User-Agent":
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                      Cookie: cookieHeader,
+                      "Content-Type": "application/json",
+                      Accept: "application/json, text/plain, */*",
+                    },
+                    body: JSON.stringify({ count: 100, offset: 0, withPublishingInfo: true, albumId: albumId || "" }),
+                  });
+
+                  if (songRes.status === 200) {
+                    const songJson = await songRes.json().catch(() => null);
+                    const songs = songJson?.data?.songList || songJson?.songList || songJson?.data?.list || [];
+                    if (Array.isArray(songs)) {
+                      for (const s of songs) {
+                        const sTitle = normalizeTitle(s.title || s.name || "");
+                        if (!sTitle || sTitle.includes(targetTitleNorm) || targetTitleNorm.includes(sTitle) || String(s.albumId || s.album_id) === String(albumId)) {
+                          const sIsrc = s.isrc || s.isrc_code || s.isrcCode;
+                          if (sIsrc) {
+                            itemIsrc = String(sIsrc);
+                            break;
+                          }
+                        }
+                      }
                     }
                   }
                 } catch {}
