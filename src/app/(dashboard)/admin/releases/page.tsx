@@ -954,7 +954,15 @@ export default function ReleasesPage() {
 
                     <div className="mt-5 flex justify-center">
                         {getReleaseCover(selectedRelease) ? (
-                            <img src={getReleaseCover(selectedRelease)} alt="Cover Art" className="h-40 w-40 rounded-xl border border-slate-100 object-cover shadow-sm" />
+                            <img 
+                                src={getReleaseCover(selectedRelease)} 
+                                alt="Cover Art" 
+                                className="h-40 w-40 rounded-xl border border-slate-100 object-cover shadow-sm"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/assets/placeholder-cover.jpg';
+                                    (e.target as HTMLImageElement).onerror = null;
+                                }}
+                            />
                         ) : (
                             <div className="flex h-40 w-40 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-300 shadow-sm">
                                 <Disc size={38} />

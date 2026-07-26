@@ -552,7 +552,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                             )}
                             
                             {/* Edit Overlay */}
-                            {(token && !isUpdatingCoverArt && userRole !== 'Admin') && (
+                            {(!isUpdatingCoverArt) && (
                                 <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${release.coverArt ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                                     <button 
                                         onClick={() => fileInputRef.current?.click()}
@@ -576,17 +576,15 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         className="hidden" 
                     />
 
-                    {/* Change Cover Button - Non-Admin Only */}
-                    {userRole !== 'Admin' && (
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploadingCover}
-                            className="w-full py-2 rounded-lg bg-blue-500 text-white text-xs font-bold shadow-sm hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                            {isUploadingCover ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-                            Ganti Art Cover
-                        </button>
-                    )}
+                    {/* Change Cover Button */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingCover}
+                        className="w-full py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        {isUploadingCover ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                        Ganti Art Cover
+                    </button>
 
                     <button 
                         onClick={() => {
