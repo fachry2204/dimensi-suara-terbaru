@@ -1,24 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BarChart3, FileBarChart, FileText } from "lucide-react";
+import { ArrowLeft, BarChart3, FileBarChart, FileSearch, Upload } from "lucide-react";
 
 const reportCards = [
   {
-    title: "Report Aggregator",
-    href: "/admin/reports/aggregator",
+    title: "Analitik",
+    href: "/admin/reports/analytics",
     icon: BarChart3,
-    description: "Upload, matching UPC/ISRC, kurs, finalisasi, dan laporan royalti aggregator.",
+    description: "Pantau nilai report, hasil matching, platform, dan performa royalti.",
     tone: "bg-sky-500",
     bgTone: "bg-sky-50 hover:bg-sky-100 border-sky-100 text-sky-950",
   },
   {
-    title: "Report Publishing",
-    href: "/admin/reports/publishing",
-    icon: FileText,
-    description: "Kelola laporan publishing, pencipta, karya, pembagian publishing, dan finalisasi.",
+    title: "Report",
+    href: "/admin/reports/aggregator",
+    icon: FileSearch,
+    description: "Lihat batch report, status review, hasil deteksi UPC/ISRC, dan finalisasi.",
     tone: "bg-violet-500",
     bgTone: "bg-violet-50 hover:bg-violet-100 border-violet-100 text-violet-950",
+  },
+  {
+    title: "Import Report",
+    href: "/admin/reports/import",
+    icon: Upload,
+    description: "Upload Excel/CSV lalu review pemilik lagu berdasarkan UPC dan ISRC sebelum data dibagikan.",
+    tone: "bg-emerald-500",
+    bgTone: "bg-emerald-50 hover:bg-emerald-100 border-emerald-100 text-emerald-950",
   },
 ];
 
@@ -33,9 +41,9 @@ export default function AdminReportsMenuPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-400">Laporan</p>
-            <h1 className="mt-2 text-3xl font-black">Pilih Jenis Report</h1>
+            <h1 className="mt-2 text-3xl font-black">Menu Report</h1>
             <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-              Pisahkan laporan aggregator dan publishing agar alur upload, matching, dan finalisasi tidak tercampur.
+              Import, review kepemilikan berdasarkan UPC/ISRC, lalu finalisasi agar report masuk ke user yang benar.
             </p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-50 text-fuchsia-600">
@@ -43,7 +51,7 @@ export default function AdminReportsMenuPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <div className="mt-8 grid gap-6 md:grid-cols-3">
           {reportCards.map((card) => {
             const Icon = card.icon;
             return (

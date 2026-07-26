@@ -940,3 +940,18 @@ body:has(#admin-portal) .hk-pg-wrapper {
   background-color: #ffffff !important;
 }
 
+/* Preserve the uploaded Word template inside the digital-contract preview. */
+.contract-docx-render .docx-wrapper {
+  align-items: center !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.contract-docx-render .docx-wrapper > section.docx {
+  margin: 0 auto 20px !important;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.12), 0 12px 30px rgb(15 23 42 / 0.08) !important;
+}
+
+.contract-docx-render .docx-wrapper > section.docx:last-child {
+  margin-bottom: 0 !important;
+}

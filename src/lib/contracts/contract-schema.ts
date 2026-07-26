@@ -55,5 +55,39 @@ export async function ensureContractTables() {
     )
   `);
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS contract_signing_requests (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      contract_id BIGINT UNSIGNED NOT NULL,
+      user_id BIGINT UNSIGNED NOT NULL,
+      token_hash CHAR(64) NOT NULL,
+      status VARCHAR(30) NOT NULL DEFAULT 'PENDING_SIGNATURE',
+      sent_by BIGINT UNSIGNED NULL,
+      sent_at DATETIME NULL,
+      expires_at DATETIME NOT NULL,
+      signed_at DATETIME NULL,
+      signer_name VARCHAR(255) NULL,
+      signer_email VARCHAR(255) NULL,
+      signer_ip VARCHAR(100) NULL,
+      signer_user_agent TEXT NULL,
+      signature_file_path VARCHAR(500) NULL,
+      signed_file_name VARCHAR(255) NULL,
+      signed_file_path VARCHAR(500) NULL,
+      signed_mime_type VARCHAR(100) NULL,
+      signed_file_size BIGINT UNSIGNED NULL,
+      signed_checksum_sha256 CHAR(64) NULL,
+      email_status VARCHAR(30) NULL,
+      email_error TEXT NULL,
+      whatsapp_status VARCHAR(30) NULL,
+      whatsapp_error TEXT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_contract_signing_token (token_hash),
+      INDEX idx_contract_signing_contract (contract_id, created_at),
+      INDEX idx_contract_signing_user (user_id, created_at),
+      INDEX idx_contract_signing_status (status, expires_at)
+    )
+  `);
+
   initialized = true;
 }

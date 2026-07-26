@@ -30,6 +30,8 @@ type ParsedRow = Record<ReportColumn, unknown> & {
 
 type CatalogMatch = {
   user_id: number;
+  owner_name: string | null;
+  owner_email: string | null;
   release_id: number | null;
   track_id: number | null;
   release_title: string | null;
@@ -205,9 +207,11 @@ async function lookupCatalog(rows: any[]) {
     if (!chunk.length) continue;
     const [found]: any = await db.query(
       `SELECT t.isrc, t.id AS track_id, t.title AS track_title, t.primary_artists AS track_artists,
-              r.id AS release_id, r.user_id, r.title AS release_title, r.primary_artists, r.label
+              r.id AS release_id, r.user_id, r.title AS release_title, r.primary_artists, r.label,
+              u.full_name, u.company_name, u.username, u.email
        FROM tracks t
        JOIN releases r ON r.id = t.release_id
+       LEFT JOIN users u ON u.id = r.user_id
        WHERE REPLACE(REPLACE(UPPER(t.isrc), '-', ''), ' ', '') IN (${placeholders(chunk.length)})`,
       chunk
     );
@@ -216,6 +220,8 @@ async function lookupCatalog(rows: any[]) {
       if (!isrcMap.has(key)) isrcMap.set(key, []);
       isrcMap.get(key)!.push({
         user_id: Number(item.user_id),
+        owner_name: item.full_name || item.company_name || item.username || item.email || null,
+        owner_email: item.email || null,
         release_id: Number(item.release_id),
         track_id: Number(item.track_id),
         release_title: item.release_title,
@@ -229,9 +235,11 @@ async function lookupCatalog(rows: any[]) {
   for (const chunk of chunkArray(upcs, 1000)) {
     if (!chunk.length) continue;
     const [found]: any = await db.query(
-      `SELECT r.upc, r.id AS release_id, r.user_id, r.title AS release_title, r.primary_artists, r.label
+      `SELECT r.upc, r.id AS release_id, r.user_id, r.title AS release_title, r.primary_artists, r.label,
+              u.full_name, u.company_name, u.username, u.email
        FROM releases r
-       WHERE REGEXP_REPLACE(r.upc, '[^0-9]', '') IN (${placeholders(chunk.length)})`,
+       LEFT JOIN users u ON u.id = r.user_id
+       WHERE REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '') IN (${placeholders(chunk.length)})`,
       chunk
     );
     for (const item of found || []) {
@@ -239,6 +247,8 @@ async function lookupCatalog(rows: any[]) {
       if (!upcMap.has(key)) upcMap.set(key, []);
       upcMap.get(key)!.push({
         user_id: Number(item.user_id),
+        owner_name: item.full_name || item.company_name || item.username || item.email || null,
+        owner_email: item.email || null,
         release_id: Number(item.release_id),
         track_id: null,
         release_title: item.release_title,
@@ -254,6 +264,22 @@ async function lookupCatalog(rows: any[]) {
 
 function uniqueUsers(matches: CatalogMatch[] | undefined) {
   return unique((matches || []).map((match) => match.user_id));
+}
+
+function ownershipEvidence(matches: CatalogMatch[]) {
+  const byUser = new Map<number, CatalogMatch>();
+  for (const match of matches) {
+    if (!byUser.has(match.user_id)) byUser.set(match.user_id, match);
+  }
+  return Array.from(byUser.values()).map((match) => ({
+    userId: match.user_id,
+    ownerName: match.owner_name,
+    ownerEmail: match.owner_email,
+    releaseId: match.release_id,
+    releaseTitle: match.release_title,
+    trackId: match.track_id,
+    trackTitle: match.track_title,
+  }));
 }
 
 export async function matchReportBatch(batchId: number, onlyUnresolved = false) {
@@ -272,6 +298,10 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
     const upcMatches = upcMap.get(row.upc_normalized) || [];
     const isrcUsers = uniqueUsers(isrcMatches);
     const upcUsers = uniqueUsers(upcMatches);
+    const matchDetails = {
+      isrc: ownershipEvidence(isrcMatches),
+      upc: ownershipEvidence(upcMatches),
+    };
 
     let status = "NO_ACCOUNT";
     let method: string | null = null;
@@ -310,7 +340,7 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
     await db.query(
       `UPDATE report_rows
        SET status = ?, match_method = ?, matched_user_id = ?, matched_release_id = ?, matched_track_id = ?,
-           warning_message = ?, error_message = ?
+           match_details = ?, warning_message = ?, error_message = ?
        WHERE id = ?`,
       [
         status,
@@ -318,6 +348,7 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
         selected?.user_id || null,
         selected?.release_id || null,
         selected?.track_id || null,
+        JSON.stringify(matchDetails),
         warnings.length ? Array.from(new Set(warnings)).join(" ") : null,
         error,
         row.id,

@@ -71,6 +71,7 @@ export async function ensureReportTables() {
       matched_release_id BIGINT UNSIGNED NULL,
       matched_track_id BIGINT UNSIGNED NULL,
       match_method VARCHAR(30) NULL,
+      match_details JSON NULL,
       assignment_method VARCHAR(30) NULL,
       user_percentage DECIMAL(8,4) NULL,
       aggregator_percentage DECIMAL(8,4) NULL,
@@ -91,6 +92,14 @@ export async function ensureReportTables() {
       INDEX idx_report_row_user (matched_user_id)
     )
   `);
+
+  const [reportRowColumns]: any = await db.query("SHOW COLUMNS FROM report_rows");
+  const reportRowColumnNames = new Set(
+    Array.isArray(reportRowColumns) ? reportRowColumns.map((column: any) => String(column.Field)) : []
+  );
+  if (!reportRowColumnNames.has("match_details")) {
+    await db.query("ALTER TABLE report_rows ADD COLUMN match_details JSON NULL AFTER match_method");
+  }
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_revenue_ledger (

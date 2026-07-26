@@ -28,15 +28,15 @@ export const SidebarMenu = [
         ]
     },
     {
-        group: 'Laporan Aggregator',
+        group: 'Report',
         contents: [
             {
-                name: 'Statistik',
+                name: 'Analitik',
                 icon: <Icons.ChartBar />,
                 path: '/user/reports/statistics',
             },
             {
-                name: 'Laporan',
+                name: 'Report',
                 icon: <Icons.ClipboardList />,
                 path: '/user/reports/list',
             },

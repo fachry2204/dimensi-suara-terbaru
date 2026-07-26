@@ -21,6 +21,37 @@ function pageNumbers(current: number, totalPages: number) {
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
+function parseMatchDetails(value: unknown) {
+  if (!value) return { upc: [], isrc: [] };
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return {
+      upc: Array.isArray((parsed as any)?.upc) ? (parsed as any).upc : [],
+      isrc: Array.isArray((parsed as any)?.isrc) ? (parsed as any).isrc : [],
+    };
+  } catch {
+    return { upc: [], isrc: [] };
+  }
+}
+
+function OwnershipEvidence({ row }: { row: any }) {
+  const evidence = parseMatchDetails(row.match_details);
+  const render = (label: string, items: any[]) => (
+    <div>
+      <span className="font-black text-slate-500">{label}:</span>{" "}
+      {items.length ? items.map((item) => item.ownerName || item.ownerEmail || `User #${item.userId}`).join(", ") : "tidak ditemukan"}
+    </div>
+  );
+  return (
+    <div className="min-w-56 space-y-1 text-xs leading-5 text-slate-600">
+      {render("UPC", evidence.upc)}
+      {render("ISRC", evidence.isrc)}
+      {row.error_message && <p className="font-semibold text-rose-600">{row.error_message}</p>}
+      {row.warning_message && <p className="font-semibold text-amber-600">{row.warning_message}</p>}
+    </div>
+  );
+}
+
 export default function AdminReportDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
   const { batchId } = use(params);
   const [batch, setBatch] = useState<any>(null);
@@ -231,9 +262,9 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[2200px] w-full text-left text-sm">
+          <table className="min-w-[2500px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>{["No","Artist","Track Title","Release","UPC","ISRC","Akun","Status Match","Platform","Country","Quantity","Currency","Gross Revenue","Rate","Gross IDR","User %","User Revenue","Aggregator %","Aggregator Revenue","Match Method","Action"].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
+              <tr>{["No","Artist","Track Title","Release","UPC","ISRC","Akun","Bukti Kepemilikan","Status Match","Platform","Country","Quantity","Currency","Gross Revenue","Rate","Gross IDR","User %","User Revenue","Aggregator %","Aggregator Revenue","Match Method","Action"].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((row) => (
@@ -245,6 +276,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
                   <td className="px-4 py-3 font-mono">{row.upc_original}</td>
                   <td className="px-4 py-3 font-mono">{row.isrc_original}</td>
                   <td className="px-4 py-3 font-semibold">{row.full_name || row.company_name || row.email || "-"}</td>
+                  <td className="px-4 py-3"><OwnershipEvidence row={row} /></td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${
                       row.status === "MATCHED" ? "bg-emerald-50 text-emerald-700" :

@@ -29,9 +29,15 @@ export async function GET(
     }
 
     const [rows]: any = await db.query(
-      `SELECT id, user_id, file_name, file_path, mime_type
-       FROM user_contracts
-       WHERE id = ? AND status = 'GENERATED'
+      `SELECT uc.id, uc.user_id,
+              COALESCE(csr.signed_file_name, uc.file_name) AS file_name,
+              COALESCE(csr.signed_file_path, uc.file_path) AS file_path,
+              COALESCE(csr.signed_mime_type, uc.mime_type) AS mime_type
+       FROM user_contracts uc
+       LEFT JOIN contract_signing_requests csr
+         ON csr.contract_id = uc.id AND csr.status = 'SIGNED'
+       WHERE uc.id = ? AND uc.status = 'GENERATED'
+       ORDER BY csr.signed_at DESC
        LIMIT 1`,
       [id]
     );

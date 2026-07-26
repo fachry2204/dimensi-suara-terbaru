@@ -13,6 +13,60 @@ export async function GET(request: NextRequest) {
     const session = await requireUser();
     await ensureReportTables();
     const { searchParams } = request.nextUrl;
+    if (searchParams.get("view") === "analytics") {
+      const [summary]: any = await db.query(
+        `SELECT COALESCE(SUM(l.user_revenue_idr),0) AS total_revenue,
+                COALESCE(SUM(l.quantity),0) AS total_quantity,
+                COUNT(DISTINCT l.report_batch_id) AS total_batches,
+                COUNT(DISTINCT NULLIF(l.isrc, '')) AS total_tracks
+         FROM user_revenue_ledger l
+         WHERE l.user_id = ? AND l.status = 'FINALIZED'`,
+        [session.userId]
+      );
+      const [monthly]: any = await db.query(
+        `SELECT DATE_FORMAT(b.report_period, '%Y-%m') AS period,
+                COALESCE(SUM(l.user_revenue_idr),0) AS revenue,
+                COALESCE(SUM(l.quantity),0) AS quantity
+         FROM user_revenue_ledger l
+         JOIN report_batches b ON b.id = l.report_batch_id
+         WHERE l.user_id = ? AND l.status = 'FINALIZED'
+         GROUP BY DATE_FORMAT(b.report_period, '%Y-%m')
+         ORDER BY period ASC
+         LIMIT 24`,
+        [session.userId]
+      );
+      const [platforms]: any = await db.query(
+        `SELECT COALESCE(NULLIF(l.platform, ''), 'Lainnya') AS name,
+                COALESCE(SUM(l.user_revenue_idr),0) AS revenue,
+                COALESCE(SUM(l.quantity),0) AS quantity
+         FROM user_revenue_ledger l
+         WHERE l.user_id = ? AND l.status = 'FINALIZED'
+         GROUP BY COALESCE(NULLIF(l.platform, ''), 'Lainnya')
+         ORDER BY revenue DESC
+         LIMIT 8`,
+        [session.userId]
+      );
+      const [tracks]: any = await db.query(
+        `SELECT COALESCE(NULLIF(l.track_title, ''), 'Tanpa Judul') AS title,
+                MAX(l.artist_name) AS artist_name, MAX(l.isrc) AS isrc,
+                COALESCE(SUM(l.user_revenue_idr),0) AS revenue,
+                COALESCE(SUM(l.quantity),0) AS quantity
+         FROM user_revenue_ledger l
+         WHERE l.user_id = ? AND l.status = 'FINALIZED'
+         GROUP BY COALESCE(NULLIF(l.isrc, ''), CONCAT('row-', l.report_row_id)),
+                  COALESCE(NULLIF(l.track_title, ''), 'Tanpa Judul')
+         ORDER BY revenue DESC
+         LIMIT 10`,
+        [session.userId]
+      );
+      return NextResponse.json({
+        success: true,
+        summary: summary?.[0] || {},
+        monthly,
+        platforms,
+        tracks,
+      });
+    }
     const { page, limit, offset } = paginationParams(searchParams);
     const where = ["l.user_id = ?"];
     const values: any[] = [session.userId];
@@ -24,7 +78,8 @@ export async function GET(request: NextRequest) {
     const [summary]: any = await db.query(
       `SELECT COALESCE(SUM(user_revenue_idr),0) AS total_revenue,
               COALESCE(SUM(quantity),0) AS total_quantity,
-              COUNT(DISTINCT report_batch_id) AS total_batches
+              COUNT(DISTINCT report_batch_id) AS total_batches,
+              COUNT(DISTINCT NULLIF(isrc, '')) AS total_tracks
        FROM user_revenue_ledger l
        WHERE l.user_id = ? AND l.status = 'FINALIZED'`,
       [session.userId]

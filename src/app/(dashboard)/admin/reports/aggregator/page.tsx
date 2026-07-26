@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, Eye, Loader2, RefreshCw, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Eye, RefreshCw, Trash2, Upload } from "lucide-react";
 
 const STATUSES: Record<string, string> = {
   UPLOADING: "Mengupload",
@@ -33,10 +32,8 @@ export default function AdminReportsPage() {
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0 });
   const [activeTab, setActiveTab] = useState<"batches" | "data">("batches");
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [filters, setFilters] = useState({ search: "", status: "", aggregator: "", period: "" });
-  const [uploadForm, setUploadForm] = useState({ aggregatorName: "SoundOn", reportPeriod: "", file: null as File | null });
 
   async function loadBatches(page = meta.page) {
     setIsLoading(true);
@@ -57,28 +54,6 @@ export default function AdminReportsPage() {
     loadBatches(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function uploadReport(event: FormEvent) {
-    event.preventDefault();
-    if (!uploadForm.file) {
-      setMessage("Pilih file report terlebih dahulu.");
-      return;
-    }
-    setIsUploading(true);
-    setMessage("Sedang Mengupload Report... Sedang Memproses Data...");
-    const form = new FormData();
-    form.append("aggregatorName", uploadForm.aggregatorName);
-    form.append("reportPeriod", uploadForm.reportPeriod);
-    form.append("file", uploadForm.file);
-    const res = await fetch("/api/admin/reports/upload", { method: "POST", credentials: "include", body: form });
-    const data = await res.json().catch(() => ({}));
-    setIsUploading(false);
-    setMessage(data.message || (res.ok ? "Report berhasil diproses." : "Report gagal diproses."));
-    if (res.ok) {
-      setUploadForm((prev) => ({ ...prev, file: null }));
-      loadBatches(1);
-    }
-  }
 
   async function deleteBatch(id: number) {
     if (!confirm("Hapus batch report ini?")) return;
@@ -105,9 +80,9 @@ export default function AdminReportsPage() {
           <button onClick={() => loadBatches()} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700">
             <RefreshCw size={14} /> Recheck New ISRCs
           </button>
-          <a href="#upload-report" className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-bold text-white">
-            <Upload size={14} /> Upload Report
-          </a>
+          <Link href="/admin/reports/import" className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-bold text-white">
+            <Upload size={14} /> Import Report
+          </Link>
         </div>
       </div>
 
@@ -115,27 +90,7 @@ export default function AdminReportsPage() {
         <button onClick={() => setActiveTab("batches")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold ${activeTab === "batches" ? "bg-fuchsia-500 text-white" : "text-slate-500"}`}>Report Batches</button>
         <button onClick={() => setActiveTab("data")} className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold ${activeTab === "data" ? "bg-fuchsia-500 text-white" : "text-slate-500"}`}>Data</button>
       </div>
-
-      <section id="upload-report" className="mt-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-black">Upload Report</h2>
-        <form onSubmit={uploadReport} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1.5fr_auto] lg:items-end">
-          <label className="text-xs font-bold uppercase text-slate-500">Nama Aggregator
-            <select value={uploadForm.aggregatorName} onChange={(e) => setUploadForm((p) => ({ ...p, aggregatorName: e.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              {AGGREGATORS.map((name) => <option key={name}>{name}</option>)}
-            </select>
-          </label>
-          <label className="text-xs font-bold uppercase text-slate-500">Periode Report
-            <input value={uploadForm.reportPeriod} onChange={(e) => setUploadForm((p) => ({ ...p, reportPeriod: e.target.value }))} placeholder="MM/YYYY" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          </label>
-          <label className="text-xs font-bold uppercase text-slate-500">File Report
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => setUploadForm((p) => ({ ...p, file: e.target.files?.[0] || null }))} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          </label>
-          <button disabled={isUploading} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-fuchsia-500 px-4 text-xs font-bold text-white disabled:opacity-60">
-            {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Upload
-          </button>
-        </form>
-        {message && <p className="mt-3 text-xs font-bold text-slate-600">{message}</p>}
-      </section>
+      {message && <p className="mt-4 rounded-xl bg-slate-100 p-4 text-xs font-bold text-slate-600">{message}</p>}
 
       <section className="mt-6 rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="grid gap-3 border-b border-slate-100 p-4 md:grid-cols-4">

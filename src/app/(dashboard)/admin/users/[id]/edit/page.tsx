@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Download, Eye, FileText, Loader2, Save, Upload, X } from "lucide-react";
 
 type UserForm = {
   username: string;
@@ -63,7 +63,7 @@ const EMPTY_FORM: UserForm = {
   contract_doc_path: "",
 };
 
-const SECTIONS: Array<{ title: string; fields: Array<{ name: keyof UserForm; label: string; type?: string; span?: "full" }> }> = [
+const TEXT_SECTIONS: Array<{ title: string; fields: Array<{ name: keyof UserForm; label: string; type?: string; span?: "full" }> }> = [
   {
     title: "Akun",
     fields: [
@@ -104,18 +104,22 @@ const SECTIONS: Array<{ title: string; fields: Array<{ name: keyof UserForm; lab
       { name: "bank_account_name", label: "Atas Nama Rekening" },
     ],
   },
-  {
-    title: "Path Dokumen",
-    fields: [
-      { name: "ktp_doc_path", label: "KTP", span: "full" },
-      { name: "npwp_doc_path", label: "NPWP", span: "full" },
-      { name: "signature_doc_path", label: "Tanda Tangan", span: "full" },
-      { name: "nib_doc_path", label: "NIB", span: "full" },
-      { name: "kemenkumham_doc_path", label: "Kemenkumham", span: "full" },
-      { name: "contract_doc_path", label: "Kontrak", span: "full" },
-    ],
-  },
 ];
+
+const DOC_FIELDS: Array<{ name: keyof UserForm; label: string }> = [
+  { name: "ktp_doc_path", label: "KTP" },
+  { name: "npwp_doc_path", label: "NPWP" },
+  { name: "signature_doc_path", label: "Tanda Tangan" },
+  { name: "nib_doc_path", label: "NIB" },
+  { name: "kemenkumham_doc_path", label: "Kemenkumham" },
+  { name: "contract_doc_path", label: "Kontrak" },
+];
+
+function getDocUrl(path: string) {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return path.startsWith("/") ? path : `/${path}`;
+}
 
 export default function AdminEditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -123,8 +127,12 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [previewDoc, setPreviewDoc] = useState<string | null>(null);
+
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
     fetch(`/api/users/${id}`, { credentials: "include" })
@@ -148,6 +156,35 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
 
   function updateField(name: keyof UserForm, value: string) {
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleFileUpload(docType: keyof UserForm, file: File) {
+    setUploadingDoc(docType);
+    setError("");
+    setSuccess("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("docType", docType);
+
+      const res = await fetch(`/api/users/${id}/upload-document`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Gagal mengupload dokumen");
+
+      updateField(docType, body.path);
+      setSuccess(body.message || `File ${docType} berhasil diupload & menimpa file lama.`);
+      setTimeout(() => setSuccess(""), 4000);
+    } catch (err: any) {
+      setError(err.message || "Gagal mengupload dokumen");
+    } finally {
+      setUploadingDoc(null);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -200,7 +237,7 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {SECTIONS.map((section) => (
+        {TEXT_SECTIONS.map((section) => (
           <section key={section.title} className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-base font-extrabold text-slate-800">{section.title}</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -230,6 +267,140 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
           </section>
         ))}
 
+        {/* Dokumen User Section with Previews, Download Buttons, and Upload Replacement */}
+        <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+          <h2 className="mb-1 text-base font-extrabold text-slate-800">Dokumen User</h2>
+          <p className="mb-4 text-xs font-medium text-slate-500">
+            Preview file dokumen user, tombol download, dan tombol upload untuk menimpa/mengganti file lama secara otomatis.
+          </p>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {DOC_FIELDS.map((doc) => {
+              const pathVal = form[doc.name];
+              const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(pathVal);
+              const docUrl = getDocUrl(pathVal);
+              const isUploadingThis = uploadingDoc === doc.name;
+
+              return (
+                <div key={doc.name} className="flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/60 p-4 shadow-sm">
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-extrabold uppercase tracking-wide text-slate-700">{doc.label}</span>
+                      {pathVal ? (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                          Tersedia
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-400">
+                          Kosong
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Hidden file input */}
+                    <input
+                      type="file"
+                      ref={(el) => {
+                        fileInputRefs.current[doc.name] = el;
+                      }}
+                      className="hidden"
+                      accept={doc.name === "contract_doc_path" ? ".pdf,.doc,.docx,.jpg,.jpeg,.png" : "image/*,.pdf"}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileUpload(doc.name, file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+
+                    {/* Preview Box */}
+                    <div className="relative mb-3 flex min-h-[140px] items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white p-2">
+                      {isUploadingThis ? (
+                        <div className="flex flex-col items-center justify-center gap-2 text-indigo-600">
+                          <Loader2 size={28} className="animate-spin" />
+                          <span className="text-xs font-bold">Mengupload & menimpa file...</span>
+                        </div>
+                      ) : pathVal ? (
+                        isImage ? (
+                          <img
+                            src={docUrl}
+                            alt={doc.label}
+                            className="max-h-40 w-full object-contain rounded-md"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-3 text-center text-slate-500">
+                            <FileText size={36} className="mb-1 text-indigo-500" />
+                            <p className="max-w-[220px] truncate text-xs font-bold text-slate-800">
+                              {pathVal.split("/").pop()}
+                            </p>
+                            <span className="mt-1 text-[10px] font-semibold text-slate-400">Dokumen File</span>
+                          </div>
+                        )
+                      ) : (
+                        <div className="text-center text-xs font-semibold text-slate-400">
+                          Belum ada dokumen {doc.label}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    {/* Action Buttons */}
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      {pathVal && isImage && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc(docUrl)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-indigo-600 shadow-sm"
+                        >
+                          <Eye size={14} /> Pratinjau
+                        </button>
+                      )}
+
+                      {pathVal && (
+                        <a
+                          href={docUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-700 shadow-sm"
+                        >
+                          <Download size={14} /> Download File
+                        </a>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={isUploadingThis}
+                        onClick={() => fileInputRefs.current[doc.name]?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:opacity-60 shadow-sm"
+                      >
+                        {isUploadingThis ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        {pathVal ? "Upload & Timpa File" : "Upload File"}
+                      </button>
+                    </div>
+
+                    {/* Path Input */}
+                    <div>
+                      <label className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+                        Path File (Lokasi)
+                      </label>
+                      <input
+                        type="text"
+                        value={pathVal}
+                        onChange={(e) => updateField(doc.name, e.target.value)}
+                        placeholder={`/uploads/profiles/file-${doc.name}.jpg`}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-mono text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {(error || success) && (
           <div className={`rounded-2xl border p-4 text-sm font-bold ${error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}>
             {error || success}
@@ -246,6 +417,42 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
           </button>
         </div>
       </form>
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="relative max-w-3xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden p-4">
+            <button
+              type="button"
+              onClick={() => setPreviewDoc(null)}
+              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 shadow text-slate-600 hover:text-red-600 transition"
+            >
+              <X size={16} />
+            </button>
+            {/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(previewDoc) ? (
+              <img
+                src={previewDoc}
+                alt="Preview Dokumen"
+                className="w-full max-h-[80vh] object-contain rounded-lg"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 p-12 text-slate-500">
+                <FileText size={48} className="text-slate-400" />
+                <p className="text-sm font-semibold text-center">Preview langsung tidak tersedia untuk format file ini.<br />Silakan unduh untuk melihat dokumen.</p>
+                <a
+                  href={previewDoc}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition"
+                >
+                  <Download size={16} /> Download File
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

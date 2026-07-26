@@ -166,6 +166,12 @@ export async function POST(
 
     await db.query("UPDATE user_contracts SET is_current = 0 WHERE user_id = ? AND id <> ?", [userId, contractId]);
     await db.query(
+      `UPDATE contract_signing_requests
+       SET status = 'SUPERSEDED'
+       WHERE user_id = ? AND contract_id <> ? AND status IN ('PENDING_SIGNATURE', 'SIGNING')`,
+      [userId, contractId]
+    );
+    await db.query(
       `UPDATE user_contracts
        SET status = 'GENERATED',
            file_name = ?,
