@@ -3,8 +3,6 @@ import { db } from "@/lib/db";
 import type { RowDataPacket } from "mysql2/promise";
 import { DEFAULT_NOTIFICATION_CONFIG } from "@/lib/notification-config";
 
-export { DEFAULT_NOTIFICATION_CONFIG };
-
 export async function GET() {
   try {
     const [rows] = await db.query<RowDataPacket[]>(
