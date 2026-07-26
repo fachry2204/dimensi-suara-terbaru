@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import { db } from "@/lib/db";
 import type { RowDataPacket } from "mysql2/promise";
-import { DEFAULT_NOTIFICATION_CONFIG } from "@/app/api/settings/notifications/route";
+import { DEFAULT_NOTIFICATION_CONFIG } from "@/lib/notification-config";
 
 interface NotificationParams {
   releaseId: string | number;

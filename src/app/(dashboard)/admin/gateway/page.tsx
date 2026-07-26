@@ -17,7 +17,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { DEFAULT_NOTIFICATION_CONFIG } from "@/app/api/settings/notifications/route";
+import { DEFAULT_NOTIFICATION_CONFIG } from "@/lib/notification-config";
 
 export default function AdminGatewayPage() {
   const [activeTab, setActiveTab] = useState<"smtp" | "wa" | "notifications">("smtp");
