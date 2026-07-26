@@ -60,6 +60,28 @@ export default function AdminSettingsPage() {
   const [uploadingContractType, setUploadingContractType] = useState<"PERSONAL" | "COMPANY" | null>(null);
   const [contractTemplateMessage, setContractTemplateMessage] = useState("");
 
+  // Database Fix State
+  const [isFixingDb, setIsFixingDb] = useState(false);
+  const [dbFixMessage, setDbFixMessage] = useState("");
+
+  async function handleFixDb() {
+    setIsFixingDb(true);
+    setDbFixMessage("");
+    try {
+      const res = await fetch("/api/settings/system/fix-db", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Gagal menyelaraskan database");
+      setDbFixMessage(data.message || "Database berhasil disinkronkan dan diperbarui!");
+    } catch (err: any) {
+      setDbFixMessage(err.message || "Terjadi kesalahan saat perbaikan database");
+    } finally {
+      setIsFixingDb(false);
+    }
+  }
+
   const settingTabs = [
     { key: "branding", label: "Branding", Icon: Settings },
     { key: "soundon", label: "SoundOn", Icon: Zap },
@@ -581,8 +603,46 @@ export default function AdminSettingsPage() {
         )}
       </section>
 
+      {/* WEBSITE & DATABASE */}
+      <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "website" ? "hidden" : ""}`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-black">
+            <Database size={18} className="text-fuchsia-500" /> Website & Database System
+          </h2>
+        </div>
+        <p className="mt-1 text-xs font-semibold text-slate-500">
+          Gunakan fitur ini untuk menyelaraskan struktur database MySQL di server Plesk Anda dengan versi aplikasi terbaru tanpa menghapus data rilis/user.
+        </p>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Perbarui & Sinkronkan Struktur Database MySQL</h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Menambahkan tabel dan kolom baru yang diperlukan (termasuk kolom SoundOn, UPC, ISRC) ke database di Plesk.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleFixDb}
+              disabled={isFixingDb}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 text-xs font-bold text-white shadow-md hover:from-purple-700 hover:to-indigo-700 disabled:opacity-60 shrink-0"
+            >
+              {isFixingDb ? <Loader2 size={16} className="animate-spin" /> : <Database size={16} />}
+              {isFixingDb ? "Memproses Database..." : "Sinkronkan Database Sekarang"}
+            </button>
+          </div>
+
+          {dbFixMessage && (
+            <div className={`mt-4 rounded-xl p-3 text-xs font-bold border ${dbFixMessage.includes("berhasil") || dbFixMessage.includes("disinkronkan") ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+              {dbFixMessage}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* DYNAMIC FALLBACK FOR OTHER GROUPS */}
-      <section className={`mt-6 ${activeSettingGroup ? "" : "hidden"}`}>
+      <section className={`mt-6 ${activeSettingGroup && activeTab !== "website" ? "" : "hidden"}`}>
         {activeSettingGroup && (() => {
           const [title, items, Icon]: any = activeSettingGroup;
           return (
