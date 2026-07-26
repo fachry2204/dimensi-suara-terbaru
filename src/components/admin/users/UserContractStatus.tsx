@@ -148,10 +148,22 @@ export function UserContractStatus({ userId, compact = false }: { userId: number
 
         {status === "GENERATED" && contract && (
           <div className="grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-2">
-            <p>Nama File:<br /><span className="text-slate-900">{contract.fileName || "-"}</span></p>
-            <p>Versi:<br /><span className="text-slate-900">Versi {contract.version}</span></p>
-            <p>Dibuat:<br /><span className="text-slate-900">{formatGeneratedAt(contract.generatedAt)}</span></p>
-            <p>Ukuran:<br /><span className="text-slate-900">{formatFileSize(contract.fileSize)}</span></p>
+            <div className="min-w-0">
+              <p>Nama File:</p>
+              <p className="break-all text-slate-900">{contract.fileName || "-"}</p>
+            </div>
+            <div className="min-w-0">
+              <p>Versi:</p>
+              <p className="text-slate-900">Versi {contract.version}</p>
+            </div>
+            <div className="min-w-0">
+              <p>Dibuat:</p>
+              <p className="text-slate-900">{formatGeneratedAt(contract.generatedAt)}</p>
+            </div>
+            <div className="min-w-0">
+              <p>Ukuran:</p>
+              <p className="text-slate-900">{formatFileSize(contract.fileSize)}</p>
+            </div>
           </div>
         )}
 
