@@ -8,9 +8,7 @@ import {
   Database,
   FileSignature,
   HardDrive,
-  KeyRound,
   Loader2,
-  Mail,
   PlugZap,
   Save,
   Settings,
@@ -22,8 +20,6 @@ import { assetUrl } from "@/utils/url";
 
 const settingGroups = [
   ["Role & Akses", ["Setting Role"], Shield],
-  ["Email", ["SMTP Email"], Mail],
-  ["Omnichannel", ["Omnichannel Setting"], KeyRound],
   ["Website", ["Log Data Website", "Update Website", "Backup Website"], Database],
   ["Integrasi", ["Setting Google Drive", "Setting Payment Gateway"], HardDrive],
 ];
@@ -33,6 +29,17 @@ function tabKey(value: string) {
 }
 
 export default function AdminSettingsPage() {
+  const [activeTab, setActiveTab] = useState("branding");
+
+  // Branding State
+  const [systemName, setSystemName] = useState("");
+  const [logoPath, setLogoPath] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isLoadingBranding, setIsLoadingBranding] = useState(true);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [brandingMessage, setBrandingMessage] = useState("");
+
+  // SoundOn State
   const [soundOnUserId, setSoundOnUserId] = useState("");
   const [soundOnPassword, setSoundOnPassword] = useState("");
   const [soundOnSaved, setSoundOnSaved] = useState(false);
@@ -41,18 +48,13 @@ export default function AdminSettingsPage() {
   const [isSavingSoundOn, setIsSavingSoundOn] = useState(false);
   const [isTestingSoundOn, setIsTestingSoundOn] = useState(false);
   const [soundOnMessage, setSoundOnMessage] = useState("");
-  const [systemName, setSystemName] = useState("");
-  const [logoPath, setLogoPath] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [isLoadingBranding, setIsLoadingBranding] = useState(true);
-  const [isSavingBranding, setIsSavingBranding] = useState(false);
-  const [brandingMessage, setBrandingMessage] = useState("");
+
+  // Format Kontrak State
   const [contractTemplates, setContractTemplates] = useState<Record<"PERSONAL" | "COMPANY", any>>({ PERSONAL: null, COMPANY: null });
   const [contractTemplateFiles, setContractTemplateFiles] = useState<Record<"PERSONAL" | "COMPANY", File | null>>({ PERSONAL: null, COMPANY: null });
   const [isLoadingContractTemplate, setIsLoadingContractTemplate] = useState(true);
   const [uploadingContractType, setUploadingContractType] = useState<"PERSONAL" | "COMPANY" | null>(null);
   const [contractTemplateMessage, setContractTemplateMessage] = useState("");
-  const [activeTab, setActiveTab] = useState("branding");
 
   const settingTabs = [
     { key: "branding", label: "Branding", Icon: Settings },
@@ -64,7 +66,10 @@ export default function AdminSettingsPage() {
       Icon,
     })),
   ];
-  const activeSettingGroup = settingGroups.find(([title]: any) => tabKey(String(title)) === activeTab);
+
+  const activeSettingGroup = settingGroups.find(
+    ([title]: any) => tabKey(String(title)) === activeTab
+  );
 
   useEffect(() => {
     fetch("/api/settings/soundon", { credentials: "include", cache: "no-store" })
@@ -90,10 +95,12 @@ export default function AdminSettingsPage() {
 
     fetch("/api/admin/contract-template", { credentials: "include", cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => setContractTemplates({
-        PERSONAL: data?.data?.PERSONAL || null,
-        COMPANY: data?.data?.COMPANY || null,
-      }))
+      .then((data) =>
+        setContractTemplates({
+          PERSONAL: data?.data?.PERSONAL || null,
+          COMPANY: data?.data?.COMPANY || null,
+        })
+      )
       .catch(() => {})
       .finally(() => setIsLoadingContractTemplate(false));
   }, []);
@@ -238,7 +245,10 @@ export default function AdminSettingsPage() {
 
   return (
     <main className="py-6 text-slate-800">
-      <Link href="/admin" className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-red-600/20 transition-all hover:bg-red-800">
+      <Link
+        href="/admin"
+        className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-red-600/20 transition-all hover:bg-red-800"
+      >
         <ArrowLeft size={14} /> Menuju Dashboard
       </Link>
       <h1 className="mt-6 text-3xl font-black">Setting System</h1>
@@ -266,6 +276,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
+      {/* BRANDING */}
       <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "branding" ? "hidden" : ""}`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-black">
@@ -334,6 +345,7 @@ export default function AdminSettingsPage() {
         )}
       </section>
 
+      {/* SOUNDON */}
       <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "soundon" ? "hidden" : ""}`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-black">
@@ -397,6 +409,7 @@ export default function AdminSettingsPage() {
         )}
       </section>
 
+      {/* KONTRAK */}
       <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "kontrak" ? "hidden" : ""}`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-black">
@@ -466,12 +479,15 @@ export default function AdminSettingsPage() {
         )}
       </section>
 
+      {/* DYNAMIC FALLBACK FOR OTHER GROUPS */}
       <section className={`mt-6 ${activeSettingGroup ? "" : "hidden"}`}>
         {activeSettingGroup && (() => {
           const [title, items, Icon]: any = activeSettingGroup;
           return (
             <div className="rounded-lg bg-white p-5 text-slate-900">
-              <h2 className="flex items-center gap-2 text-lg font-black"><Icon size={18} className="text-fuchsia-500" /> {title}</h2>
+              <h2 className="flex items-center gap-2 text-lg font-black">
+                <Icon size={18} className="text-fuchsia-500" /> {title}
+              </h2>
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 {items.map((item: string) => (
                   <label key={item} className="block">

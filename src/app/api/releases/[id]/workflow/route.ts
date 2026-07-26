@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendReleaseStatusNotification } from "@/lib/release-notification";
 
 export async function POST(
   request: Request,
@@ -72,6 +73,16 @@ export async function POST(
         ]);
       }
     }
+
+    // Trigger notification asynchronously so we don't block response
+    sendReleaseStatusNotification({
+      releaseId,
+      newStatus: status || "",
+      aggregator,
+      upc,
+      rejectionReason,
+      rejectionDescription,
+    }).catch((err) => console.error("[Workflow Route] Error sending notification:", err));
 
     return NextResponse.json({ success: true, message: "Workflow updated" });
   } catch (error: any) {
