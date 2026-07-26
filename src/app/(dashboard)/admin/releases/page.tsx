@@ -354,9 +354,25 @@ export default function ReleasesPage() {
     if (!isSoundOnAggregator(release.aggregator)) return null;
 
     if (!result || result.status === 'idle') {
+      const dbStatus = release.soundonStatus || (release.upc ? 'Delivered' : null);
+      const dbUpc = release.upc || '-';
+      const dbIsrc = release.tracks?.[0]?.isrc || '-';
+
+      if (!dbStatus && dbUpc === '-' && dbIsrc === '-') {
+        return (
+          <div className="mt-1 text-[10px] font-semibold text-slate-400">
+            Klik SoundOn untuk cek SO
+          </div>
+        );
+      }
+
       return (
-        <div className="mt-1 text-[10px] font-semibold text-slate-400">
-          Klik SoundOn untuk cek SO
+        <div className="mt-1 space-y-0.5 text-[10px] leading-4">
+          <div className="font-bold text-slate-600">
+            Status SO: <span className="text-emerald-700">{dbStatus}</span>
+          </div>
+          <div className="font-mono text-slate-500">UPC SO: {dbUpc}</div>
+          <div className="font-mono text-slate-500">ISRC SO: {dbIsrc}</div>
         </div>
       );
     }
@@ -384,8 +400,8 @@ export default function ReleasesPage() {
         <div className="font-bold text-slate-600">
           Status SO: <span className={result.status === 'found' ? 'text-emerald-700' : 'text-amber-700'}>{result.releaseStatus || (result.status === 'found' ? 'Ditemukan' : 'Tidak ditemukan')}</span>
         </div>
-        <div className="font-mono text-slate-500">UPC SO: {result.upc || '-'}</div>
-        <div className="font-mono text-slate-500">ISRC SO: {result.isrc || '-'}</div>
+        <div className="font-mono text-slate-500">UPC SO: {result.upc || release.upc || '-'}</div>
+        <div className="font-mono text-slate-500">ISRC SO: {result.isrc || release.tracks?.[0]?.isrc || '-'}</div>
       </div>
     );
   };

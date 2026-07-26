@@ -113,6 +113,7 @@ export async function getReleases(
       version: r.version,
       type: r.release_type,
       aggregator: r.aggregator,
+      soundonStatus: r.soundon_status,
       genre: r.genre || (r as any).genre_name || (tracksByRelease.get(r.id)?.[0]?.genre) || '-',
       subGenre: r.sub_genre || (tracksByRelease.get(r.id)?.[0]?.subGenre) || '-',
       tracks: tracksByRelease.get(r.id) || [],

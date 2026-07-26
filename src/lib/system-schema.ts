@@ -207,6 +207,7 @@ const tableDefinitions: TableDefinition[] = [
       nullableInt("subgenre_id"),
       nullableText("upc", 100),
       nullableText("aggregator", 100),
+      nullableText("soundon_status", 100),
       nullableLongText("rejection_reason"),
       nullableLongText("rejection_description"),
       { name: "current_step", definition: "INT NULL DEFAULT 1" },

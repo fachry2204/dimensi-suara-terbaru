@@ -492,14 +492,50 @@ async function searchReleaseOnPage(page: Page, title: string): Promise<ScrapedRe
   return { found: false };
 }
 
+async function saveCheckResultsToDb(title: string, releaseId?: string | number, scraped?: any) {
+  if (!scraped || !scraped.found) return;
+
+  try {
+    const upcVal = scraped.upc || null;
+    const statusVal = scraped.releaseStatus || null;
+    const isrcVal = scraped.isrc || null;
+
+    let targetId = releaseId;
+    if (!targetId && title) {
+      const [rows]: any = await db.query("SELECT id FROM releases WHERE LOWER(title) = LOWER(?) LIMIT 1", [title]);
+      if (rows && rows.length > 0) {
+        targetId = rows[0].id;
+      }
+    }
+
+    if (targetId) {
+      await db.query(
+        "UPDATE releases SET aggregator = COALESCE(NULLIF(aggregator, ''), 'SoundOn'), upc = COALESCE(?, upc), soundon_status = COALESCE(?, soundon_status) WHERE id = ?",
+        [upcVal, statusVal, targetId]
+      );
+
+      if (isrcVal) {
+        await db.query(
+          "UPDATE tracks SET isrc = COALESCE(?, isrc) WHERE release_id = ?",
+          [isrcVal, targetId]
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Error saving check results to DB:", err);
+  }
+}
+
 export async function POST(request: Request) {
   let browser: Browser | null = null;
 
   try {
     await requireRole(["Admin", "admin", "Operator", "operator"]);
+
     const body = await request.json().catch(() => ({}));
     const title = String(body.title || "").trim();
     const upc = String(body.upc || "").trim();
+    const releaseId = body.id || body.releaseId;
 
     if (!title && !upc) {
       return NextResponse.json({ error: "Judul rilis atau UPC wajib diisi" }, { status: 400 });
@@ -543,6 +579,7 @@ export async function POST(request: Request) {
       }
 
       const scraped = await searchReleaseOnPage(page, title);
+      await saveCheckResultsToDb(title, releaseId, scraped);
 
       return NextResponse.json({
         status: scraped.found ? "found" : "not_found",
@@ -558,6 +595,8 @@ export async function POST(request: Request) {
         // Fallback to direct HTTP fetch for Plesk hosting
         try {
           const scraped = await checkReleaseHttpFetch(title, upc);
+          await saveCheckResultsToDb(title, releaseId, scraped);
+
           return NextResponse.json({
             status: scraped.found ? "found" : "not_found",
             message: scraped.found ? "Rilis ditemukan di SoundOn (Direct HTTP)" : "Rilis tidak ditemukan di SoundOn (Direct HTTP)",
