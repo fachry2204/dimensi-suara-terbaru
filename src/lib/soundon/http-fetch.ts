@@ -114,6 +114,32 @@ function normalizeTitle(val: string) {
   return val.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 }
 
+function formatSoundOnStatus(status: any): string {
+  const s = String(status ?? "").trim();
+  if (s === "2" || s.toLowerCase() === "delivered" || s.toLowerCase() === "live") return "Delivered";
+  if (s === "1" || s.toLowerCase() === "submitted" || s.toLowerCase() === "in review" || s.toLowerCase() === "under review") return "In Review";
+  if (s === "3" || s.toLowerCase() === "takedown" || s.toLowerCase() === "rejected") return "Takedown";
+  if (s === "4" || s.toLowerCase() === "draft") return "Draft";
+  return s || "Delivered";
+}
+
+function extractIsrcFromItem(item: any): string {
+  if (!item || typeof item !== "object") return "";
+  if (item.isrc) return String(item.isrc);
+  if (item.isrc_code) return String(item.isrc_code);
+  if (item.song_isrc) return String(item.song_isrc);
+  if (item.isrcCode) return String(item.isrcCode);
+
+  const songList = item.song_list || item.songs || item.tracks || item.song_info_list || item.songList || [];
+  if (Array.isArray(songList) && songList.length > 0) {
+    for (const song of songList) {
+      const isrc = song.isrc || song.isrc_code || song.song_isrc || song.isrcCode;
+      if (isrc) return String(isrc);
+    }
+  }
+  return "";
+}
+
 export async function checkReleaseHttpFetch(title: string, upc?: string) {
   const cookieHeader = await getSavedCookieHeader();
   if (!cookieHeader) {
@@ -176,13 +202,38 @@ export async function checkReleaseHttpFetch(title: string, upc?: string) {
           for (const item of items) {
             const itemTitle = String(item.title || item.name || item.album_name || "");
             const itemUpc = String(item.upc || item.upc_code || "");
-            const itemIsrc = String(item.isrc || item.isrc_code || "");
-            const itemStatus = String(item.status_str || item.status_text || item.status || "Delivered");
+            const itemStatus = formatSoundOnStatus(item.status_str || item.status_text || item.status);
 
             const titleMatch = targetTitleNorm && normalizeTitle(itemTitle).includes(targetTitleNorm);
             const upcMatch = targetUpcNorm && itemUpc.toLowerCase() === targetUpcNorm;
 
             if (titleMatch || upcMatch) {
+              let itemIsrc = extractIsrcFromItem(item);
+              const albumId = item.album_id || item.id || item.albumId;
+
+              // If ISRC is not in album list, fetch album detail
+              if (!itemIsrc && albumId) {
+                try {
+                  const detailUrl = `https://www.soundon.global/api/album/detail?album_id=${encodeURIComponent(albumId)}`;
+                  const detailRes = await fetch(detailUrl, {
+                    headers: {
+                      "User-Agent":
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                      Cookie: cookieHeader,
+                      Accept: "application/json, text/plain, */*",
+                      Referer: "https://www.soundon.global/library/list",
+                    },
+                  });
+
+                  if (detailRes.status === 200) {
+                    const detailJson = await detailRes.json().catch(() => null);
+                    if (detailJson) {
+                      itemIsrc = extractIsrcFromItem(detailJson.data || detailJson);
+                    }
+                  }
+                } catch {}
+              }
+
               return {
                 found: true,
                 releaseStatus: itemStatus,
