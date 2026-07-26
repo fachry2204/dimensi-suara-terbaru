@@ -9,6 +9,7 @@ const SETTING_KEY = "soundon_config";
 type SoundOnConfig = {
   userId?: string;
   password?: string;
+  wsEndpoint?: string;
 };
 
 async function getSoundOnConfig(): Promise<SoundOnConfig> {
@@ -33,6 +34,7 @@ export async function GET() {
 
     return NextResponse.json({
       userId: config.userId || "",
+      wsEndpoint: config.wsEndpoint || "",
       userIdOn: Boolean(config.userId),
       passwordOn: Boolean(config.password),
     });
@@ -51,6 +53,7 @@ export async function POST(request: Request) {
     const current = await getSoundOnConfig();
     const userId = String(body.userId || "").trim();
     const password = String(body.password || "").trim();
+    const wsEndpoint = String(body.wsEndpoint || "").trim();
 
     if (!userId) {
       return NextResponse.json({ error: "User ID SoundOn wajib diisi" }, { status: 400 });
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
     const nextConfig: SoundOnConfig = {
       userId,
       password: password || current.password || "",
+      wsEndpoint: wsEndpoint !== undefined ? wsEndpoint : current.wsEndpoint,
     };
 
     if (!nextConfig.password) {
@@ -74,6 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message: "Setting SoundOn berhasil disimpan",
       userId: nextConfig.userId,
+      wsEndpoint: nextConfig.wsEndpoint,
       userIdOn: true,
       passwordOn: true,
     });

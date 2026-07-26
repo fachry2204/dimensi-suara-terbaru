@@ -5,6 +5,7 @@ import path from "path";
 import { requireRole } from "@/lib/auth";
 import { db, type RowDataPacket } from "@/lib/db";
 import { browserInstallMessage, isPlaywrightBrowserMissing, launchSoundOnBrowser } from "@/lib/soundon/browser";
+import { testSoundOnHttpFetch } from "@/lib/soundon/http-fetch";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,6 +19,7 @@ const SOUNDON_STORAGE_STATE_PATH = path.join(SOUNDON_SESSION_DIR, "storage-state
 type SoundOnConfig = {
   userId?: string;
   password?: string;
+  wsEndpoint?: string;
 };
 
 async function getSoundOnConfig(): Promise<SoundOnConfig> {
@@ -106,7 +108,7 @@ async function isSoundOnLoginPage(page: Page) {
   return page.url().includes("soundon.global/login") || passwordVisible;
 }
 
-async function testSoundOnLogin(page: Page, config: Required<SoundOnConfig>) {
+async function testSoundOnLogin(page: Page, config: { userId: string; password: string }) {
   await safeGoto(page, SOUNDON_SUBMITTED_LIBRARY_URL);
   await page.waitForTimeout(1500);
 
@@ -185,42 +187,60 @@ export async function POST() {
       );
     }
 
-    browser = await launchSoundOnBrowser();
-    const storageState = await getSavedStorageStatePath();
-    const context = await browser.newContext({
-      viewport: { width: 1440, height: 900 },
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-      storageState,
-    });
-    await context.route("**/*", async (route) => {
-      const resourceType = route.request().resourceType();
-      if (["image", "media", "font"].includes(resourceType)) {
-        await route.abort();
-        return;
+    try {
+      browser = await launchSoundOnBrowser(config.wsEndpoint);
+      const storageState = await getSavedStorageStatePath();
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+        storageState,
+      });
+      await context.route("**/*", async (route) => {
+        const resourceType = route.request().resourceType();
+        if (["image", "media", "font"].includes(resourceType)) {
+          await route.abort();
+          return;
+        }
+
+        await route.continue();
+      });
+      const page = await context.newPage();
+
+      const message = await testSoundOnLogin(page, { userId: config.userId, password: config.password });
+
+      return NextResponse.json({
+        message,
+        userId: config.userId,
+        sessionSaved: true,
+      });
+    } catch (browserErr: any) {
+      if (isPlaywrightBrowserMissing(browserErr)) {
+        // Fallback to HTTP Fetch check if browser cannot run on Plesk
+        const httpResult = await testSoundOnHttpFetch();
+        if (httpResult.success) {
+          return NextResponse.json({
+            message: `${httpResult.message} (Metode Direct HTTP Fetch digunakan karena Chromium tidak tersedia di Plesk)`,
+            userId: config.userId,
+            sessionSaved: true,
+          });
+        }
+
+        return NextResponse.json(
+          {
+            error: `${browserInstallMessage(config.wsEndpoint)} ${httpResult.message}`,
+            fallbackMessage: httpResult.message,
+          },
+          { status: 500 }
+        );
       }
 
-      await route.continue();
-    });
-    const page = await context.newPage();
-
-    const message = await testSoundOnLogin(page, { userId: config.userId, password: config.password });
-
-    return NextResponse.json({
-      message,
-      userId: config.userId,
-      sessionSaved: true,
-    });
+      throw browserErr;
+    }
   } catch (error: any) {
     console.error("API Error - POST /api/settings/soundon/test:", error);
     if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    if (isPlaywrightBrowserMissing(error)) {
-      return NextResponse.json(
-        { error: browserInstallMessage() },
-        { status: 500 }
-      );
-    }
     return NextResponse.json({ error: error.message || "Tes login SoundOn gagal" }, { status: 500 });
   } finally {
     await browser?.close().catch(() => {});

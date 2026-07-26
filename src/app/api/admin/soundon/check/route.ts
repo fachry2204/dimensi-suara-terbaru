@@ -5,6 +5,7 @@ import path from "path";
 import { requireRole } from "@/lib/auth";
 import { db, type RowDataPacket } from "@/lib/db";
 import { browserInstallMessage, isPlaywrightBrowserMissing, launchSoundOnBrowser } from "@/lib/soundon/browser";
+import { checkReleaseHttpFetch } from "@/lib/soundon/http-fetch";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,6 +20,7 @@ const GOTO_TIMEOUT_MS = 45000;
 type SoundOnConfig = {
   userId?: string;
   password?: string;
+  wsEndpoint?: string;
 };
 
 type ScrapedRelease = {
@@ -163,7 +165,7 @@ async function clickFirst(page: Page, selectors: string[]) {
   return false;
 }
 
-async function loginToSoundOn(page: Page, config: Required<SoundOnConfig>) {
+async function loginToSoundOn(page: Page, config: { userId: string; password: string }) {
   const currentUrl = page.url();
   const passwordInputVisible = await page.locator("input[type='password']").first().isVisible().catch(() => false);
   
@@ -508,58 +510,80 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User ID dan Password SoundOn belum disimpan di Setting" }, { status: 400 });
     }
 
-    browser = await launchSoundOnBrowser();
-    const storageState = await getSavedStorageStatePath();
-    const context = await browser.newContext({
-      viewport: { width: 1440, height: 900 },
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-      storageState,
-    });
-    await context.route("**/*", async (route) => {
-      const resourceType = route.request().resourceType();
-      if (["image", "media", "font"].includes(resourceType)) {
-        await route.abort();
-        return;
+    try {
+      browser = await launchSoundOnBrowser(config.wsEndpoint);
+      const storageState = await getSavedStorageStatePath();
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+        storageState,
+      });
+      await context.route("**/*", async (route) => {
+        const resourceType = route.request().resourceType();
+        if (["image", "media", "font"].includes(resourceType)) {
+          await route.abort();
+          return;
+        }
+
+        await route.continue();
+      });
+      const page = await context.newPage();
+
+      await safeGoto(page, SOUNDON_SUBMITTED_LIBRARY_URL);
+      
+      const currentUrl = page.url();
+      const isLoginPage = currentUrl.includes("soundon.global/login") || (await page.locator("input[type='password']").first().isVisible().catch(() => false));
+      const isLoggedIn = !isLoginPage && currentUrl.includes("/library/");
+
+      if (!isLoggedIn) {
+        await loginToSoundOn(page, { userId: config.userId, password: config.password });
+      } else {
+        await saveStorageState(page);
       }
 
-      await route.continue();
-    });
-    const page = await context.newPage();
+      const scraped = await searchReleaseOnPage(page, title);
 
-    await safeGoto(page, SOUNDON_SUBMITTED_LIBRARY_URL);
-    
-    const currentUrl = page.url();
-    const isLoginPage = currentUrl.includes("soundon.global/login") || (await page.locator("input[type='password']").first().isVisible().catch(() => false));
-    const isLoggedIn = !isLoginPage && currentUrl.includes("/library/");
+      return NextResponse.json({
+        status: scraped.found ? "found" : "not_found",
+        message: scraped.found ? "Rilis ditemukan di SoundOn" : "Rilis tidak ditemukan di SoundOn",
+        releaseStatus: scraped.releaseStatus || "",
+        matchedTitle: scraped.matchedTitle || "",
+        upc: scraped.upc || "",
+        isrc: scraped.isrc || "",
+        rowText: scraped.rowText || "",
+      });
+    } catch (browserErr: any) {
+      if (isPlaywrightBrowserMissing(browserErr)) {
+        // Fallback to direct HTTP fetch for Plesk hosting
+        try {
+          const scraped = await checkReleaseHttpFetch(title, upc);
+          return NextResponse.json({
+            status: scraped.found ? "found" : "not_found",
+            message: scraped.found ? "Rilis ditemukan di SoundOn (Direct HTTP)" : "Rilis tidak ditemukan di SoundOn (Direct HTTP)",
+            releaseStatus: scraped.releaseStatus || "",
+            matchedTitle: scraped.matchedTitle || "",
+            upc: scraped.upc || "",
+            isrc: scraped.isrc || "",
+            rowText: scraped.rowText || "",
+          });
+        } catch (httpErr: any) {
+          if (httpErr.message === "SOUNDON_LOGIN_REQUIRED") {
+            return NextResponse.json({ error: "Session SoundOn expired atau belum ada Cookie Session. Silakan simpan Cookie Session di Setting SoundOn." }, { status: 502 });
+          }
+          return NextResponse.json(
+            { error: `${browserInstallMessage(config.wsEndpoint)} ${httpErr.message || ""}` },
+            { status: 500 }
+          );
+        }
+      }
 
-    if (!isLoggedIn) {
-      await loginToSoundOn(page, { userId: config.userId, password: config.password });
-    } else {
-      await saveStorageState(page);
+      throw browserErr;
     }
-
-    const scraped = await searchReleaseOnPage(page, title);
-
-    return NextResponse.json({
-      status: scraped.found ? "found" : "not_found",
-      message: scraped.found ? "Rilis ditemukan di SoundOn" : "Rilis tidak ditemukan di SoundOn",
-      releaseStatus: scraped.releaseStatus || "",
-      matchedTitle: scraped.matchedTitle || "",
-      upc: scraped.upc || "",
-      isrc: scraped.isrc || "",
-      rowText: scraped.rowText || "",
-    });
   } catch (error: any) {
     console.error("API Error - POST /api/admin/soundon/check:", error);
     if (error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    if (isPlaywrightBrowserMissing(error)) {
-      return NextResponse.json(
-        { error: browserInstallMessage() },
-        { status: 500 }
-      );
-    }
     if (error.message === "LOGIN_FORM_NOT_FOUND") return NextResponse.json({ error: "Form login SoundOn tidak ditemukan" }, { status: 502 });
     if (error.message === "SOUNDON_LOGIN_FAILED") return NextResponse.json({ error: "Login SoundOn gagal. Periksa User ID dan Password." }, { status: 502 });
     if (error.message === "SOUNDON_LOGIN_REQUIRED") return NextResponse.json({ error: "Session SoundOn expired. Sistem perlu login ulang." }, { status: 502 });
