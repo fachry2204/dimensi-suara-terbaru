@@ -418,6 +418,14 @@ export default function ReleasesPage() {
 
   const selectedTracks = Array.isArray(selectedRelease?.tracks) ? selectedRelease.tracks : [];
   const isSelectedAlbum = selectedTracks.length > 1;
+  const selectedSoundOnStatus =
+    selectedSoundOn?.releaseStatus ||
+    selectedRelease?.soundonStatus ||
+    (isSoundOnAggregator(selectedRelease?.aggregator) && (selectedRelease?.upc || selectedTracks[0]?.isrc) ? 'Delivered' : '') ||
+    selectedSoundOn?.message ||
+    '-';
+  const selectedSoundOnUpc = selectedSoundOn?.upc || selectedRelease?.upc || '-';
+  const selectedSoundOnIsrc = selectedSoundOn?.isrc || selectedTracks[0]?.isrc || '-';
 
   const saveReleaseWorkflow = async () => {
     if (!selectedRelease?.id) return;
@@ -1005,18 +1013,18 @@ export default function ReleasesPage() {
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <p className="text-[10px] font-black uppercase text-slate-400">Status Aggregator</p>
                                 <span className="mt-2 inline-flex rounded-full bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700">
-                                    {selectedSoundOn?.releaseStatus || selectedSoundOn?.message || '-'}
+                                    {selectedSoundOnStatus}
                                 </span>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <p className="text-[10px] font-black uppercase text-slate-400">UPC</p>
-                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedSoundOn?.upc || '-'}</p>
+                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedSoundOnUpc}</p>
                             </div>
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <p className="text-[10px] font-black uppercase text-slate-400">ISRC</p>
-                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedSoundOn?.isrc || '-'}</p>
+                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedSoundOnIsrc}</p>
                             </div>
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
