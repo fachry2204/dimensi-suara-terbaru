@@ -10,9 +10,15 @@ export const dynamic = "force-dynamic";
 
 const MIME_TYPES: Record<string, string> = {
   ".aac": "audio/aac",
+  ".gif": "image/gif",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
   ".m4a": "audio/mp4",
   ".mp3": "audio/mpeg",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
   ".wav": "audio/wav",
+  ".webp": "image/webp",
 };
 
 function contentDisposition(filename: string) {
@@ -27,15 +33,40 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const requestedPath = url.searchParams.get("filePath") || "";
     const relativePath = requestedPath.replace(/^[\\/]+/, "").replace(/^uploads[\\/]/, "");
-    const uploadsRoot = path.resolve(getWritableUploadsDir());
-    const filePath = path.resolve(uploadsRoot, relativePath);
-
-    if (!relativePath || (filePath !== uploadsRoot && !filePath.startsWith(`${uploadsRoot}${path.sep}`))) {
+    if (!relativePath) {
       return Response.json({ error: "Path file tidak valid" }, { status: 400 });
     }
 
-    const fileStat = await stat(filePath);
-    if (!fileStat.isFile()) {
+    // Current uploads live in UPLOADS_DIR. Older releases may still reference
+    // files saved under public/uploads, so keep a read-only compatibility root.
+    const uploadRoots = Array.from(new Set([
+      path.resolve(getWritableUploadsDir()),
+      path.resolve(process.cwd(), "uploads"),
+      path.resolve(process.cwd(), "httpdocs", "uploads"),
+      path.resolve(process.cwd(), "public", "uploads"),
+      path.resolve(process.cwd(), "httpdocs", "public", "uploads"),
+    ]));
+
+    let filePath = "";
+    let fileStat: { isFile(): boolean; size: number } | null = null;
+    for (const uploadsRoot of uploadRoots) {
+      const candidate = path.resolve(uploadsRoot, relativePath);
+      if (candidate !== uploadsRoot && !candidate.startsWith(`${uploadsRoot}${path.sep}`)) {
+        continue;
+      }
+      try {
+        const candidateStat = await stat(candidate);
+        if (candidateStat.isFile()) {
+          filePath = candidate;
+          fileStat = candidateStat as { isFile(): boolean; size: number };
+          break;
+        }
+      } catch (error: any) {
+        if (error?.code !== "ENOENT") throw error;
+      }
+    }
+
+    if (!filePath || !fileStat) {
       return Response.json({ error: "File tidak ditemukan" }, { status: 404 });
     }
 
@@ -98,7 +129,7 @@ export async function GET(request: Request) {
     if (error?.code === "ENOENT") {
       return Response.json({ error: "File tidak ditemukan" }, { status: 404 });
     }
-    console.error("Download audio gagal:", error);
+    console.error("Download file rilis gagal:", error);
     return Response.json({ error: "Gagal mengunduh file" }, { status: 500 });
   }
 }

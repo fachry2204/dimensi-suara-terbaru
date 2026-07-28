@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getReleaseById } from "@/repositories/release.repository";
 import fs from "fs/promises";
 import path from "path";
+import { getWritableUploadsDir } from "@/lib/release-upload-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +50,7 @@ export async function POST(
     }
 
     const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
+      getWritableUploadsDir(),
       "releases",
       "cover-art",
       String(release.user_id || session.userId)

@@ -34,6 +34,17 @@ const audioPreviewUrl = (filePath: string) => {
   return `${API_BASE_URL}/releases/download?${params.toString()}`;
 };
 
+const coverPreviewUrl = (filePath: string) => {
+  if (!filePath.includes('/uploads/')) return assetUrl(filePath);
+
+  const relativePath = `/uploads/${filePath.split('/uploads/')[1]}`;
+  const params = new URLSearchParams({
+    filePath: relativePath,
+    inline: '1',
+  });
+  return `${API_BASE_URL}/releases/download?${params.toString()}`;
+};
+
 export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, onUpdate, availableAggregators, mode = 'edit', onEdit, onDelete, userRole, isUpdatingCoverArt, token, onCoverArtUpdated, hideDistributionTab = false }) => {
   const [activeTab, setActiveTab] = useState<'INFO' | 'DISTRIBUTION'>('INFO');
   
@@ -126,7 +137,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
     // Cover Art
     if (release.coverArt) {
         if (typeof release.coverArt === 'string') {
-            newUrls['cover_art'] = assetUrl(release.coverArt);
+            newUrls['cover_art'] = coverPreviewUrl(release.coverArt);
         } else if (release.coverArt instanceof Blob) {
             newUrls['cover_art'] = URL.createObjectURL(release.coverArt);
         } else {
@@ -540,7 +551,8 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         <div className="flex-1 relative">
                             {release.coverArt ? (
                                 <img 
-                                    src={objectUrls['cover_art'] || (typeof release.coverArt === 'string' ? assetUrl(release.coverArt) : '')} 
+                                    src={objectUrls['cover_art'] || (typeof release.coverArt === 'string' ? coverPreviewUrl(release.coverArt) : '')}
+                                    alt={`Cover art ${release.title || 'rilis'}`}
                                     className="w-full h-full object-cover" 
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).src = '/assets/placeholder-cover.jpg';
@@ -590,7 +602,10 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         onClick={() => {
                             if (!release.coverArt) return;
                             const name = getFileName(release.coverArt, 'cover_art');
-                            downloadFile(objectUrls['cover_art'], name);
+                            const source = typeof release.coverArt === 'string'
+                                ? assetUrl(release.coverArt)
+                                : objectUrls['cover_art'];
+                            downloadFile(source, name);
                         }}
                         disabled={!release.coverArt}
                         className="w-full py-2 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-colors
