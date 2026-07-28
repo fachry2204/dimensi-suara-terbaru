@@ -222,18 +222,18 @@ export default function AdminImportReportPage() {
                 onDragOver={(event) => event.preventDefault()}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
-                className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition ${
+                className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-6 text-center transition sm:py-7 ${
                   dragging
                     ? "border-fuchsia-500 bg-fuchsia-50 shadow-[0_0_0_4px_rgba(217,70,239,0.08)]"
                     : "border-slate-200 bg-slate-50/70 hover:border-fuchsia-300 hover:bg-fuchsia-50/40"
                 }`}
               >
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-fuchsia-600 shadow-sm">
-                  <CloudUpload size={28} />
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-fuchsia-600 shadow-sm">
+                  <CloudUpload size={22} />
                 </span>
-                <span className="mt-4 text-base font-black text-slate-800">Tarik dan letakkan file di sini</span>
-                <span className="mt-1 text-sm text-slate-500">atau klik untuk memilih file dari komputer</span>
-                <span className="mt-4 rounded-lg bg-fuchsia-600 px-4 py-2 text-xs font-black text-white shadow-sm">Pilih File Report</span>
+                <span className="mt-3 text-sm font-black text-slate-800">Tarik dan letakkan file di sini</span>
+                <span className="mt-1 text-xs text-slate-500">atau klik untuk memilih file dari komputer</span>
+                <span className="mt-3 rounded-lg bg-fuchsia-600 px-4 py-2 text-xs font-black text-white shadow-sm">Pilih File Report</span>
                 <input
                   ref={fileInputRef}
                   id="report-file"
