@@ -87,7 +87,7 @@ export default function EditReleasePage() {
           status: raw.status,
           submissionDate: raw.submission_date,
           aggregator: raw.aggregator,
-          coverArt: raw.cover_art || null,
+          coverArt: raw.cover_art || raw.coverArt || null,
           type: raw.release_type,
           upc: raw.upc || '',
           title: raw.title || '',

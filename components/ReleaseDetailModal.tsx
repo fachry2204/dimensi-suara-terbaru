@@ -540,7 +540,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         <div className="flex-1 relative">
                             {release.coverArt ? (
                                 <img 
-                                    src={objectUrls['cover_art']} 
+                                    src={objectUrls['cover_art'] || (typeof release.coverArt === 'string' ? assetUrl(release.coverArt) : '')} 
                                     className="w-full h-full object-cover" 
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).src = '/assets/placeholder-cover.jpg';
