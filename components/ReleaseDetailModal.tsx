@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ReleaseData, Track } from '@/types';
 import { ArrowLeft, Play, Pause, FileAudio, CheckCircle, AlertTriangle, Globe, Disc, Save, Clipboard, Calendar, Tag, User, Mic2, FileText, Wand2, Loader2, Clock, Music2, Info, Download, Scissors, Users, ChevronDown, ChevronUp, Edit3, Trash2, Upload, Camera } from 'lucide-react';
 import { formatDMY } from '@/utils/date';
-import { assetUrl } from '@/utils/url';
+import { assetUrl, releaseFilePreviewUrl } from '@/utils/url';
 import { api, API_BASE_URL } from '@/utils/api';
 import { AlertModal } from './AlertModal';
 
@@ -24,17 +24,6 @@ interface Props {
 }
 
 const audioPreviewUrl = (filePath: string) => {
-  if (!filePath.includes('/uploads/')) return assetUrl(filePath);
-
-  const relativePath = `/uploads/${filePath.split('/uploads/')[1]}`;
-  const params = new URLSearchParams({
-    filePath: relativePath,
-    inline: '1',
-  });
-  return `${API_BASE_URL}/releases/download?${params.toString()}`;
-};
-
-const coverPreviewUrl = (filePath: string) => {
   if (!filePath.includes('/uploads/')) return assetUrl(filePath);
 
   const relativePath = `/uploads/${filePath.split('/uploads/')[1]}`;
@@ -137,7 +126,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
     // Cover Art
     if (release.coverArt) {
         if (typeof release.coverArt === 'string') {
-            newUrls['cover_art'] = coverPreviewUrl(release.coverArt);
+            newUrls['cover_art'] = releaseFilePreviewUrl(release.coverArt);
         } else if (release.coverArt instanceof Blob) {
             newUrls['cover_art'] = URL.createObjectURL(release.coverArt);
         } else {
@@ -551,7 +540,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         <div className="flex-1 relative">
                             {release.coverArt ? (
                                 <img 
-                                    src={objectUrls['cover_art'] || (typeof release.coverArt === 'string' ? coverPreviewUrl(release.coverArt) : '')}
+                                    src={objectUrls['cover_art'] || (typeof release.coverArt === 'string' ? releaseFilePreviewUrl(release.coverArt) : '')}
                                     alt={`Cover art ${release.title || 'rilis'}`}
                                     className="w-full h-full object-cover" 
                                     onError={(e) => {

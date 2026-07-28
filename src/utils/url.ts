@@ -33,3 +33,18 @@ export const publicAssetUrl = (path: string): string => {
   const base = (process.env.NEXT_PUBLIC_BASE_URL || '/').replace(/\/+$/, '');
   return `${base}/${normalized}`;
 };
+
+export const releaseFilePreviewUrl = (filePath?: string | null): string => {
+  if (!filePath) return '';
+
+  const normalized = filePath.startsWith('/') ? filePath : `/${filePath}`;
+  if (!normalized.includes('/uploads/')) return assetUrl(filePath);
+
+  const relativePath = `/uploads/${normalized.split('/uploads/')[1]}`;
+  const params = new URLSearchParams({
+    filePath: relativePath,
+    inline: '1',
+  });
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
+  return `${apiBase}/releases/download?${params.toString()}`;
+};

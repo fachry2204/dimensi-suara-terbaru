@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ReleaseData } from '@/types';
 import { formatDMY } from '@/utils/date';
-import { assetUrl } from '@/utils/url';
+import { releaseFilePreviewUrl } from '@/utils/url';
 import { useBranding } from '@/contexts/BrandingContext';
 import { api } from '@/utils/api';
 
@@ -411,7 +411,7 @@ export default function ReleasesPage() {
                                                     <>
                                                         <img 
                                                             src={(typeof release.coverArt === 'string')
-                                                                ? assetUrl(release.coverArt)
+                                                                ? releaseFilePreviewUrl(release.coverArt)
                                                                 : (release.coverArt instanceof Blob ? URL.createObjectURL(release.coverArt) : '')
                                                             } 
                                                             alt="Art" 
