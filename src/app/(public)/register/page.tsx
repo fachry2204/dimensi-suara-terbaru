@@ -155,6 +155,7 @@ export default function RegisterScreen() {
   const [wilayahError, setWilayahError] = useState('');
   const [isWilayahLoading, setIsWilayahLoading] = useState(false);
   const [isPostalLoading, setIsPostalLoading] = useState(false);
+  const [postalLookupError, setPostalLookupError] = useState('');
 
   const resetIndonesianRegion = () => {
     setProvince('');
@@ -413,6 +414,47 @@ export default function RegisterScreen() {
     };
     loadVillages();
   }, [districtCode]);
+
+  useEffect(() => {
+    if (country !== 'Indonesia' || !villageCode || !subdistrict || !district || !city || !province) {
+      setIsPostalLoading(false);
+      setPostalLookupError('');
+      return;
+    }
+
+    const controller = new AbortController();
+    const lookupPostalCode = async () => {
+      setPostalCode('');
+      setPostalLookupError('');
+      setIsPostalLoading(true);
+
+      try {
+        const params = new URLSearchParams({ province, city, district, village: subdistrict });
+        const res = await fetch(`/api/wilayah/postal-code?${params.toString()}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('Lookup kode pos gagal');
+
+        const data = await res.json();
+        const code = String(data?.code || '').trim();
+        if (code) {
+          setPostalCode(code);
+        } else {
+          setPostalLookupError('Kode pos tidak ditemukan. Silakan isi manual.');
+        }
+      } catch (error: any) {
+        if (error?.name !== 'AbortError') {
+          setPostalLookupError('Kode pos gagal dimuat. Silakan isi manual.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsPostalLoading(false);
+      }
+    };
+
+    lookupPostalCode();
+    return () => controller.abort();
+  }, [country, villageCode, subdistrict, district, city, province]);
 
   // Early return is moved here to ensure all hooks are called first
   if (checkingRegistration) {
@@ -1050,33 +1092,14 @@ export default function RegisterScreen() {
               {villages.length > 0 ? (
                 <select
                   value={villageCode}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const code = e.target.value;
                     setVillageCode(code);
                     const selected = villages.find((v) => v.code === code);
                     const name = selected?.name || '';
                     setSubdistrict(name);
                     setPostalCode('');
-                    if (!name || !district || !city || !province) {
-                      setPostalCode('');
-                      return;
-                    }
-                    try {
-                      setIsPostalLoading(true);
-                      const params = new URLSearchParams({ province, city, district, village: name });
-                      const res = await fetch(`/api/wilayah/postal-code?${params.toString()}`);
-                      if (!res.ok) {
-                        setPostalCode('');
-                        return;
-                      }
-                      const data = await res.json();
-                      if (data && data.code) setPostalCode(String(data.code));
-                      else setPostalCode('');
-                    } catch {
-                      setPostalCode('');
-                    } finally {
-                      setIsPostalLoading(false);
-                    }
+                    setPostalLookupError('');
                   }}
                   disabled={!districtCode || isWilayahLoading}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px]"
@@ -1099,10 +1122,16 @@ export default function RegisterScreen() {
               <input
                 type="text"
                 value={postalCode}
-                readOnly
+                onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                readOnly={!postalLookupError}
+                aria-invalid={Boolean(postalLookupError)}
+                aria-describedby={postalLookupError ? 'postal-code-error' : undefined}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 text-[10px] max-w-[160px]"
-                placeholder={!villageCode ? 'Pilih kelurahan' : isPostalLoading ? 'Mencari kodepos...' : 'Kodepos otomatis'}
+                placeholder={!villageCode ? 'Pilih kelurahan' : isPostalLoading ? 'Mencari kode pos...' : postalLookupError ? 'Isi kode pos' : 'Kode pos otomatis'}
               />
+              {postalLookupError ? (
+                <p id="postal-code-error" className="text-[9px] text-red-500" role="status">{postalLookupError}</p>
+              ) : null}
             </div>
           </div>
         </div>

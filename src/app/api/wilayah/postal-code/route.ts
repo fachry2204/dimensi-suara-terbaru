@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 
 function normalizeText(value: string) {
   return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/^kabupaten\s+/i, "")
-    .replace(/^kota\s+/i, "")
+    .replace(/^(?:kabupaten|kab\.?|kota administratif|kota|kecamatan|kelurahan|desa)\s+/i, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function normalizeCompact(value: string) {
+  return normalizeText(value).replace(/\s+/g, "");
 }
 
 function getPostalCodeFromRow(row: any) {
@@ -31,6 +36,52 @@ async function searchPostalCodes(query: string) {
         : [];
 }
 
+function findMatchingRow(rows: any[], location: { province: string; city: string; district: string; village: string }) {
+  const expected = {
+    province: normalizeCompact(location.province),
+    city: normalizeCompact(location.city),
+    district: normalizeCompact(location.district),
+    village: normalizeCompact(location.village),
+  };
+
+  return rows.find((row: any) => {
+    const actual = {
+      village: normalizeCompact(String(row?.village || row?.kelurahan || row?.urban || "")),
+      district: normalizeCompact(String(row?.district || row?.kecamatan || row?.subdistrict || "")),
+      city: normalizeCompact(String(row?.regency || row?.city || row?.kabupaten || "")),
+      province: normalizeCompact(String(row?.province || row?.provinsi || "")),
+    };
+
+    return (!expected.village || actual.village === expected.village) &&
+      (!expected.district || !actual.district || actual.district === expected.district) &&
+      (!expected.city || !actual.city || actual.city === expected.city) &&
+      (!expected.province || !actual.province || actual.province === expected.province);
+  }) || null;
+}
+
+function findUniqueAreaPostalRow(rows: any[], location: { province: string; city: string; district: string }) {
+  const expected = {
+    province: normalizeCompact(location.province),
+    city: normalizeCompact(location.city),
+    district: normalizeCompact(location.district),
+  };
+  const areaRows = rows.filter((row: any) => {
+    const actualDistrict = normalizeCompact(String(row?.district || row?.kecamatan || row?.subdistrict || ""));
+    const actualCity = normalizeCompact(String(row?.regency || row?.city || row?.kabupaten || ""));
+    const actualProvince = normalizeCompact(String(row?.province || row?.provinsi || ""));
+    return (!expected.district || actualDistrict === expected.district) &&
+      (!expected.city || !actualCity || actualCity === expected.city) &&
+      (!expected.province || !actualProvince || actualProvince === expected.province);
+  });
+
+  const codes = new Set(
+    areaRows
+      .map((row: any) => String(getPostalCodeFromRow(row) || "").trim())
+      .filter(Boolean),
+  );
+  return codes.size === 1 ? areaRows.find((row: any) => getPostalCodeFromRow(row)) || null : null;
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -43,37 +94,31 @@ export async function GET(request: Request) {
       [village, district, city, province],
       [village, district, city],
       [village, district],
+      [district, city, province],
       [village],
     ]
-      .map((parts) => parts.filter(Boolean).join(" "))
+      .map((parts) => parts.map((part) => normalizeText(part)).filter(Boolean).join(" "))
       .filter((query, index, all) => query && all.indexOf(query) === index);
 
     if (!queries.length) {
       return NextResponse.json({ code: "" });
     }
 
-    let rows: any[] = [];
+    const allRows: any[] = [];
+    let matched: any = null;
     for (const query of queries) {
-      rows = await searchPostalCodes(query);
-      if (rows.length) break;
+      const rows = await searchPostalCodes(query);
+      allRows.push(...rows);
+      matched = findMatchingRow(rows, { province, city, district, village });
+      if (matched) break;
     }
 
-    const villageKey = normalizeText(village);
-    const districtKey = normalizeText(district);
-    const cityKey = normalizeText(city);
-    const provinceKey = normalizeText(province);
-
-    const matched =
-      rows.find((row: any) => {
-        const rowVillage = normalizeText(String(row?.village || row?.kelurahan || row?.urban || ""));
-        const rowDistrict = normalizeText(String(row?.district || row?.kecamatan || row?.subdistrict || ""));
-        const rowCity = normalizeText(String(row?.regency || row?.city || row?.kabupaten || ""));
-        const rowProvince = normalizeText(String(row?.province || row?.provinsi || ""));
-        return (!villageKey || rowVillage === villageKey) &&
-          (!districtKey || rowDistrict === districtKey) &&
-          (!cityKey || rowCity === cityKey) &&
-          (!provinceKey || !rowProvince || rowProvince === provinceKey);
-      }) || null;
+    if (!matched && allRows.length) {
+      matched = findMatchingRow(allRows, { province, city, district, village });
+    }
+    if (!matched && allRows.length) {
+      matched = findUniqueAreaPostalRow(allRows, { province, city, district });
+    }
 
     return NextResponse.json({ code: matched ? String(getPostalCodeFromRow(matched) || "") : "" });
   } catch {
