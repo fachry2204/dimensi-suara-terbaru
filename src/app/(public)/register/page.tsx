@@ -8,6 +8,33 @@ import { COUNTRIES_WITH_DIAL_CODES } from '@/constants';
 import { getShadowColor } from '@/utils/colorUtils';
 import { assetUrl } from '@/utils/url';
 
+type DocField = 'ktp' | 'npwp' | 'nib' | 'kemenkumham' | 'signature';
+type DocUploadStatus = 'idle' | 'uploading' | 'success' | 'error';
+
+const DOC_PATH_KEYS = {
+  ktp: 'ktpDocPath',
+  npwp: 'npwpDocPath',
+  nib: 'nibDocPath',
+  kemenkumham: 'kemenkumhamDocPath',
+  signature: 'signatureDocPath',
+} as const;
+
+const DOC_LABELS: Record<DocField, string> = {
+  ktp: 'KTP',
+  npwp: 'NPWP',
+  nib: 'NIB',
+  kemenkumham: 'Dokumen Kemenkumham',
+  signature: 'Tanda Tangan',
+};
+
+const INITIAL_DOC_UPLOAD_STATUS: Record<DocField, DocUploadStatus> = {
+  ktp: 'idle',
+  npwp: 'idle',
+  nib: 'idle',
+  kemenkumham: 'idle',
+  signature: 'idle',
+};
+
 
 
 export default function RegisterScreen() {
@@ -115,7 +142,10 @@ export default function RegisterScreen() {
     signatureDocPath: ''
   });
 
-  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [docUploadStatus, setDocUploadStatus] = useState<Record<DocField, DocUploadStatus>>(
+    () => ({ ...INITIAL_DOC_UPLOAD_STATUS }),
+  );
+  const isUploadingDoc = Object.values(docUploadStatus).some((status) => status === 'uploading');
   const [docError, setDocError] = useState('');
   const [docPreviews, setDocPreviews] = useState<{ ktp?: string; npwp?: string; nib?: string; kemenkumham?: string; signature?: string }>({});
   const [previewModal, setPreviewModal] = useState<{ url: string; title: string } | null>(null);
@@ -474,7 +504,7 @@ export default function RegisterScreen() {
     setRegError('');
   };
 
-  const handleDocChange = async (field: 'ktp' | 'npwp' | 'nib' | 'kemenkumham' | 'signature', file: File | null) => {
+  const handleDocChange = async (field: DocField, file: File | null) => {
     setDocError('');
     if (!file) return;
     if (field === 'ktp') setKtpFile(file);
@@ -482,26 +512,29 @@ export default function RegisterScreen() {
     if (field === 'nib') setNibFile(file);
     if (field === 'kemenkumham') setKemenkumhamFile(file);
     if (field === 'signature') setSignatureFile(file);
+
+    const pathKey = DOC_PATH_KEYS[field];
+    setDocPaths((prev) => ({ ...prev, [pathKey]: '' }));
+    setDocUploadStatus((prev) => ({ ...prev, [field]: 'uploading' }));
+
     try {
-      setIsUploadingDoc(true);
       const res = await api.uploadUserDoc(null, field, file);
-      const path = res.path as string;
-      setDocPaths((prev) => ({
-        ...prev,
-        ktpDocPath: field === 'ktp' ? path : prev.ktpDocPath,
-        npwpDocPath: field === 'npwp' ? path : prev.npwpDocPath,
-        nibDocPath: field === 'nib' ? path : prev.nibDocPath,
-        kemenkumhamDocPath: field === 'kemenkumham' ? path : prev.kemenkumhamDocPath,
-        signatureDocPath: field === 'signature' ? path : prev.signatureDocPath
-      }));
+      const path = String(res?.path || '').trim();
+      if (!path) throw new Error('Server tidak mengembalikan lokasi file');
+
+      setDocPaths((prev) => ({ ...prev, [pathKey]: path }));
+      setDocUploadStatus((prev) => ({ ...prev, [field]: 'success' }));
     } catch (e: any) {
-      setDocError(e.message || 'Gagal upload dokumen');
-    } finally {
-      setIsUploadingDoc(false);
+      setDocPaths((prev) => ({ ...prev, [pathKey]: '' }));
+      setDocUploadStatus((prev) => ({ ...prev, [field]: 'error' }));
+      const message = e?.message === 'UPLOAD_TOO_LARGE'
+        ? 'ukuran file terlalu besar (maksimal 10 MB)'
+        : e?.message || 'server tidak menerima file';
+      setDocError(`${DOC_LABELS[field]} gagal diupload: ${message}. Pilih ulang file untuk mencoba lagi.`);
     }
   };
 
-  const handleFileSelect = (field: 'ktp' | 'npwp' | 'nib' | 'kemenkumham' | 'signature', file: File | null) => {
+  const handleFileSelect = (field: DocField, file: File | null) => {
     setDocError('');
     if (!file) return;
     if (file.type && file.type.startsWith('image/')) {
@@ -649,17 +682,32 @@ export default function RegisterScreen() {
       return true;
     }
     if (currentStep === 3) {
-      if (!ktpFile || !docPaths.ktpDocPath || !npwpFile || !docPaths.npwpDocPath || !signatureFile || !docPaths.signatureDocPath) {
-        setRegError('KTP, NPWP, dan Tanda Tangan wajib diupload.');
+      if (isUploadingDoc) {
+        setRegError('Dokumen masih diupload. Tunggu sampai seluruh status berubah menjadi Terupload.');
         setRegErrorModalOpen(true);
         return false;
       }
-      if (accountType === 'COMPANY') {
-        if (!nibFile || !docPaths.nibDocPath || !kemenkumhamFile || !docPaths.kemenkumhamDocPath) {
-          setRegError('NIB dan dokumen Kemenkumham wajib diupload untuk perusahaan.');
-          setRegErrorModalOpen(true);
-          return false;
-        }
+
+      const requiredDocs: Array<{ field: DocField; file: File | null }> = [
+        { field: 'ktp', file: ktpFile },
+        { field: 'npwp', file: npwpFile },
+        { field: 'signature', file: signatureFile },
+        ...(accountType === 'COMPANY'
+          ? [
+              { field: 'nib' as const, file: nibFile },
+              { field: 'kemenkumham' as const, file: kemenkumhamFile },
+            ]
+          : []),
+      ];
+      const incompleteDocs = requiredDocs.filter(({ field, file }) => {
+        const path = docPaths[DOC_PATH_KEYS[field]];
+        return !file || !path || docUploadStatus[field] !== 'success';
+      });
+
+      if (incompleteDocs.length > 0) {
+        setRegError(`Dokumen belum berhasil diupload: ${incompleteDocs.map(({ field }) => DOC_LABELS[field]).join(', ')}.`);
+        setRegErrorModalOpen(true);
+        return false;
       }
       return true;
     }
@@ -806,18 +854,25 @@ export default function RegisterScreen() {
     }
   };
 
-  const renderDocUploadItem = (label: string, field: 'ktp' | 'npwp' | 'nib' | 'kemenkumham' | 'signature', file: File | null, required: boolean) => (
+  const renderDocUploadItem = (label: string, field: DocField, file: File | null, required: boolean) => (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-[10px] font-semibold" style={{ color: branding.login_title_color }}>
           {label} {required && <span className="text-red-500">*</span>}
         </label>
-        {file && (
+        {docUploadStatus[field] === 'success' && docPaths[DOC_PATH_KEYS[field]] ? (
           <span className="text-[10px] text-green-600 flex items-center gap-1">
             <CheckCircle2 size={10} />
             Terupload
           </span>
-        )}
+        ) : docUploadStatus[field] === 'uploading' ? (
+          <span className="text-[10px] text-blue-600 animate-pulse">Mengupload...</span>
+        ) : docUploadStatus[field] === 'error' ? (
+          <span className="text-[10px] text-red-600 flex items-center gap-1">
+            <AlertCircle size={10} />
+            Upload gagal
+          </span>
+        ) : null}
       </div>
       <div className="space-y-3">
         <label className="flex-1 px-3 py-2 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-[10px] text-slate-600 cursor-pointer hover:border-blue-400 hover:bg-blue-50">
@@ -825,6 +880,7 @@ export default function RegisterScreen() {
             type="file"
             accept={field === 'kemenkumham' ? 'application/pdf' : 'image/*,application/pdf'}
             className="hidden"
+            disabled={docUploadStatus[field] === 'uploading'}
             onChange={(e) => {
               const f = e.target.files?.[0] || null;
               if (f) handleFileSelect(field, f);
@@ -1491,14 +1547,14 @@ export default function RegisterScreen() {
               <button
                 type="button"
                 onClick={goNextStep}
-                disabled={(step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup))}
+                disabled={(step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup)) || (step === 3 && isUploadingDoc)}
                 className={`flex-1 py-2 rounded-xl text-[10px] font-semibold shadow-md shadow-pink-500/25 active:scale-95 transition-all ${
-                  (step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup))
+                  (step === 1 && (dupNik || dupCompany || isCheckingDup)) || (step === 2 && (dupEmail || dupPhone || isCheckingDup)) || (step === 3 && isUploadingDoc)
                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-[#ff3d8f] to-[#8b5cf6] text-white hover:brightness-110'
                 }`}
               >
-                Lanjut
+                {step === 3 && isUploadingDoc ? 'Mengupload...' : 'Lanjut'}
               </button>
             ) : (
               <button
