@@ -31,13 +31,23 @@ const parseResponse = async (res: Response) => {
             if (error?.payload) {
                 throw error;
             }
-            const t = responseText;
-            // Suppressed console.error to avoid Next.js dev overlay for handled network errors
-            const msg = t || (res.status === 404 ? 'Resource not found (404)' : `Request failed (Status: ${res.status} ${res.statusText})`);
+            const contentType = res.headers.get('content-type') || '';
+            const isHtmlResponse = contentType.includes('text/html') || /^\s*<!doctype html/i.test(responseText);
+            const msg = isHtmlResponse
+                ? (res.status === 404
+                    ? 'Layanan pendaftaran belum tersedia. Silakan muat ulang halaman lalu coba kembali.'
+                    : 'Server mengembalikan respons yang tidak valid. Silakan coba kembali.')
+                : responseText || (res.status === 404
+                    ? 'Layanan yang diminta tidak ditemukan (404).'
+                    : `Permintaan gagal (Status: ${res.status} ${res.statusText})`);
             const err: any = new Error(msg);
             (err as any).status = res.status;
             throw err;
         }
+    }
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        throw new Error('Server mengembalikan respons yang tidak valid. Silakan coba kembali.');
     }
     return res.json();
 };
