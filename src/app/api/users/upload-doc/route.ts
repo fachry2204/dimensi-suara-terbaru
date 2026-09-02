@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { getWritableUploadRoot } from '@/lib/upload-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'uploads', 'profiles');
+    const uploadDir = path.join(getWritableUploadRoot(), 'profiles');
     await fs.promises.mkdir(uploadDir, { recursive: true });
 
     const filename = `${type}-${Date.now()}-${crypto.randomUUID()}${extension}`;

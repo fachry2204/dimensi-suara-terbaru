@@ -45,6 +45,24 @@ interface UserDetails {
   block_reason: string | null;
 }
 
+type DocumentField =
+  | "ktp_doc_path"
+  | "npwp_doc_path"
+  | "signature_doc_path"
+  | "nib_doc_path"
+  | "kemenkumham_doc_path"
+  | "contract_doc_path";
+
+type PreviewDocument = {
+  field: DocumentField;
+  path: string;
+};
+
+function documentUrl(userId: number, field: DocumentField, download = false) {
+  const base = `/api/users/${userId}/documents/${field}`;
+  return download ? `${base}?download=1` : base;
+}
+
 const STATUS_FLOW = ["Menunggu", "Diterima", "Ditolak", "Banned"];
 const STATUS_MAP: Record<string, string> = {
   "Pending": "Menunggu",
@@ -114,7 +132,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetPasswordMessage, setResetPasswordMessage] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null);
 
   // Editable percentage fields
   const [aggPct, setAggPct] = useState("");
@@ -283,7 +301,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     "nib_doc_path",
     "kemenkumham_doc_path",
     "contract_doc_path",
-  ] as const;
+  ] as const satisfies readonly DocumentField[];
 
   const existingDocs = docFields.filter((f) => user[f]);
 
@@ -321,7 +339,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         <div className="h-32 bg-slate-100 flex items-center justify-center overflow-hidden relative group">
           {isImage ? (
             <img
-              src={path.startsWith("http") ? path : `/${path.replace(/^\//, "")}`}
+              src={documentUrl(user.id, field)}
               alt={docLabel(field)}
               className="object-cover w-full h-full"
             />
@@ -334,15 +352,14 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="flex items-center gap-2 border-t border-slate-200 px-3 py-2 bg-white">
           <button
-            onClick={() => setPreviewDoc(path)}
+            onClick={() => setPreviewDoc({ field, path })}
             className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-700 transition"
           >
             <Eye size={13} /> Preview
           </button>
           <span className="text-slate-300">|</span>
           <a
-            href={path.startsWith("http") ? path : `/${path.replace(/^\//, "")}`}
-            download
+            href={documentUrl(user.id, field, true)}
             className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-700 transition"
           >
             <Download size={13} /> Download
@@ -509,19 +526,24 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             >
               <X size={16} />
             </button>
-            {/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(previewDoc) ? (
+            {/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(previewDoc.path) ? (
               <img
-                src={previewDoc.startsWith("http") ? previewDoc : `/${previewDoc.replace(/^\//, "")}`}
+                src={documentUrl(user.id, previewDoc.field)}
                 alt="Preview"
                 className="w-full max-h-[80vh] object-contain"
+              />
+            ) : /\.pdf$/i.test(previewDoc.path) ? (
+              <iframe
+                src={documentUrl(user.id, previewDoc.field)}
+                title={`Preview ${docLabel(previewDoc.field)}`}
+                className="h-[80vh] w-full bg-slate-100"
               />
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 p-12 text-slate-500">
                 <Download size={40} />
                 <p className="text-sm font-semibold">File tidak dapat di-preview. Klik download untuk mengunduh.</p>
                 <a
-                  href={previewDoc.startsWith("http") ? previewDoc : `/${previewDoc.replace(/^\//, "")}`}
-                  download
+                  href={documentUrl(user.id, previewDoc.field, true)}
                   className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-700 transition"
                 >
                   Download File
