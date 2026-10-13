@@ -14,7 +14,6 @@ import {
   Settings,
   Ticket,
   Users,
-  Zap,
 } from "lucide-react";
 
 const adminCards = [
@@ -105,14 +104,6 @@ const adminCards = [
     description: "Logo, role, kontrak, payment, backup, dan integrasi.",
     tone: "bg-slate-700",
     bgTone: "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800",
-  },
-  {
-    title: "Tes Cek SoundOn",
-    href: "/admin/tesSO",
-    icon: Zap,
-    description: "Pengecekan dan verifikasi data rilis di platform SoundOn.",
-    tone: "bg-orange-500",
-    bgTone: "bg-orange-50 hover:bg-orange-100 border-orange-100/80 text-orange-950",
   },
 ];
 

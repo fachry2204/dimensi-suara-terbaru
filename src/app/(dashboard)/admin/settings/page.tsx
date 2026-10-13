@@ -8,14 +8,11 @@ import {
   Database,
   FileSignature,
   HardDrive,
-  Info,
   Loader2,
-  PlugZap,
   Save,
   Settings,
   Shield,
   Upload,
-  Zap,
 } from "lucide-react";
 import { assetUrl } from "@/utils/url";
 
@@ -39,19 +36,6 @@ export default function AdminSettingsPage() {
   const [isLoadingBranding, setIsLoadingBranding] = useState(true);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [brandingMessage, setBrandingMessage] = useState("");
-
-  // SoundOn State
-  const [soundOnUserId, setSoundOnUserId] = useState("");
-  const [soundOnPassword, setSoundOnPassword] = useState("");
-  const [soundOnWsEndpoint, setSoundOnWsEndpoint] = useState("");
-  const [soundOnCookiesInput, setSoundOnCookiesInput] = useState("");
-  const [soundOnSaved, setSoundOnSaved] = useState(false);
-  const [soundOnPasswordSaved, setSoundOnPasswordSaved] = useState(false);
-  const [isLoadingSoundOn, setIsLoadingSoundOn] = useState(true);
-  const [isSavingSoundOn, setIsSavingSoundOn] = useState(false);
-  const [isSavingCookies, setIsSavingCookies] = useState(false);
-  const [isTestingSoundOn, setIsTestingSoundOn] = useState(false);
-  const [soundOnMessage, setSoundOnMessage] = useState("");
 
   // Format Kontrak State
   const [contractTemplates, setContractTemplates] = useState<Record<"PERSONAL" | "COMPANY", any>>({ PERSONAL: null, COMPANY: null });
@@ -84,7 +68,6 @@ export default function AdminSettingsPage() {
 
   const settingTabs = [
     { key: "branding", label: "Branding", Icon: Settings },
-    { key: "soundon", label: "SoundOn", Icon: Zap },
     { key: "kontrak", label: "Format Kontrak", Icon: FileSignature },
     ...settingGroups.map(([title, , Icon]: any) => ({
       key: tabKey(String(title)),
@@ -98,18 +81,6 @@ export default function AdminSettingsPage() {
   );
 
   useEffect(() => {
-    fetch("/api/settings/soundon", { credentials: "include", cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (!data) return;
-        setSoundOnUserId(data.userId || "");
-        setSoundOnWsEndpoint(data.wsEndpoint || "");
-        setSoundOnSaved(Boolean(data.userIdOn));
-        setSoundOnPasswordSaved(Boolean(data.passwordOn));
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingSoundOn(false));
-
     fetch("/api/settings/branding", { credentials: "include", cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
@@ -165,94 +136,6 @@ export default function AdminSettingsPage() {
       setBrandingMessage(error.message || "Gagal menyimpan branding.");
     } finally {
       setIsSavingBranding(false);
-    }
-  }
-
-  async function saveSoundOnSetting(event: React.FormEvent) {
-    event.preventDefault();
-    setIsSavingSoundOn(true);
-    setSoundOnMessage("");
-
-    try {
-      const response = await fetch("/api/settings/soundon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          userId: soundOnUserId,
-          password: soundOnPassword,
-          wsEndpoint: soundOnWsEndpoint,
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || "Gagal menyimpan setting SoundOn");
-      }
-
-      setSoundOnSaved(true);
-      setSoundOnPasswordSaved(true);
-      setSoundOnPassword("");
-      setSoundOnMessage("Setting SoundOn & Remote Browser berhasil disimpan.");
-    } catch (error: any) {
-      setSoundOnMessage(error.message || "Gagal menyimpan setting SoundOn.");
-    } finally {
-      setIsSavingSoundOn(false);
-    }
-  }
-
-  async function saveCookieSession(event: React.FormEvent) {
-    event.preventDefault();
-    if (!soundOnCookiesInput.trim()) return;
-    setIsSavingCookies(true);
-    setSoundOnMessage("");
-
-    try {
-      const response = await fetch("/api/settings/soundon/cookies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          cookies: soundOnCookiesInput,
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || "Gagal mengimpor Cookie Session");
-      }
-
-      setSoundOnMessage(data.message || "Cookie Session SoundOn berhasil disimpan!");
-      setSoundOnCookiesInput("");
-    } catch (error: any) {
-      setSoundOnMessage(error.message || "Gagal menyimpan Cookie Session.");
-    } finally {
-      setIsSavingCookies(false);
-    }
-  }
-
-  async function testSoundOnLogin() {
-    setIsTestingSoundOn(true);
-    setSoundOnMessage("");
-
-    try {
-      const response = await fetch("/api/settings/soundon/test", {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || "Tes login SoundOn gagal");
-      }
-
-      setSoundOnSaved(true);
-      setSoundOnPasswordSaved(true);
-      setSoundOnMessage(data.message || "Tes login SoundOn berhasil.");
-    } catch (error: any) {
-      setSoundOnMessage(error.message || "Tes login SoundOn gagal.");
-    } finally {
-      setIsTestingSoundOn(false);
     }
   }
 
@@ -399,136 +282,6 @@ export default function AdminSettingsPage() {
         {brandingMessage && (
           <p className={`mt-3 text-xs font-bold ${brandingMessage.includes("berhasil") ? "text-emerald-600" : "text-red-600"}`}>
             {brandingMessage}
-          </p>
-        )}
-      </section>
-
-      {/* SOUNDON */}
-      <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "soundon" ? "hidden" : ""}`}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="flex items-center gap-2 text-lg font-black">
-              <Zap size={18} className="text-orange-500" /> SoundOn Login & Connection
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Konfigurasi kredensial login, Remote Browser WebSocket Endpoint, atau Cookie Session untuk Plesk/Shared Hosting.
-            </p>
-          </div>
-          {soundOnSaved && (
-            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase text-emerald-700">
-              <CheckCircle2 size={12} /> User ID ON
-            </span>
-          )}
-        </div>
-
-        {/* Informational Tip for Plesk Users */}
-        <div className="mt-4 rounded-xl border border-orange-200 bg-orange-50/60 p-4 text-xs text-orange-950">
-          <div className="flex items-start gap-2.5">
-            <Info size={18} className="mt-0.5 shrink-0 text-orange-600" />
-            <div>
-              <p className="font-bold text-orange-900">Solusi Server Plesk / Shared Hosting (Tanpa Chromium Lokal):</p>
-              <ul className="mt-1.5 list-disc space-y-1 pl-4 text-slate-700">
-                <li>
-                  <strong>Metode 1 (Import Cookie Session):</strong> Login ke <code className="font-mono">soundon.global</code> di browser PC Anda, lalu salin Cookie (atau export Storage State JSON) dan tempel pada form <strong>Import Cookie Session</strong> di bawah.
-                </li>
-                <li>
-                  <strong>Metode 2 (Remote Browser WS Endpoint):</strong> Gunakan service Remote Browser / Browserless container dan masukkan URL WebSocket Endpoint (misal: <code className="font-mono">wss://chrome.browserless.io?token=...</code>).
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* FORM 1: USER ID & PASSWORD & WS ENDPOINT */}
-        <form onSubmit={saveSoundOnSetting} className="mt-6 space-y-4 rounded-xl border border-slate-200 p-4">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">1. Kredensial Login & Remote Browser Endpoint</h3>
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="block">
-              <span className="text-xs font-bold uppercase text-slate-500">User ID SoundOn</span>
-              <input
-                value={soundOnUserId}
-                onChange={(event) => setSoundOnUserId(event.target.value)}
-                className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm"
-                placeholder="User ID / Email SoundOn"
-                disabled={isLoadingSoundOn}
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-bold uppercase text-slate-500">Password SoundOn</span>
-              <input
-                type="password"
-                value={soundOnPassword}
-                onChange={(event) => setSoundOnPassword(event.target.value)}
-                className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm"
-                placeholder={soundOnPasswordSaved ? "Kosongkan jika tidak ingin mengubah password" : "Password SoundOn"}
-                disabled={isLoadingSoundOn}
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-bold uppercase text-slate-500">Remote Browser WS Endpoint (Opsional)</span>
-              <input
-                type="text"
-                value={soundOnWsEndpoint}
-                onChange={(event) => setSoundOnWsEndpoint(event.target.value)}
-                className="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono text-xs"
-                placeholder="wss://... atau http://..."
-                disabled={isLoadingSoundOn}
-              />
-            </label>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={isSavingSoundOn || isTestingSoundOn || isLoadingSoundOn}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded bg-orange-500 px-4 text-xs font-bold text-white hover:bg-orange-600 disabled:opacity-60"
-            >
-              {isSavingSoundOn ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              Simpan Kredensial
-            </button>
-
-            <button
-              type="button"
-              onClick={testSoundOnLogin}
-              disabled={isSavingSoundOn || isTestingSoundOn || isLoadingSoundOn || !soundOnSaved}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded border border-orange-200 bg-orange-50 px-4 text-xs font-bold text-orange-700 hover:bg-orange-100 disabled:opacity-60"
-            >
-              {isTestingSoundOn ? <Loader2 size={14} className="animate-spin" /> : <PlugZap size={14} />}
-              Tes Login & Connection
-            </button>
-          </div>
-        </form>
-
-        {/* FORM 2: IMPORT COOKIES (FOR PLESK) */}
-        <form onSubmit={saveCookieSession} className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">2. Import Cookie Session Manual (Rekomendasi Plesk)</h3>
-          <p className="text-xs text-slate-500">
-            Tempelkan String Cookie (misal <code className="font-mono">session_id=...; sid=...</code>) atau JSON Storage State dari browser PC Anda.
-          </p>
-
-          <textarea
-            rows={3}
-            value={soundOnCookiesInput}
-            onChange={(e) => setSoundOnCookiesInput(e.target.value)}
-            placeholder="Tempelkan Cookie String atau JSON Storage State di sini..."
-            className="w-full rounded border border-slate-200 bg-white p-3 font-mono text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
-          />
-
-          <button
-            type="submit"
-            disabled={isSavingCookies || !soundOnCookiesInput.trim()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            {isSavingCookies ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Simpan Cookie Session
-          </button>
-        </form>
-
-        {soundOnMessage && (
-          <p className={`mt-3 text-xs font-bold ${soundOnMessage.includes("berhasil") || soundOnMessage.includes("BERHASIL") ? "text-emerald-600" : "text-red-600"}`}>
-            {soundOnMessage}
           </p>
         )}
       </section>

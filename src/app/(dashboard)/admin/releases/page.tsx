@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { Disc, Music, Calendar, Eye, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Globe, ChevronLeft, ChevronRight, List, Plus, Users, RefreshCw, AlertCircle, CheckCircle2, X, Edit3, LogIn } from 'lucide-react';
+import { Disc, Music, Calendar, Eye, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Globe, ChevronLeft, ChevronRight, List, Plus, Users, RefreshCw, X, Edit3 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ReleaseData } from '@/types';
@@ -34,11 +34,6 @@ export default function ReleasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState('Admin'); // Placeholder
   const [selectedRelease, setSelectedRelease] = useState<any | null>(null);
-  const [soundOnUserIdOn, setSoundOnUserIdOn] = useState(false);
-  const [soundOnLoggedIn, setSoundOnLoggedIn] = useState(false);
-  const [isLoggingInSoundOn, setIsLoggingInSoundOn] = useState(false);
-  const [soundOnAutoLoginAttempted, setSoundOnAutoLoginAttempted] = useState(false);
-  const [soundOnLoginMessage, setSoundOnLoginMessage] = useState('');
   const [aggregatorDraft, setAggregatorDraft] = useState('');
   const [statusDraft, setStatusDraft] = useState('Pending');
   const [upcDraft, setUpcDraft] = useState('');
@@ -46,29 +41,15 @@ export default function ReleasesPage() {
   const [trackIsrcDrafts, setTrackIsrcDrafts] = useState<Record<string | number, string>>({});
   const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
-  const [soundOnChecks, setSoundOnChecks] = useState<Record<string | number, {
-    status: 'idle' | 'checking' | 'found' | 'not_found' | 'error';
-    message?: string;
-    releaseStatus?: string;
-    upc?: string;
-    isrc?: string;
-  }>>({});
-  const selectedSoundOn = selectedRelease ? soundOnChecks[selectedRelease.id || selectedRelease.title] : null;
 
   useEffect(() => {
     const fetchReleases = async () => {
       try {
-        const [releaseData, soundOnData] = await Promise.all([
-          api.getReleases(''),
-          fetch('/api/settings/soundon', { credentials: 'include', cache: 'no-store' }).then((response) => response.ok ? response.json() : null),
-        ]);
+        const releaseData = await api.getReleases('');
         setReleases(Array.isArray(releaseData) ? releaseData : []);
-        setSoundOnUserIdOn(Boolean(soundOnData?.userIdOn));
       } catch (err: any) {
         console.error('Failed to fetch releases', err);
         setError(err.message || 'Gagal memuat data');
-        setSoundOnUserIdOn(false);
-        setSoundOnLoggedIn(false);
       }
     };
     fetchReleases();
@@ -80,8 +61,8 @@ export default function ReleasesPage() {
     const tracks = Array.isArray(selectedRelease.tracks) ? selectedRelease.tracks : [];
     setAggregatorDraft(selectedRelease.aggregator || '');
     setStatusDraft(selectedRelease.status || 'Pending');
-    setUpcDraft(selectedSoundOn?.upc || selectedRelease.upc || '');
-    setIsrcDraft(selectedSoundOn?.isrc || tracks[0]?.isrc || '');
+    setUpcDraft(selectedRelease.upc || '');
+    setIsrcDraft(tracks[0]?.isrc || '');
     setTrackIsrcDrafts(
       tracks.reduce((acc: Record<string | number, string>, track: any, index: number) => {
         acc[track.id || index] = track.isrc || '';
@@ -89,7 +70,7 @@ export default function ReleasesPage() {
       }, {})
     );
     setWorkflowMessage('');
-  }, [selectedRelease, selectedSoundOn?.upc, selectedSoundOn?.isrc]);
+  }, [selectedRelease]);
 
   // Sorting State
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
@@ -216,196 +197,6 @@ export default function ReleasesPage() {
     }));
   };
 
-  const isSoundOnAggregator = (aggregator?: string) =>
-    String(aggregator || '').trim().toLowerCase() === 'soundon';
-
-  const normalizeFinalStatus = (value?: string | null) =>
-    String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
-
-  const isFinalSoundOnStatus = (value?: string | null) => {
-    const status = normalizeFinalStatus(value);
-    return [
-      'delivered',
-      'delivery',
-      'deliveri',
-      'rilis',
-      'live',
-      'released',
-      'rejected',
-      'ditolak',
-      'not approved',
-    ].includes(status);
-  };
-
-  const isFinalReleaseCheck = (release: any) => {
-    const result = soundOnChecks[release.id || release.title];
-    return Boolean(result) && isFinalSoundOnStatus(result.releaseStatus);
-  };
-
-  const checkSoundOnRelease = async (release: any) => {
-    if (!isSoundOnAggregator(release.aggregator)) return;
-    if (!soundOnLoggedIn) return;
-
-    const id = release.id || release.title;
-    if (isFinalReleaseCheck(release)) {
-      setSoundOnChecks((prev) => ({
-        ...prev,
-        [id]: {
-          status: 'found',
-          message: 'Status final, tidak perlu dicek ulang.',
-          releaseStatus: prev[id]?.releaseStatus,
-          upc: prev[id]?.upc,
-          isrc: prev[id]?.isrc,
-        },
-      }));
-      return;
-    }
-
-    setSoundOnChecks((prev) => ({
-      ...prev,
-      [id]: { status: 'checking', message: 'Cek rilis di SoundOn...' },
-    }));
-
-    let timeoutId: number | undefined;
-
-    try {
-      const controller = new AbortController();
-      timeoutId = window.setTimeout(() => controller.abort(), 90000);
-      const checkResponse = await fetch('/api/admin/soundon/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        signal: controller.signal,
-        body: JSON.stringify({
-          title: release.title,
-          upc: release.upc,
-        }),
-      });
-      const checkData = await checkResponse.json().catch(() => ({}));
-
-      if (!checkResponse.ok) {
-        throw new Error(checkData.error || 'Cek SoundOn gagal');
-      }
-
-      setSoundOnChecks((prev) => ({
-        ...prev,
-        [id]: {
-          status: checkData.status === 'found' ? 'found' : 'not_found',
-          message: checkData.message,
-          releaseStatus: checkData.releaseStatus,
-          upc: checkData.upc,
-          isrc: checkData.isrc,
-        },
-      }));
-    } catch (error: any) {
-      const message = error?.name === 'AbortError'
-        ? 'Cek SoundOn terlalu lama. Session SoundOn mungkin perlu login ulang.'
-        : error.message || 'Cek SoundOn gagal';
-      setSoundOnChecks((prev) => ({
-        ...prev,
-        [id]: {
-          status: 'error',
-          message,
-        },
-      }));
-    } finally {
-      if (timeoutId) {
-        window.clearTimeout(timeoutId);
-      }
-    }
-  };
-
-  const loginSoundOn = async () => {
-    if (isLoggingInSoundOn || soundOnLoggedIn || !soundOnUserIdOn) return;
-
-    setIsLoggingInSoundOn(true);
-    setSoundOnLoginMessage('');
-
-    try {
-      const response = await fetch('/api/settings/soundon/test', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login SoundOn gagal');
-      }
-
-      setSoundOnLoggedIn(true);
-      setSoundOnLoginMessage(data.message || 'Login SoundOn berhasil.');
-    } catch (error: any) {
-      setSoundOnLoggedIn(false);
-      setSoundOnLoginMessage(error.message || 'Login SoundOn gagal.');
-    } finally {
-      setIsLoggingInSoundOn(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isAdminRoute || !soundOnUserIdOn || soundOnLoggedIn || isLoggingInSoundOn || soundOnAutoLoginAttempted) return;
-    setSoundOnAutoLoginAttempted(true);
-    loginSoundOn();
-  }, [isAdminRoute, soundOnUserIdOn, soundOnLoggedIn, isLoggingInSoundOn, soundOnAutoLoginAttempted]);
-
-  const SoundOnInfo = ({ release }: { release: any }) => {
-    const result = soundOnChecks[release.id || release.title];
-
-    if (!isSoundOnAggregator(release.aggregator)) return null;
-
-    if (!result || result.status === 'idle') {
-      const dbStatus = release.soundonStatus || (release.upc ? 'Delivered' : null);
-      const dbUpc = release.upc || '-';
-      const dbIsrc = release.tracks?.[0]?.isrc || '-';
-
-      if (!dbStatus && dbUpc === '-' && dbIsrc === '-') {
-        return (
-          <div className="mt-1 text-[10px] font-semibold text-slate-400">
-            Klik SoundOn untuk cek SO
-          </div>
-        );
-      }
-
-      return (
-        <div className="mt-1 space-y-0.5 text-[10px] leading-4">
-          <div className="font-bold text-slate-600">
-            Status SO: <span className="text-emerald-700">{dbStatus}</span>
-          </div>
-          <div className="font-mono text-slate-500">UPC SO: {dbUpc}</div>
-          <div className="font-mono text-slate-500">ISRC SO: {dbIsrc}</div>
-        </div>
-      );
-    }
-
-    if (result.status === 'checking') {
-      return (
-        <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-blue-600">
-          <RefreshCw size={10} className="animate-spin" />
-          Memeriksa SoundOn...
-        </div>
-      );
-    }
-
-    if (result.status === 'error') {
-      return (
-        <div className="mt-1 max-w-[180px] text-[10px] font-semibold text-red-600">
-          <span className="inline-flex items-center gap-1"><AlertCircle size={10} /> Error SO</span>
-          <div className="font-normal text-red-500">{result.message}</div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-1 space-y-0.5 text-[10px] leading-4">
-        <div className="font-bold text-slate-600">
-          Status SO: <span className={result.status === 'found' ? 'text-emerald-700' : 'text-amber-700'}>{result.releaseStatus || (result.status === 'found' ? 'Ditemukan' : 'Tidak ditemukan')}</span>
-        </div>
-        <div className="font-mono text-slate-500">UPC SO: {result.upc || release.upc || '-'}</div>
-        <div className="font-mono text-slate-500">ISRC SO: {result.isrc || release.tracks?.[0]?.isrc || '-'}</div>
-      </div>
-    );
-  };
-
   const getReleaseArtists = (release: any) =>
     (release.primaryArtists || []).map((artist: any) => typeof artist === 'string' ? artist : artist?.name).filter(Boolean).join(', ') || 'Artis Tidak Dikenal';
 
@@ -418,17 +209,14 @@ export default function ReleasesPage() {
 
   const selectedTracks = Array.isArray(selectedRelease?.tracks) ? selectedRelease.tracks : [];
   const isSelectedAlbum = selectedTracks.length > 1;
-  const selectedSoundOnStatus =
-    selectedSoundOn?.releaseStatus ||
-    selectedRelease?.soundonStatus ||
-    (isSoundOnAggregator(selectedRelease?.aggregator) && (selectedRelease?.upc || selectedTracks[0]?.isrc) ? 'Delivered' : '') ||
-    selectedSoundOn?.message ||
-    '-';
-  const selectedSoundOnUpc = selectedSoundOn?.upc || selectedRelease?.upc || '-';
-  const selectedSoundOnIsrc = selectedSoundOn?.isrc || selectedTracks[0]?.isrc || '-';
+  const selectedUpc = selectedRelease?.upc || '-';
+  const selectedIsrc = selectedTracks[0]?.isrc || '-';
 
   const saveReleaseWorkflow = async () => {
-    if (!selectedRelease?.id) return;
+    if (!selectedRelease?.id) {
+      setWorkflowMessage('ID rilis tidak ditemukan. Tutup panel lalu buka kembali rilis ini.');
+      return;
+    }
 
     setIsSavingWorkflow(true);
     setWorkflowMessage('');
@@ -458,18 +246,21 @@ export default function ReleasesPage() {
 
       const updatedRelease = {
         ...selectedRelease,
+        ...(data.release || {}),
         status: statusDraft,
         aggregator: aggregatorDraft,
         upc: upcDraft,
-        tracks: selectedTracks.map((track: any, index: number) => ({
-          ...track,
-          isrc: isSelectedAlbum ? (trackIsrcDrafts[track.id || index] || '') : isrcDraft,
-        })),
+        tracks: Array.isArray(data.tracks) && data.tracks.length > 0
+          ? data.tracks
+          : selectedTracks.map((track: any, index: number) => ({
+              ...track,
+              isrc: isSelectedAlbum ? (trackIsrcDrafts[track.id || index] || '') : isrcDraft,
+            })),
       };
 
       setSelectedRelease(updatedRelease);
       setReleases((prev) => prev.map((release) => release.id === selectedRelease.id ? updatedRelease : release));
-      setWorkflowMessage('Status rilis berhasil disimpan.');
+      setWorkflowMessage(data.message || 'Status rilis berhasil disimpan.');
     } catch (error: any) {
       setWorkflowMessage(error.message || 'Gagal menyimpan status rilis.');
     } finally {
@@ -669,37 +460,6 @@ export default function ReleasesPage() {
             </div>
         </div>
 
-        {isAdminRoute && (
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-orange-100 bg-orange-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-white shadow-md shadow-orange-500/20">
-                        <Music size={16} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-extrabold text-orange-900">Cek SoundOn</p>
-                        <p className="text-xs font-medium text-orange-600">Mohon Tunggu Login SoundOn Berhasil Baru bisa Mengecek Data Rilis</p>
-                    </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {soundOnLoginMessage && (
-                        <span className={`max-w-xs text-[10px] font-bold ${soundOnLoggedIn ? 'text-emerald-700' : 'text-red-600'}`}>
-                            {soundOnLoginMessage}
-                        </span>
-                    )}
-                    <button
-                        type="button"
-                        onClick={loginSoundOn}
-                        disabled={isLoggingInSoundOn || !soundOnUserIdOn}
-                        className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-5 py-2 text-xs font-bold text-orange-700 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        title={!soundOnUserIdOn ? 'Simpan User ID dan Password SoundOn di Setting terlebih dahulu' : undefined}
-                    >
-                        {isLoggingInSoundOn ? <RefreshCw size={13} className="animate-spin" /> : <LogIn size={13} />}
-                        {soundOnLoggedIn ? 'Login Berhasil' : 'Login SoundOn'}
-                    </button>
-                </div>
-            </div>
-        )}
-
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[500px]">
             <div className="overflow-x-auto flex-1 bg-white">
                 <table className="w-full text-left bg-white">
@@ -809,35 +569,9 @@ export default function ReleasesPage() {
                                      {isAdminRoute && (
                                      <td className="px-4 py-2 text-[13px]">
                                          {release.aggregator ? (
-                                             <div>
-                                                 {isSoundOnAggregator(release.aggregator) ? (
-                                                     <button
-                                                          type="button"
-                                                          onClick={() => checkSoundOnRelease(release)}
-                                                          disabled={soundOnChecks[release.id || release.title]?.status === 'checking' || !soundOnLoggedIn || isFinalReleaseCheck(release)}
-                                                          className="flex items-center gap-1 text-[13px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 w-fit hover:bg-purple-100 disabled:opacity-60"
-                                                          title={
-                                                              isFinalReleaseCheck(release)
-                                                                  ? 'Status final, tidak perlu dicek ulang'
-                                                                  : !soundOnLoggedIn
-                                                                  ? 'Login SoundOn dahulu sebelum cek rilis'
-                                                                  : 'Cek status rilis di SoundOn'
-                                                          }
-                                                      >
-                                                         {soundOnChecks[release.id || release.title]?.status === 'checking' ? (
-                                                             <RefreshCw size={10} className="animate-spin" />
-                                                         ) : (
-                                                             <Music size={10} />
-                                                         )}
-                                                         {release.aggregator}
-                                                     </button>
-                                                 ) : (
-                                                     <div className="flex items-center gap-1 text-[13px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 w-fit">
-                                                         <Music size={10} />
-                                                         {release.aggregator}
-                                                     </div>
-                                                 )}
-                                                 <SoundOnInfo release={release} />
+                                             <div className="flex items-center gap-1 text-[13px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 w-fit">
+                                                 <Music size={10} />
+                                                 {release.aggregator}
                                              </div>
                                          ) : (
                                              <span className="text-[13px] text-slate-300 italic">Belum diatur</span>
@@ -1003,28 +737,22 @@ export default function ReleasesPage() {
                             <p className="text-[10px] font-black uppercase text-slate-400">Nama Artis</p>
                             <p className="mt-1 text-sm font-semibold text-slate-700">{getReleaseArtists(selectedRelease)}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3">
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <p className="text-[10px] font-black uppercase text-slate-400">Status Saat Ini</p>
                                 <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
                                     {getStatusLabel(selectedRelease.status)}
                                 </span>
                             </div>
-                            <div className="rounded-lg border border-slate-100 p-3">
-                                <p className="text-[10px] font-black uppercase text-slate-400">Status Aggregator</p>
-                                <span className="mt-2 inline-flex rounded-full bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700">
-                                    {selectedSoundOnStatus}
-                                </span>
-                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <p className="text-[10px] font-black uppercase text-slate-400">UPC</p>
-                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedSoundOnUpc}</p>
+                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedUpc}</p>
                             </div>
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <p className="text-[10px] font-black uppercase text-slate-400">ISRC</p>
-                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedSoundOnIsrc}</p>
+                                <p className="mt-1 break-all font-mono text-xs font-bold text-slate-700">{selectedIsrc}</p>
                             </div>
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -1117,7 +845,7 @@ export default function ReleasesPage() {
                             type="button"
                             onClick={saveReleaseWorkflow}
                             disabled={isSavingWorkflow}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isSavingWorkflow ? <RefreshCw size={16} className="animate-spin" /> : <Edit3 size={16} />}
                             {isSavingWorkflow ? 'Menyimpan...' : 'Ubah Status Rilis'}

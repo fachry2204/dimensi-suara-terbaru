@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendReleaseStatusNotification } from "@/lib/release-notification";
 
+const ALLOWED_STATUSES = new Set(["Pending", "Request Edit", "Processing", "Live", "Rejected"]);
+
 export async function POST(
   request: Request,
   props: { params: Promise<{ id: string }> }
@@ -20,8 +22,13 @@ export async function POST(
       return NextResponse.json({ error: "Release not found" }, { status: 404 });
     }
 
-    if (String(session.role).toLowerCase() !== "admin") {
+    if (String(session.role).trim().toLowerCase() !== "admin") {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const normalizedStatus = typeof status === "string" ? status.trim() : "";
+    if (!ALLOWED_STATUSES.has(normalizedStatus)) {
+      return NextResponse.json({ error: "Status rilis tidak valid" }, { status: 422 });
     }
 
     const [releaseCols]: any = await db.query("SHOW COLUMNS FROM releases");
@@ -31,9 +38,9 @@ export async function POST(
     const setParts: string[] = [];
     const values: any[] = [];
 
-    if (typeof status === "string" && status.trim()) {
+    if (normalizedStatus) {
       setParts.push("status = ?");
-      values.push(status.trim());
+      values.push(normalizedStatus);
     }
 
     if (releaseColNames.includes("aggregator")) {
@@ -56,6 +63,10 @@ export async function POST(
       values.push(rejectionDescription || null);
     }
 
+    if (releaseColNames.includes("updated_at")) {
+      setParts.push("updated_at = CURRENT_TIMESTAMP");
+    }
+
     if (setParts.length > 0) {
       await db.query(`UPDATE releases SET ${setParts.join(", ")} WHERE id = ?`, [
         ...values,
@@ -74,17 +85,26 @@ export async function POST(
       }
     }
 
+
+    const [updatedRows]: any = await db.query("SELECT * FROM releases WHERE id = ? LIMIT 1", [releaseId]);
+    const [updatedTracks]: any = await db.query("SELECT * FROM tracks WHERE release_id = ? ORDER BY id ASC", [releaseId]);
+
     // Trigger notification asynchronously so we don't block response
     sendReleaseStatusNotification({
       releaseId,
-      newStatus: status || "",
+      newStatus: normalizedStatus,
       aggregator,
       upc,
       rejectionReason,
       rejectionDescription,
     }).catch((err) => console.error("[Workflow Route] Error sending notification:", err));
 
-    return NextResponse.json({ success: true, message: "Workflow updated" });
+    return NextResponse.json({
+      success: true,
+      message: "Status rilis berhasil disimpan",
+      release: updatedRows?.[0] || null,
+      tracks: Array.isArray(updatedTracks) ? updatedTracks : [],
+    });
   } catch (error: any) {
     console.error(`API Error - POST /api/releases/${releaseId}/workflow:`, error);
 
