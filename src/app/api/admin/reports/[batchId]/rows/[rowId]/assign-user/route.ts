@@ -43,7 +43,7 @@ export async function POST(
         FROM tracks t JOIN releases r ON r.id = t.release_id
         WHERE r.user_id = ?
           AND REPLACE(REPLACE(UPPER(t.isrc), '-', ''), ' ', '') = ?
-          AND REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '') = ?`;
+          AND TRIM(LEADING '0' FROM REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '')) = TRIM(LEADING '0' FROM ?)`;
       ownershipValues = [userId, reportRow.isrc_normalized, reportRow.upc_normalized];
     } else if (hasIsrc) {
       ownershipSql = `SELECT r.id AS release_id, t.id AS track_id
@@ -53,7 +53,7 @@ export async function POST(
     } else if (hasExactUpc) {
       ownershipSql = `SELECT r.id AS release_id, NULL AS track_id
         FROM releases r WHERE r.user_id = ?
-          AND REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '') = ?`;
+          AND TRIM(LEADING '0' FROM REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '')) = TRIM(LEADING '0' FROM ?)`;
       ownershipValues = [userId, reportRow.upc_normalized];
     }
 

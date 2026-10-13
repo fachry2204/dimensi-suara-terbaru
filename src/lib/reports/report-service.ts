@@ -12,6 +12,7 @@ import {
   normalizeCurrency,
   normalizeIsrc,
   normalizeUpc,
+  upcLookupVariants,
   isScientificIdentifier,
   parseDecimal,
   parseReportPeriod,
@@ -221,7 +222,7 @@ async function insertReportRows(batchId: number, rows: ParsedRow[]) {
 
 async function lookupCatalog(rows: any[]) {
   const isrcs = unique(rows.map((row) => row.isrc_normalized));
-  const upcs = unique(rows.map((row) => row.upc_normalized));
+  const upcs = unique(rows.flatMap((row) => upcLookupVariants(row.upc_normalized)));
   const isrcMap = new Map<string, CatalogMatch[]>();
   const upcMap = new Map<string, CatalogMatch[]>();
 
@@ -261,13 +262,11 @@ async function lookupCatalog(rows: any[]) {
               u.full_name, u.company_name, u.username, u.email
        FROM releases r
        LEFT JOIN users u ON u.id = r.user_id
-       WHERE REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '') IN (${placeholders(chunk.length)})`,
+       WHERE TRIM(LEADING '0' FROM REPLACE(REPLACE(REPLACE(r.upc, '-', ''), ' ', ''), '.', '')) IN (${placeholders(chunk.length)})`,
       chunk
     );
     for (const item of found || []) {
-      const key = normalizeUpc(item.upc);
-      if (!upcMap.has(key)) upcMap.set(key, []);
-      upcMap.get(key)!.push({
+      const match: CatalogMatch = {
         user_id: Number(item.user_id),
         owner_name: item.full_name || item.company_name || item.username || item.email || null,
         owner_email: item.email || null,
@@ -277,7 +276,11 @@ async function lookupCatalog(rows: any[]) {
         track_title: null,
         artist_name: catalogArtistName(item.primary_artists),
         label_name: item.label,
-      });
+      };
+      for (const key of upcLookupVariants(item.upc)) {
+        if (!upcMap.has(key)) upcMap.set(key, []);
+        upcMap.get(key)!.push(match);
+      }
     }
   }
 
@@ -313,7 +316,8 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
 
   for (const row of candidates) {
     const isrcMatches = isrcMap.get(row.isrc_normalized) || [];
-    const upcMatches = upcMap.get(row.upc_normalized) || [];
+    const upcMatches = upcLookupVariants(row.upc_normalized)
+      .flatMap((variant) => upcMap.get(variant) || []);
     const matchDetails = {
       isrc: ownershipEvidence(isrcMatches),
       upc: ownershipEvidence(upcMatches),

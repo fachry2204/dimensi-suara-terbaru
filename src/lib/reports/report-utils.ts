@@ -108,6 +108,17 @@ export function normalizeUpc(value: unknown): string {
   return raw.replace(/\D/g, "");
 }
 
+export function upcLookupVariants(value: unknown): string[] {
+  const exact = normalizeUpc(value);
+  if (!exact) return [];
+
+  // UPC adalah identifier, sehingga nilai asli (termasuk nol di depan) tetap
+  // disimpan. Variant tanpa nol hanya dipakai untuk mencocokkan katalog lama
+  // yang pernah menyimpan UPC sebagai angka dan kehilangan leading zero.
+  const withoutLeadingZeros = exact.replace(/^0+(?=\d)/, "");
+  return Array.from(new Set([exact, withoutLeadingZeros].filter(Boolean)));
+}
+
 export function isScientificIdentifier(value: unknown): boolean {
   return /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)[eE][+-]?\d+$/.test(String(value ?? "").trim());
 }
