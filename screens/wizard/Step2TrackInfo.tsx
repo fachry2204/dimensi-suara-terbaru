@@ -477,8 +477,38 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
 
   const removeTrack = (id: string) => {
     if (releaseType === 'SINGLE') return;
-    if (confirm('Are you sure you want to remove this track?')) {
-      updateData(prev => ({ tracks: prev.tracks.filter(t => t.id !== id) }));
+    const track = data.tracks.find(item => item.id === id);
+    const hasContent = Boolean(
+      track?.title?.trim() || track?.audioFile || track?.audioClip || track?.isrc?.trim()
+    );
+    if (hasContent && !confirm('Hapus track ini dari album?')) return;
+
+    updateData(prev => ({
+      tracks: prev.tracks
+        .filter(item => item.id !== id)
+        .map((item, index) => ({ ...item, trackNumber: String(index + 1) })),
+    }));
+    setProcessingState(prev => {
+      const next = { ...prev };
+      delete next[`${id}-audioFile`];
+      delete next[`${id}-audioClip`];
+      return next;
+    });
+    setConvertProgress(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    if (expandedTrackId === id) setExpandedTrackId(null);
+    if (trimmerState.trackId === id) {
+      setTrimmerState({
+        isOpen: false,
+        trackId: null,
+        rawFile: null,
+        duration: 0,
+        startTime: 0,
+        isPlaying: false,
+      });
     }
   };
 
@@ -805,8 +835,10 @@ export const Step2TrackInfo: React.FC<Props> = ({ data, updateData, releaseType,
                              {/* Only show delete button if it's an Album */}
                              {releaseType === 'ALBUM' && (
                                <button 
+                                  type="button"
+                                  aria-label={`Hapus track ${track.trackNumber}`}
                                   onClick={(e) => { e.stopPropagation(); removeTrack(track.id); }}
-                                  className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                >
                                   <Trash2 size={20} />
                                </button>

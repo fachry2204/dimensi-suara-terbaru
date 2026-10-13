@@ -1,0 +1,33 @@
+.release-editor .field-grid label,
+.release-editor .field-grid input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  .release-editor .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.release-table-title { display: flex; align-items: center; gap: 12px; }
+.release-table-cover { position: relative; flex: none; overflow: hidden; }
+.release-table-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.release-detail-cover { width: 150px; height: 150px; object-fit: cover; border-radius: 12px; margin: 12px 0; }
+.release-detail-modal h3 { margin: 24px 0 10px; }
+.release-detail-track { border-top: 1px solid #e9edf4; padding: 16px 0; display: flex; flex-direction: column; gap: 8px; }
+.release-detail-track small { color: #8491a7; }
+.release-detail-track span { font-weight: 700; font-size: .8rem; color: #566681; }
+.release-detail-track audio { max-width: 100%; width: 100%; }
+.release-media-link { font-weight: 700; font-size: .82rem; width: fit-content; }
+.release-review-panel { margin: 22px 0; padding: 18px; border: 1px solid #dce5f3; border-radius: 12px; background: #f7faff; display: grid; gap: 14px; }
+.release-review-panel h3 { margin: 0; }
+.release-review-panel label, .release-isrc-field { display: grid; gap: 7px; color: #566681; font-size: .8rem; font-weight: 800; }
+.release-review-panel input, .release-review-panel select, .release-review-panel textarea, .release-isrc-field input { width: 100%; margin: 0; }
+.release-review-panel textarea { resize: vertical; }
+.release-review-panel .primary-button { width: fit-content; }
+.release-review-message { margin: 0; color: #315dde; font-weight: 700; }
+.release-review-note { margin: 20px 0; padding: 16px; border: 1px solid #ffc9c9; border-radius: 12px; background: #fff4f4; color: #9b3030; }
+.release-review-note p { margin: 7px 0; font-weight: 700; }
+.release-review-note small { display: block; white-space: pre-wrap; line-height: 1.5; }
+.release-isrc-field { margin-top: 4px; }
