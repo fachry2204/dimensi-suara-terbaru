@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { RowDataPacket } from "mysql2/promise";
+import fs from "fs/promises";
+import { findStoredUploadFile } from "@/lib/upload-storage";
 
 export interface ReleaseRow extends RowDataPacket {
   id: number;
@@ -336,10 +338,80 @@ export async function getReleaseById(
   };
 }
 
-export async function deleteRelease(id: string | number): Promise<void> {
+export async function deleteRelease(id: string | number): Promise<{ deletedFiles: number; failedFiles: string[] }> {
   const connection = await db.getConnection();
+  const storedPaths = new Set<string>();
   try {
     await connection.beginTransaction();
+
+    const [releaseRows]: any = await connection.query(
+      "SELECT cover_art FROM releases WHERE id = ? FOR UPDATE",
+      [id]
+    );
+    if (!releaseRows?.length) throw Object.assign(new Error("Release not found"), { status: 404 });
+    if (releaseRows[0].cover_art) storedPaths.add(String(releaseRows[0].cover_art));
+
+    const [trackRows]: any = await connection.query(
+      "SELECT id, audio_file, audio_clip FROM tracks WHERE release_id = ?",
+      [id]
+    );
+    const trackIds = (trackRows || []).map((track: any) => Number(track.id)).filter(Number.isFinite);
+    for (const track of trackRows || []) {
+      if (track.audio_file) storedPaths.add(String(track.audio_file));
+      if (track.audio_clip) storedPaths.add(String(track.audio_clip));
+    }
+
+    const uploadConditions = ["release_id = ?"];
+    const uploadValues: any[] = [id];
+    if (trackIds.length) {
+      uploadConditions.push(`track_id IN (${trackIds.map(() => "?").join(",")})`);
+      uploadValues.push(...trackIds);
+    }
+    if (storedPaths.size) {
+      uploadConditions.push(`file_path IN (${Array.from(storedPaths).map(() => "?").join(",")})`);
+      uploadValues.push(...storedPaths);
+    }
+    const [uploadRows]: any = await connection.query(
+      `SELECT file_path FROM release_uploads WHERE ${uploadConditions.join(" OR ")}`,
+      uploadValues
+    ).catch(() => [[]]);
+    for (const upload of uploadRows || []) {
+      if (upload.file_path) storedPaths.add(String(upload.file_path));
+    }
+
+    if (trackIds.length) {
+      const trackRelationTables = [
+        "track_artists",
+        "track_contributors",
+        "track_production_credits",
+        "track_songwriters",
+        "track_lyricists",
+        "track_additional_writers",
+      ];
+      for (const table of trackRelationTables) {
+        await connection.query(
+          `DELETE FROM ${table} WHERE track_id IN (${trackIds.map(() => "?").join(",")})`,
+          trackIds
+        ).catch(() => null);
+      }
+      await connection.query(
+        `UPDATE report_rows SET matched_release_id = NULL, matched_track_id = NULL WHERE matched_release_id = ? OR matched_track_id IN (${trackIds.map(() => "?").join(",")})`,
+        [id, ...trackIds]
+      ).catch(() => null);
+    } else {
+      await connection.query(
+        "UPDATE report_rows SET matched_release_id = NULL WHERE matched_release_id = ?",
+        [id]
+      ).catch(() => null);
+    }
+    await connection.query(
+      "UPDATE tickets SET release_id = NULL WHERE release_id = ?",
+      [id]
+    ).catch(() => null);
+    await connection.query(
+      `DELETE FROM release_uploads WHERE ${uploadConditions.join(" OR ")}`,
+      uploadValues
+    ).catch(() => null);
     await connection.query("DELETE FROM tracks WHERE release_id = ?", [id]);
     await connection.query("DELETE FROM releases WHERE id = ?", [id]);
     await connection.commit();
@@ -349,4 +421,19 @@ export async function deleteRelease(id: string | number): Promise<void> {
   } finally {
     connection.release();
   }
+
+  let deletedFiles = 0;
+  const failedFiles: string[] = [];
+  for (const storedPath of storedPaths) {
+    try {
+      const storedFile = await findStoredUploadFile(storedPath);
+      if (!storedFile) continue;
+      await fs.unlink(storedFile.filePath);
+      deletedFiles += 1;
+    } catch {
+      failedFiles.push(storedPath);
+    }
+  }
+
+  return { deletedFiles, failedFiles };
 }

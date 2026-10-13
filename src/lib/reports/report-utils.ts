@@ -52,7 +52,34 @@ const HEADER_ALIASES: Record<string, ReportColumn> = {
   quantity: "quantity",
   clientpaymentcurrency: "client_payment_currency",
   netrevenue: "net_revenue",
+  salesperiod: "sales_month",
+  reportingperiod: "reporting_month",
+  trackartists: "artist_name",
+  upccode: "upc",
+  albumtitle: "release_title",
+  royaltytype: "release_type",
+  storename: "platform",
+  salesregion: "country_region",
+  salessubtype: "streaming_subscription_type",
+  unitsofsold: "quantity",
+  finalroyalty: "net_revenue",
 };
+
+const SOUNDON_REQUIRED_COLUMNS = REQUIRED_REPORT_COLUMNS.filter(
+  (column) => column !== "label_name" && column !== "client_payment_currency"
+);
+
+export function reportColumnsForAggregator(aggregatorName: string): ReportColumn[] {
+  return String(aggregatorName || "").trim().toLowerCase() === "soundon"
+    ? SOUNDON_REQUIRED_COLUMNS
+    : REQUIRED_REPORT_COLUMNS;
+}
+
+export function reportDefaultsForAggregator(aggregatorName: string): Partial<Record<ReportColumn, unknown>> {
+  return String(aggregatorName || "").trim().toLowerCase() === "soundon"
+    ? { label_name: "", client_payment_currency: "IDR" }
+    : {};
+}
 
 export function normalizeHeader(value: unknown) {
   return String(value ?? "")
@@ -74,9 +101,15 @@ export function normalizeIsrc(value: unknown): string {
 }
 
 export function normalizeUpc(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .replace(/\D/g, "");
+  const raw = String(value ?? "").trim();
+  // CSV SoundOn dapat berisi UPC dalam notasi ilmiah yang sudah kehilangan
+  // sebagian digit. Nilai seperti ini tidak aman digunakan sebagai kunci pemilik.
+  if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)[eE][+-]?\d+$/.test(raw)) return "";
+  return raw.replace(/\D/g, "");
+}
+
+export function isScientificIdentifier(value: unknown): boolean {
+  return /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)[eE][+-]?\d+$/.test(String(value ?? "").trim());
 }
 
 export function parseDecimal(value: unknown): string | null {

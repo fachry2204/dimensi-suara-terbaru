@@ -52,9 +52,15 @@ export async function DELETE(
       return NextResponse.json({ error: "Release not found or unauthorized" }, { status: 404 });
     }
 
-    await deleteRelease(params.id);
+    const cleanup = await deleteRelease(params.id);
     
-    return NextResponse.json({ success: true, message: "Release deleted" });
+    return NextResponse.json({
+      success: true,
+      message: cleanup.failedFiles.length
+        ? "Rilis dihapus, tetapi beberapa file tidak dapat dibersihkan."
+        : "Rilis beserta file audio dan cover berhasil dihapus.",
+      cleanup,
+    });
   } catch (error: any) {
     console.error(`API Error - DELETE /api/releases/${params.id}:`, error);
     

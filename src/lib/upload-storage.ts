@@ -73,5 +73,6 @@ export const UPLOAD_MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".pdf": "application/pdf",
   ".png": "image/png",
+  ".svg": "image/svg+xml",
   ".webp": "image/webp",
 };

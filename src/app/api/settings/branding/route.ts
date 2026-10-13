@@ -4,12 +4,20 @@ import { RowDataPacket } from "mysql2/promise";
 import { requireUser } from "@/lib/auth";
 import fs from "fs/promises";
 import path from "path";
+import { randomUUID } from "crypto";
+import { findStoredUploadFile, getWritableUploadRoot } from "@/lib/upload-storage";
 
 export const dynamic = "force-dynamic";
 
 const noStoreHeaders = {
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
 };
+
+interface BrandingFileRow extends RowDataPacket {
+  logo: string | null;
+  favicon_url: string | null;
+  login_background: string | null;
+}
 
 async function ensureBrandingColumns() {
   const [systemNameColumns] = await db.query<RowDataPacket[]>(
@@ -54,23 +62,37 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const newlySavedFiles: string[] = [];
   try {
     await requireUser();
     await ensureBrandingColumns();
 
     const formData = await request.formData();
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "settings");
+    const uploadDir = path.join(getWritableUploadRoot(), "settings");
     await fs.mkdir(uploadDir, { recursive: true });
 
     const saveFile = async (field: string) => {
       const file = formData.get(field);
       if (!(file instanceof File) || file.size === 0) return null;
 
-      const ext = path.extname(file.name || "") || ".png";
-      const safeName = `${field}-${Date.now()}${ext}`;
+      const allowedTypes: Record<string, string> = {
+        "image/gif": ".gif",
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/svg+xml": ".svg",
+        "image/webp": ".webp",
+      };
+      const requestedExt = path.extname(file.name || "").toLowerCase();
+      const allowedExtensions = new Set(Object.values(allowedTypes));
+      const ext = allowedTypes[file.type] || (allowedExtensions.has(requestedExt) ? requestedExt : "");
+      if (!ext) throw Object.assign(new Error("Format logo tidak didukung. Gunakan PNG, JPG, WEBP, GIF, atau SVG."), { status: 400 });
+      if (file.size > 5 * 1024 * 1024) throw Object.assign(new Error("Ukuran logo maksimal 5 MB."), { status: 400 });
+
+      const safeName = `${field}-${Date.now()}-${randomUUID()}${ext}`;
       const diskPath = path.join(uploadDir, safeName);
       const bytes = Buffer.from(await file.arrayBuffer());
       await fs.writeFile(diskPath, bytes);
+      newlySavedFiles.push(diskPath);
       return `/uploads/settings/${safeName}`;
     };
 
@@ -99,6 +121,11 @@ export async function PUT(request: Request) {
         values.push(String(value));
       }
     }
+
+    const [currentRows] = await db.query<BrandingFileRow[]>(
+      "SELECT logo, favicon_url, login_background FROM login_settings WHERE id = 1"
+    );
+    const previousBranding = currentRows[0];
 
     const logo = await saveFile("logo");
     const favicon = await saveFile("favicon");
@@ -137,19 +164,39 @@ export async function PUT(request: Request) {
       "SELECT * FROM login_settings WHERE id = 1"
     );
 
+    const replacedPaths = [
+      logo ? previousBranding?.logo : null,
+      favicon ? previousBranding?.favicon_url : null,
+      loginBackground ? previousBranding?.login_background : null,
+    ].filter(Boolean) as string[];
+    for (const storedPath of replacedPaths) {
+      const previousFile = await findStoredUploadFile(storedPath);
+      if (previousFile && !newlySavedFiles.includes(previousFile.filePath)) {
+        await fs.unlink(previousFile.filePath).catch(() => null);
+      }
+    }
+
     return NextResponse.json({
-      message: "Branding updated",
+      message: "Branding berhasil disimpan.",
       branding: rows[0] || null,
     }, { headers: noStoreHeaders });
   } catch (error: any) {
     console.error("API Error - PUT /api/settings/branding:", error);
 
+    for (const filePath of newlySavedFiles) {
+      await fs.unlink(filePath).catch(() => null);
+    }
+
     if (error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (error.status === 400) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     return NextResponse.json(
-      { error: "Terjadi kesalahan pada server" },
+      { error: "Logo gagal disimpan. Pastikan direktori upload dapat ditulis oleh server." },
       { status: 500 }
     );
   }

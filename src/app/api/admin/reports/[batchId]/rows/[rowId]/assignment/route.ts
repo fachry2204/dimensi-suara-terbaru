@@ -18,7 +18,8 @@ export async function DELETE(
     const { batchId, rowId } = await params;
     await db.query(
       `UPDATE report_rows
-       SET matched_user_id = NULL, match_method = NULL, assignment_method = NULL,
+       SET matched_user_id = NULL, matched_release_id = NULL, matched_track_id = NULL,
+           match_method = NULL, assignment_method = NULL,
            manually_assigned_by = NULL, manually_assigned_at = NULL, manual_assignment_note = NULL,
            status = 'NO_ACCOUNT', error_message = 'Tidak ada akun yang memiliki UPC atau ISRC ini.'
        WHERE id = ? AND report_batch_id = ? AND assignment_method = 'MANUAL'`,

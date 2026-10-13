@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { Disc, Music, Calendar, Eye, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Globe, ChevronLeft, ChevronRight, List, Plus, Users, RefreshCw, X, Edit3 } from 'lucide-react';
+import { Disc, Music, Calendar, Eye, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Globe, ChevronLeft, ChevronRight, List, Plus, Users, RefreshCw, X, Edit3, Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ReleaseData } from '@/types';
@@ -43,6 +43,9 @@ export default function ReleasesPage() {
   const [trackIsrcDrafts, setTrackIsrcDrafts] = useState<Record<string | number, string>>({});
   const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
+  const [selectedReleaseIds, setSelectedReleaseIds] = useState<Set<string>>(new Set());
+  const [isDeletingReleases, setIsDeletingReleases] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   useEffect(() => {
     const fetchReleases = async () => {
@@ -191,6 +194,11 @@ export default function ReleasesPage() {
   const displayedReleases = isViewAll 
     ? sortedReleases 
     : sortedReleases.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const displayedReleaseIds = displayedReleases
+    .map((release) => String(release.id || ''))
+    .filter(Boolean);
+  const allDisplayedSelected = displayedReleaseIds.length > 0
+    && displayedReleaseIds.every((id) => selectedReleaseIds.has(id));
 
   const handleSort = (key: SortKey) => {
     setSortConfig(current => ({
@@ -267,6 +275,76 @@ export default function ReleasesPage() {
       setWorkflowMessage(error.message || 'Gagal menyimpan status rilis.');
     } finally {
       setIsSavingWorkflow(false);
+    }
+  };
+
+  const toggleReleaseSelection = (releaseId: string | number) => {
+    const id = String(releaseId);
+    setSelectedReleaseIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setDeleteMessage('');
+  };
+
+  const toggleDisplayedSelection = () => {
+    setSelectedReleaseIds((current) => {
+      const next = new Set(current);
+      if (allDisplayedSelected) displayedReleaseIds.forEach((id) => next.delete(id));
+      else displayedReleaseIds.forEach((id) => next.add(id));
+      return next;
+    });
+    setDeleteMessage('');
+  };
+
+  const deleteReleaseIds = async (releaseIds: string[]) => {
+    if (releaseIds.length === 0 || isDeletingReleases) return;
+
+    const confirmed = window.confirm(
+      `Hapus ${releaseIds.length} rilisan terpilih? Data rilis, track, file audio, dan gambar cover akan dihapus permanen.`
+    );
+    if (!confirmed) return;
+
+    setIsDeletingReleases(true);
+    setDeleteMessage('');
+    const deletedIds: string[] = [];
+    const failures: string[] = [];
+
+    try {
+      for (const id of releaseIds) {
+        try {
+          const response = await fetch(`/api/releases/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || data.details || 'Gagal menghapus rilis');
+          deletedIds.push(id);
+        } catch (error: any) {
+          failures.push(`${id}: ${error.message || 'Gagal menghapus'}`);
+        }
+      }
+
+      if (deletedIds.length > 0) {
+        const deletedSet = new Set(deletedIds);
+        setReleases((current) => current.filter((release) => !deletedSet.has(String(release.id))));
+        setSelectedReleaseIds((current) => {
+          const next = new Set(current);
+          deletedIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        if (selectedRelease?.id && deletedSet.has(String(selectedRelease.id))) setSelectedRelease(null);
+      }
+
+      setDeleteMessage(
+        failures.length > 0
+          ? `${deletedIds.length} rilis berhasil dihapus, ${failures.length} gagal: ${failures.join('; ')}`
+          : `${deletedIds.length} rilis beserta file audio dan cover berhasil dihapus.`
+      );
+    } finally {
+      setIsDeletingReleases(false);
     }
   };
 
@@ -402,6 +480,18 @@ export default function ReleasesPage() {
                         <Plus size={14} />
                         Rilis Baru
                     </button>
+                    {isAdminRoute && (
+                        <button
+                            type="button"
+                            onClick={() => deleteReleaseIds(Array.from(selectedReleaseIds))}
+                            disabled={selectedReleaseIds.size === 0 || isDeletingReleases}
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40 transition-colors text-xs font-bold whitespace-nowrap"
+                            title="Hapus rilis terpilih"
+                        >
+                            {isDeletingReleases ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            Hapus Rilis{selectedReleaseIds.size > 0 ? ` (${selectedReleaseIds.size})` : ''}
+                        </button>
+                    )}
                     <div className="relative w-full sm:w-72">
                         <input 
                             type="text"
@@ -414,6 +504,11 @@ export default function ReleasesPage() {
                     </div>
                 </div>
             </div>
+            {deleteMessage && (
+                <div className={`mb-4 rounded-xl border px-4 py-3 text-xs font-medium ${deleteMessage.includes('gagal') ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                    {deleteMessage}
+                </div>
+            )}
             <div className="flex overflow-x-auto gap-2 no-scrollbar border-t border-slate-100 pt-4">
             {tabs.map((tab) => {
                 const isActive = activeStatusTab === tab.id;
@@ -467,6 +562,17 @@ export default function ReleasesPage() {
                 <table className="w-full text-left bg-white">
                     <thead className="bg-[#f1f5f9] border-b-2 border-slate-200">
                         <tr>
+                            {isAdminRoute && (
+                                <th className="w-12 px-4 py-2 text-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={allDisplayedSelected}
+                                        onChange={toggleDisplayedSelection}
+                                        aria-label="Pilih semua rilis yang tampil"
+                                        className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-violet-600"
+                                    />
+                                </th>
+                            )}
                             <ThSortable label="Rilis" sortKey="title" />
                             <ThSortable label="Tipe" sortKey="type" />
                             <ThSortable label="Tanggal Rilis" sortKey="date" />
@@ -507,6 +613,17 @@ export default function ReleasesPage() {
 
                             return (
                                 <tr key={release.id || Math.random()} className="hover:bg-slate-50 transition-colors group text-[13px] bg-white">
+                                    {isAdminRoute && (
+                                        <td className="w-12 px-4 py-2 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedReleaseIds.has(String(release.id))}
+                                                onChange={() => toggleReleaseSelection(release.id)}
+                                                aria-label={`Pilih rilis ${release.title || release.id}`}
+                                                className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-violet-600"
+                                            />
+                                        </td>
+                                    )}
                                     <td className="px-4 py-2">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-12 h-12 rounded-lg bg-blue-50 overflow-hidden flex items-center justify-center text-slate-400 relative shrink-0 border border-blue-100`}>
@@ -593,14 +710,14 @@ export default function ReleasesPage() {
                                     <td className="px-4 py-2 text-right">
                                         <div className="flex justify-end gap-2">
                                             {isAdminRoute ? (
-                                                <button
+                                                 <button
                                                     type="button"
                                                     onClick={() => setSelectedRelease(release)}
                                                     className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all text-[14px] font-medium shadow-sm whitespace-nowrap"
                                                     title="Lihat detail singkat"
                                                 >
-                                                    <Eye size={12} /> Lihat
-                                                </button>
+                                                     <Eye size={12} /> Lihat
+                                                 </button>
                                             ) : (
                                                 <Link href={`${routePrefix}/releases/${release.id}/view`}
                                                     className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-all text-[14px] font-medium shadow-sm whitespace-nowrap"
@@ -608,8 +725,19 @@ export default function ReleasesPage() {
                                                 >
                                                     <Eye size={12} /> Lihat
                                                 </Link>
-                                            )}
-                                        </div>
+                                             )}
+                                             {isAdminRoute && (
+                                                 <button
+                                                     type="button"
+                                                     onClick={() => deleteReleaseIds([String(release.id)])}
+                                                     disabled={isDeletingReleases}
+                                                     className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 rounded-lg transition-all text-[14px] font-medium shadow-sm whitespace-nowrap"
+                                                     title="Hapus rilis beserta seluruh filenya"
+                                                 >
+                                                     <Trash2 size={12} /> Hapus
+                                                 </button>
+                                             )}
+                                         </div>
                                     </td>
                                 </tr>
                             );

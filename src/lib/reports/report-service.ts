@@ -12,8 +12,11 @@ import {
   normalizeCurrency,
   normalizeIsrc,
   normalizeUpc,
+  isScientificIdentifier,
   parseDecimal,
   parseReportPeriod,
+  reportColumnsForAggregator,
+  reportDefaultsForAggregator,
   roundHalfUp,
   type ReportColumn,
 } from "@/lib/reports/report-utils";
@@ -54,15 +57,31 @@ function titleContainsDifferent(reportValue: unknown, catalogValue: string | nul
   return report && catalog && report !== catalog;
 }
 
+function catalogArtistName(value: unknown): string | null {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean).join(", ") || null;
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => typeof item === "string" ? item : item?.name || item?.artist_name || "")
+        .map((item) => String(item).trim()).filter(Boolean).join(", ") || null;
+    }
+  } catch {}
+  return raw;
+}
+
 export async function readReportFile(buffer: Buffer, fileName: string) {
   const ext = path.extname(fileName).toLowerCase();
   if (ext === ".csv") {
-    return XLSX.read(buffer, { type: "buffer", raw: false });
+    // Pertahankan identifier dan periode CSV sebagai teks. Tanpa raw:true,
+    // nilai seperti 2026-08 dapat diubah menjadi serial tanggal Excel.
+    return XLSX.read(buffer, { type: "buffer", raw: true });
   }
   return XLSX.read(buffer, { type: "buffer", cellDates: false, raw: false });
 }
 
-export function parseWorkbookRows(workbook: XLSX.WorkBook) {
+export function parseWorkbookRows(workbook: XLSX.WorkBook, aggregatorName = "") {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" });
@@ -73,7 +92,9 @@ export function parseWorkbookRows(workbook: XLSX.WorkBook) {
     if (canonical && !headerMap.has(canonical)) headerMap.set(canonical, index);
   });
 
-  const missingHeaders = REQUIRED_REPORT_COLUMNS.filter((column) => !headerMap.has(column));
+  const requiredColumns = reportColumnsForAggregator(aggregatorName);
+  const defaults = reportDefaultsForAggregator(aggregatorName);
+  const missingHeaders = requiredColumns.filter((column) => !headerMap.has(column));
   if (missingHeaders.length > 0) {
     return { sheetName, rows: [] as ParsedRow[], missingHeaders };
   }
@@ -82,7 +103,8 @@ export function parseWorkbookRows(workbook: XLSX.WorkBook) {
     const row = rawRow as unknown[];
     const parsed: Partial<ParsedRow> = { row_number: index + 2 };
     for (const column of REQUIRED_REPORT_COLUMNS) {
-      parsed[column] = row[headerMap.get(column)!];
+      const columnIndex = headerMap.get(column);
+      parsed[column] = columnIndex === undefined ? defaults[column] : row[columnIndex];
     }
     parsed.upc_normalized = normalizeUpc(parsed.upc);
     parsed.isrc_normalized = normalizeIsrc(parsed.isrc);
@@ -126,7 +148,7 @@ export async function createReportBatch(input: {
   if (existing?.length) throw new Error("File report yang sama sudah pernah diupload.");
 
   const workbook = await readReportFile(buffer, input.file.name);
-  const { sheetName, rows, missingHeaders } = parseWorkbookRows(workbook);
+  const { sheetName, rows, missingHeaders } = parseWorkbookRows(workbook, input.aggregatorName);
   if (missingHeaders.length) {
     throw new Error(`File report tidak dapat diproses karena terdapat kolom wajib yang belum tersedia: ${missingHeaders.join(", ")}`);
   }
@@ -226,7 +248,7 @@ async function lookupCatalog(rows: any[]) {
         track_id: Number(item.track_id),
         release_title: item.release_title,
         track_title: item.track_title,
-        artist_name: item.track_artists || item.primary_artists,
+        artist_name: catalogArtistName(item.track_artists || item.primary_artists),
         label_name: item.label,
       });
     }
@@ -253,17 +275,13 @@ async function lookupCatalog(rows: any[]) {
         track_id: null,
         release_title: item.release_title,
         track_title: null,
-        artist_name: item.primary_artists,
+        artist_name: catalogArtistName(item.primary_artists),
         label_name: item.label,
       });
     }
   }
 
   return { isrcMap, upcMap };
-}
-
-function uniqueUsers(matches: CatalogMatch[] | undefined) {
-  return unique((matches || []).map((match) => match.user_id));
 }
 
 function ownershipEvidence(matches: CatalogMatch[]) {
@@ -296,8 +314,6 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
   for (const row of candidates) {
     const isrcMatches = isrcMap.get(row.isrc_normalized) || [];
     const upcMatches = upcMap.get(row.upc_normalized) || [];
-    const isrcUsers = uniqueUsers(isrcMatches);
-    const upcUsers = uniqueUsers(upcMatches);
     const matchDetails = {
       isrc: ownershipEvidence(isrcMatches),
       upc: ownershipEvidence(upcMatches),
@@ -307,40 +323,83 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
     let method: string | null = null;
     let selected: CatalogMatch | null = null;
     let error: string | null = "Tidak ada akun yang memiliki UPC atau ISRC ini.";
+    const warnings: string[] = [];
+    const upcIsScientific = isScientificIdentifier(row.upc_original);
+    const hasIsrc = Boolean(row.isrc_normalized);
+    const hasExactUpc = Boolean(row.upc_normalized);
+    const distinctIsrcMatches = Array.from(new Map(
+      isrcMatches.map((match) => [`${match.user_id}:${match.release_id}:${match.track_id}`, match])
+    ).values());
+    const distinctUpcMatches = Array.from(new Map(
+      upcMatches.map((match) => [`${match.user_id}:${match.release_id}`, match])
+    ).values());
 
-    if (isrcUsers.length > 1 || upcUsers.length > 1) {
-      status = "CONFLICT";
-      error = "UPC atau ISRC dimiliki lebih dari satu akun.";
-    } else if (isrcUsers.length === 1 && upcUsers.length === 1 && isrcUsers[0] !== upcUsers[0]) {
-      status = "CONFLICT";
-      error = "ISRC dan UPC terdeteksi dimiliki oleh akun yang berbeda.";
-    } else if (isrcUsers.length === 1 && upcUsers.length === 1) {
-      status = "MATCHED";
-      method = "ISRC_UPC";
-      selected = isrcMatches[0] || upcMatches[0];
-      error = null;
-    } else if (isrcUsers.length === 1) {
-      status = "MATCHED";
-      method = "ISRC";
-      selected = isrcMatches[0];
-      error = null;
-    } else if (upcUsers.length === 1) {
-      status = "MATCHED";
-      method = "UPC";
-      selected = upcMatches[0];
-      error = null;
+    if (upcIsScientific) {
+      if (distinctIsrcMatches.length === 1) {
+        status = "MATCHED";
+        method = "ISRC_SOUNDON";
+        selected = distinctIsrcMatches[0];
+        error = null;
+        warnings.push("UPC SoundOn berbentuk notasi ilmiah sehingga kepemilikan diamankan menggunakan ISRC unik dan relasi track ke rilis.");
+      } else if (distinctIsrcMatches.length > 1) {
+        status = "CONFLICT";
+        error = "ISRC ditemukan pada lebih dari satu track. Baris tidak dibagikan otomatis.";
+      } else {
+        error = "UPC SoundOn tidak presisi dan ISRC tidak ditemukan pada katalog.";
+      }
+    } else if (hasIsrc && hasExactUpc) {
+      const intersection = distinctIsrcMatches.filter((isrcMatch) =>
+        distinctUpcMatches.some((upcMatch) =>
+          upcMatch.user_id === isrcMatch.user_id && upcMatch.release_id === isrcMatch.release_id
+        )
+      );
+
+      if (intersection.length === 1) {
+        status = "MATCHED";
+        method = "ISRC_UPC";
+        selected = intersection[0];
+        error = null;
+      } else if (intersection.length > 1) {
+        status = "CONFLICT";
+        error = "Kombinasi UPC dan ISRC cocok ke lebih dari satu track.";
+      } else if (distinctIsrcMatches.length || distinctUpcMatches.length) {
+        status = "CONFLICT";
+        error = "UPC dan ISRC tidak menunjuk ke rilis dan pemilik yang sama.";
+      }
+    } else if (hasIsrc) {
+      if (distinctIsrcMatches.length === 1) {
+        status = "MATCHED";
+        method = "ISRC";
+        selected = distinctIsrcMatches[0];
+        error = null;
+      } else if (distinctIsrcMatches.length > 1) {
+        status = "CONFLICT";
+        error = "ISRC ditemukan pada lebih dari satu track.";
+      }
+    } else if (hasExactUpc) {
+      if (distinctUpcMatches.length === 1) {
+        status = "MATCHED";
+        method = "UPC";
+        selected = distinctUpcMatches[0];
+        error = null;
+      } else if (distinctUpcMatches.length > 1) {
+        status = "CONFLICT";
+        error = "UPC ditemukan pada lebih dari satu rilis.";
+      }
     }
 
-    const warnings: string[] = [];
     if (selected) {
       if (titleContainsDifferent(row.release_title, selected.release_title)) warnings.push("Metadata report berbeda dengan metadata katalog.");
       if (selected.track_title && titleContainsDifferent(row.track_title, selected.track_title)) warnings.push("Metadata report berbeda dengan metadata katalog.");
+      if (selected.artist_name && titleContainsDifferent(row.artist_name, selected.artist_name)) warnings.push("Nama artis report berbeda dengan artis pada katalog.");
     }
 
     await db.query(
       `UPDATE report_rows
        SET status = ?, match_method = ?, matched_user_id = ?, matched_release_id = ?, matched_track_id = ?,
-           match_details = ?, warning_message = ?, error_message = ?
+           match_details = ?, warning_message = ?, error_message = ?,
+           artist_name = COALESCE(?, artist_name), release_title = COALESCE(?, release_title),
+           track_title = COALESCE(?, track_title), label_name = COALESCE(?, label_name)
        WHERE id = ?`,
       [
         status,
@@ -351,6 +410,10 @@ export async function matchReportBatch(batchId: number, onlyUnresolved = false) 
         JSON.stringify(matchDetails),
         warnings.length ? Array.from(new Set(warnings)).join(" ") : null,
         error,
+        selected?.artist_name || null,
+        selected?.release_title || null,
+        selected?.track_title || null,
+        selected?.label_name || null,
         row.id,
       ]
     );

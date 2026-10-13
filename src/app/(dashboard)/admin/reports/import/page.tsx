@@ -32,7 +32,6 @@ const MONTHS = [
   ["12", "Desember"],
 ];
 const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 15 }, (_, index) => String(CURRENT_YEAR + 1 - index));
 const ALLOWED_EXTENSIONS = [".xlsx", ".xls", ".csv"];
 
 function fileSize(value: number) {
@@ -86,6 +85,10 @@ export default function AdminImportReportPage() {
     event.preventDefault();
     if (!form.aggregatorName) {
       setMessage("Pilih nama aggregator terlebih dahulu.");
+      return;
+    }
+    if (!/^\d{4}$/.test(form.reportYear) || Number(form.reportYear) < 1900) {
+      setMessage("Tahun report harus terdiri dari 4 angka.");
       return;
     }
     if (!form.file) {
@@ -183,18 +186,40 @@ export default function AdminImportReportPage() {
                 </label>
                 <label>
                   <span className="sr-only">Tahun report</span>
-                  <select
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{4}"
+                    maxLength={4}
                     aria-label="Tahun report"
                     value={form.reportYear}
-                    onChange={(event) => setForm((previous) => ({ ...previous, reportYear: event.target.value }))}
+                    onChange={(event) => {
+                      const year = event.target.value.replace(/\D/g, "").slice(0, 4);
+                      setForm((previous) => ({ ...previous, reportYear: year }));
+                    }}
+                    placeholder={String(CURRENT_YEAR)}
+                    required
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-50"
-                  >
-                    {YEARS.map((year) => <option key={year}>{year}</option>)}
-                  </select>
+                  />
                 </label>
               </div>
             </fieldset>
           </div>
+
+          {form.aggregatorName.toLowerCase() === "soundon" && (
+            <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950">
+              <p className="font-black">Template SoundOn terdeteksi</p>
+              <p className="mt-1 leading-6 text-violet-800">
+                Sistem membaca kolom Sales Period, Reporting Period, Track Title, ISRC, Track Artists, UPC Code,
+                Album Title, Royalty Type, Store Name, Sales Region, Sales Type, Sales Sub Type, Units of Sold,
+                dan Final Royalty. Nilai Final Royalty diproses sebagai IDR sesuai nilai pada statement.
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-5 text-violet-700">
+                Kepemilikan dicocokkan ke track, rilis, dan user melalui ISRC serta UPC. Baris yang memiliki konflik
+                pemilik tidak akan dibagikan otomatis dan wajib diperiksa saat review.
+              </p>
+            </div>
+          )}
 
           <div className="mt-6">
             <div className="flex items-end justify-between gap-4">
