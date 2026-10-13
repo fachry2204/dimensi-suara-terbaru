@@ -28,7 +28,7 @@ export const SidebarMenu = [
         ]
     },
     {
-        group: 'Report',
+        group: 'Laporan Aggregator',
         contents: [
             {
                 name: 'Analitik',

@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       });
     }
     const { page, limit, offset } = paginationParams(searchParams);
-    const where = ["l.user_id = ?"];
+    const where = ["l.user_id = ?", "l.status = 'FINALIZED'"];
     const values: any[] = [session.userId];
     const search = searchParams.get("search");
     if (search) {
