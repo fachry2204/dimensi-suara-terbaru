@@ -2,7 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Loader2, RefreshCw, Save, Search, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Building2, CheckCircle2, CircleCheck, ListChecks, Loader2, RefreshCw, Save, Search, ShieldX, UserPlus, UserRoundCheck, UserX, WalletCards, XCircle } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   MATCHED: "Akun Ditemukan",
@@ -13,6 +13,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 function idr(value: unknown) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function formatStatusLabel(value: unknown) {
+  return String(value || "-").replaceAll("_", " ");
 }
 
 function pageNumbers(current: number, totalPages: number) {
@@ -36,16 +40,23 @@ function parseMatchDetails(value: unknown) {
 
 function OwnershipEvidence({ row }: { row: any }) {
   const evidence = parseMatchDetails(row.match_details);
-  const render = (label: string, items: any[]) => (
+  const uniqueCodes = (values: unknown[]) => Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
+  const catalogUpcs = row.matched_catalog_upc
+    ? [String(row.matched_catalog_upc)]
+    : uniqueCodes([...evidence.upc.map((item: any) => item.catalogUpc), ...evidence.isrc.map((item: any) => item.catalogUpc)]);
+  const catalogIsrcs = row.matched_catalog_isrc
+    ? [String(row.matched_catalog_isrc)]
+    : uniqueCodes(evidence.isrc.map((item: any) => item.catalogIsrc));
+  const render = (label: string, codes: string[]) => (
     <div>
       <span className="font-black text-slate-500">{label}:</span>{" "}
-      {items.length ? items.map((item) => item.ownerName || item.ownerEmail || `User #${item.userId}`).join(", ") : "tidak ditemukan"}
+      <span className="font-mono">{codes.length ? codes.join(", ") : "tidak ditemukan"}</span>
     </div>
   );
   return (
     <div className="min-w-56 space-y-1 text-xs leading-5 text-slate-600">
-      {render("UPC", evidence.upc)}
-      {render("ISRC", evidence.isrc)}
+      {render("UPC", catalogUpcs)}
+      {render("ISRC", catalogIsrcs)}
       {row.error_message && <p className="font-semibold text-rose-600">{row.error_message}</p>}
       {row.warning_message && <p className="font-semibold text-amber-600">{row.warning_message}</p>}
     </div>
@@ -58,7 +69,8 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
   const [rows, setRows] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0 });
-  const [filters, setFilters] = useState({ search: "", status: "", currency: "" });
+  const [filters, setFilters] = useState({ search: "", status: "", currency: "", metric: "" });
+  const [activeSummaryCard, setActiveSummaryCard] = useState("total");
   const [rates, setRates] = useState<Record<string, string>>({ IDR: "1" });
   const [assignments, setAssignments] = useState<Record<number, string>>({});
   const [message, setMessage] = useState("");
@@ -80,9 +92,9 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
     } else setMessage(data.message || "Gagal mengambil detail report");
   }
 
-  async function loadRows(page = meta.page) {
+  async function loadRows(page = meta.page, nextFilters = filters) {
     const params = new URLSearchParams({ page: String(page), limit: String(meta.limit) });
-    Object.entries(filters).forEach(([key, value]) => value && params.set(key, value));
+    Object.entries(nextFilters).forEach(([key, value]) => value && params.set(key, value));
     const res = await fetch(`/api/admin/reports/${batchId}/rows?${params.toString()}`, { credentials: "include", cache: "no-store" });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
@@ -104,6 +116,25 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
 
   const unresolved = useMemo(() => Number(batch?.no_account_rows || 0) + Number(batch?.conflict_rows || 0) + Number(batch?.invalid_rows || 0), [batch]);
   const totalPages = Math.max(1, Math.ceil(meta.total / meta.limit));
+
+  const summaryCards = [
+    { id: "total", label: "Total Rows", value: batch?.total_rows ?? 0, description: "Seluruh baris dalam report", icon: ListChecks, status: "", metric: "", tone: "from-slate-600 to-slate-800", surface: "bg-slate-50", text: "text-slate-700" },
+    { id: "gross", label: "Total Gross IDR", value: idr(batch?.gross_idr_total || batch?.calculated_totals?.gross_idr_total), description: "Baris dengan gross revenue", icon: WalletCards, status: "", metric: "gross", tone: "from-blue-500 to-indigo-600", surface: "bg-blue-50", text: "text-blue-700" },
+    { id: "user", label: "Total Hak User", value: idr(batch?.user_revenue_total || batch?.calculated_totals?.user_revenue_total), description: "Pendapatan yang menjadi hak user", icon: UserRoundCheck, status: "", metric: "user", tone: "from-violet-500 to-fuchsia-600", surface: "bg-violet-50", text: "text-violet-700" },
+    { id: "aggregator", label: "Total Hak Aggregator", value: idr(batch?.aggregator_revenue_total || batch?.calculated_totals?.aggregator_revenue_total), description: "Pendapatan yang menjadi hak aggregator", icon: Building2, status: "", metric: "aggregator", tone: "from-cyan-500 to-teal-600", surface: "bg-cyan-50", text: "text-cyan-700" },
+    { id: "matched", label: "Matched", value: batch?.matched_rows ?? 0, description: "UPC/ISRC berhasil menemukan pemilik", icon: CircleCheck, status: "MATCHED", metric: "", tone: "from-emerald-500 to-green-600", surface: "bg-emerald-50", text: "text-emerald-700" },
+    { id: "no-account", label: "Tidak Ada Akun", value: batch?.no_account_rows ?? 0, description: "Belum menemukan katalog milik user", icon: UserX, status: "NO_ACCOUNT", metric: "", tone: "from-amber-400 to-orange-500", surface: "bg-amber-50", text: "text-amber-700" },
+    { id: "conflict", label: "Konflik", value: batch?.conflict_rows ?? 0, description: "UPC dan ISRC perlu ditinjau", icon: AlertTriangle, status: "CONFLICT", metric: "", tone: "from-orange-500 to-rose-500", surface: "bg-orange-50", text: "text-orange-700" },
+    { id: "invalid", label: "Invalid", value: batch?.invalid_rows ?? 0, description: "Baris tidak dapat diproses", icon: ShieldX, status: "INVALID", metric: "", tone: "from-rose-500 to-red-700", surface: "bg-rose-50", text: "text-rose-700" },
+  ];
+
+  function activateSummaryCard(card: (typeof summaryCards)[number]) {
+    const nextFilters = { ...filters, status: card.status, metric: card.metric };
+    setActiveSummaryCard(card.id);
+    setFilters(nextFilters);
+    loadRows(1, nextFilters);
+    window.setTimeout(() => document.getElementById("report-data-table")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
 
   async function saveRates() {
     setIsBusy(true);
@@ -192,26 +223,39 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
             <h1 className="text-2xl font-black">{batch?.original_file_name}</h1>
             <p className="mt-1 text-sm text-slate-500">Nilai pada sistem dapat memiliki selisih pembulatan dibandingkan file asli. Silakan periksa total sebelum finalisasi.</p>
           </div>
-          <span className="w-fit rounded-full bg-slate-100 px-4 py-2 text-xs font-black">{batch?.status}</span>
+          <span className="w-fit rounded-full bg-slate-100 px-4 py-2 text-xs font-black">{formatStatusLabel(batch?.status)}</span>
         </div>
       </div>
 
       <section className="mt-6 grid gap-4 md:grid-cols-4">
-        {[
-          ["Total Rows", batch?.total_rows],
-          ["Total Gross IDR", idr(batch?.gross_idr_total || batch?.calculated_totals?.gross_idr_total)],
-          ["Total Hak User", idr(batch?.user_revenue_total || batch?.calculated_totals?.user_revenue_total)],
-          ["Total Hak Aggregator", idr(batch?.aggregator_revenue_total || batch?.calculated_totals?.aggregator_revenue_total)],
-          ["Matched", batch?.matched_rows],
-          ["Tidak Ada Akun", batch?.no_account_rows],
-          ["Konflik", batch?.conflict_rows],
-          ["Invalid", batch?.invalid_rows],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
-            <p className="mt-2 text-xl font-black text-slate-900">{value ?? 0}</p>
-          </div>
-        ))}
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          const active = activeSummaryCard === card.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => activateSummaryCard(card)}
+              aria-pressed={active}
+              className={`group relative overflow-hidden rounded-2xl border p-5 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg ${card.surface} ${active ? "border-slate-400 ring-4 ring-slate-200/70" : "border-white"}`}
+            >
+              <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${card.tone}`} />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className={`text-xs font-black uppercase tracking-wide ${card.text}`}>{card.label}</p>
+                  <p className="mt-2 text-2xl font-black text-slate-900">{card.value}</p>
+                </div>
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-md ${card.tone}`}>
+                  <Icon size={21} />
+                </span>
+              </div>
+              <p className="mt-4 text-xs font-medium leading-5 text-slate-500">{card.description}</p>
+              <p className={`mt-3 text-[11px] font-black uppercase tracking-wide ${card.text}`}>
+                {active ? "Sedang ditampilkan" : "Klik untuk lihat data"}
+              </p>
+            </button>
+          );
+        })}
       </section>
 
       <section className="mt-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -247,24 +291,24 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
         {message && <p className="self-center text-xs font-bold text-slate-600">{message}</p>}
       </div>
 
-      <section className="mt-6 rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <section id="report-data-table" className="mt-6 scroll-mt-6 rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="grid gap-3 border-b border-slate-100 p-4 md:grid-cols-4">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-3 text-slate-400" />
             <input value={filters.search} onChange={(e) => setFilters((p) => ({ ...p, search: e.target.value }))} placeholder="Search" className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm" />
           </div>
-          <select value={filters.status} onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <select value={filters.status} onChange={(e) => { setActiveSummaryCard(""); setFilters((p) => ({ ...p, status: e.target.value, metric: "" })); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <option value="">Semua Status</option>
             {Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
           <input value={filters.currency} onChange={(e) => setFilters((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} placeholder="Currency" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          <button onClick={() => loadRows(1)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white">Filter</button>
+          <button onClick={() => { setActiveSummaryCard(""); loadRows(1); }} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white">Filter</button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[2500px] w-full text-left text-sm">
+          <table className="min-w-[1300px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>{["No","Artist","Track Title","Release","UPC","ISRC","Akun","Bukti Kepemilikan","Status Match","Platform","Country","Quantity","Currency","Gross Revenue","Rate","Gross IDR","User %","User Revenue","Aggregator %","Aggregator Revenue","Match Method","Action"].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
+              <tr>{["No","Artist","Track Title","Release","UPC","ISRC","Akun","Bukti Kepemilikan","Status Match","Action"].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((row) => (
@@ -287,18 +331,6 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
                       {STATUS_LABELS[row.status] || row.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{row.platform}</td>
-                  <td className="px-4 py-3">{row.country_region}</td>
-                  <td className="px-4 py-3 text-right">{row.quantity}</td>
-                  <td className="px-4 py-3">{row.client_payment_currency}</td>
-                  <td className="px-4 py-3 text-right">{row.net_revenue}</td>
-                  <td className="px-4 py-3 text-right">{row.exchange_rate || "-"}</td>
-                  <td className="px-4 py-3 text-right">{idr(row.gross_idr_final)}</td>
-                  <td className="px-4 py-3 text-right">{row.user_percentage || "-"}</td>
-                  <td className="px-4 py-3 text-right">{idr(row.user_revenue)}</td>
-                  <td className="px-4 py-3 text-right">{row.aggregator_percentage || "-"}</td>
-                  <td className="px-4 py-3 text-right">{idr(row.aggregator_revenue)}</td>
-                  <td className="px-4 py-3">{row.match_method || "-"}</td>
                   <td className="px-4 py-3">
                     {batch?.status === "FINALIZED" ? (
                       <span className="text-xs font-bold text-slate-400">Terkunci</span>

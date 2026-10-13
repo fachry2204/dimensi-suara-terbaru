@@ -42,6 +42,8 @@ type CatalogMatch = {
   track_title: string | null;
   artist_name: string | null;
   label_name: string | null;
+  catalog_upc: string | null;
+  catalog_isrc: string | null;
 };
 
 function placeholders(length: number) {
@@ -230,7 +232,7 @@ async function lookupCatalog(rows: any[]) {
     if (!chunk.length) continue;
     const [found]: any = await db.query(
       `SELECT t.isrc, t.id AS track_id, t.title AS track_title, t.primary_artists AS track_artists,
-              r.id AS release_id, r.user_id, r.title AS release_title, r.primary_artists, r.label,
+              r.id AS release_id, r.user_id, r.title AS release_title, r.primary_artists, r.label, r.upc,
               u.full_name, u.company_name, u.username, u.email
        FROM tracks t
        JOIN releases r ON r.id = t.release_id
@@ -251,6 +253,8 @@ async function lookupCatalog(rows: any[]) {
         track_title: item.track_title,
         artist_name: catalogArtistName(item.track_artists || item.primary_artists),
         label_name: item.label,
+        catalog_upc: item.upc || null,
+        catalog_isrc: item.isrc || null,
       });
     }
   }
@@ -276,6 +280,8 @@ async function lookupCatalog(rows: any[]) {
         track_title: null,
         artist_name: catalogArtistName(item.primary_artists),
         label_name: item.label,
+        catalog_upc: item.upc || null,
+        catalog_isrc: null,
       };
       for (const key of upcLookupVariants(item.upc)) {
         if (!upcMap.has(key)) upcMap.set(key, []);
@@ -300,6 +306,8 @@ function ownershipEvidence(matches: CatalogMatch[]) {
     releaseTitle: match.release_title,
     trackId: match.track_id,
     trackTitle: match.track_title,
+    catalogUpc: match.catalog_upc,
+    catalogIsrc: match.catalog_isrc,
   }));
 }
 

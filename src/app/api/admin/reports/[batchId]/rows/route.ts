@@ -40,6 +40,15 @@ export async function GET(
       where.push("r.matched_user_id = ?");
       values.push(userId);
     }
+    const metric = searchParams.get("metric");
+    const metricColumns: Record<string, string> = {
+      gross: "r.gross_idr_final",
+      user: "r.user_revenue",
+      aggregator: "r.aggregator_revenue",
+    };
+    if (metric && metricColumns[metric]) {
+      where.push(`COALESCE(${metricColumns[metric]}, 0) <> 0`);
+    }
     const search = searchParams.get("search");
     if (search) {
       where.push("(r.artist_name LIKE ? OR r.track_title LIKE ? OR r.release_title LIKE ? OR r.upc_original LIKE ? OR r.isrc_original LIKE ?)");
@@ -48,9 +57,13 @@ export async function GET(
     const whereSql = `WHERE ${where.join(" AND ")}`;
     const [countRows]: any = await db.query(`SELECT COUNT(*) AS total FROM report_rows r ${whereSql}`, values);
     const [rows]: any = await db.query(
-      `SELECT r.*, u.full_name, u.company_name, u.email
+      `SELECT r.*, u.full_name, u.company_name, u.email,
+              matched_release.upc AS matched_catalog_upc,
+              matched_track.isrc AS matched_catalog_isrc
        FROM report_rows r
        LEFT JOIN users u ON u.id = r.matched_user_id
+       LEFT JOIN releases matched_release ON matched_release.id = r.matched_release_id
+       LEFT JOIN tracks matched_track ON matched_track.id = r.matched_track_id
        ${whereSql}
        ORDER BY r.row_number ASC
        LIMIT ? OFFSET ?`,
