@@ -10,6 +10,7 @@ import { formatDMY } from '@/utils/date';
 import { releaseFilePreviewUrl } from '@/utils/url';
 import { useBranding } from '@/contexts/BrandingContext';
 import { api } from '@/utils/api';
+import { useAggregators } from '@/hooks/useAggregators';
 
 
 
@@ -22,6 +23,7 @@ interface SortConfig {
 }
 
 export default function ReleasesPage() {
+  const { aggregators } = useAggregators();
   const router = useRouter();
   const pathname = usePathname();
   const routePrefix = pathname?.startsWith('/user') ? '/user' : pathname?.startsWith('/admin') ? '/admin' : '';
@@ -766,14 +768,10 @@ export default function ReleasesPage() {
                                         className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:border-blue-500 focus:outline-none"
                                     >
                                         <option value="">Belum diatur</option>
-                                        <option value="SoundOn">SoundOn</option>
-                                        <option value="FUGA">FUGA</option>
-                                        <option value="Believe">Believe</option>
-                                        <option value="Tunecore">Tunecore</option>
-                                        <option value="DistroKid">DistroKid</option>
-                                        <option value="CD Baby">CD Baby</option>
-                                        <option value="LokaMusik">LokaMusik</option>
-                                        <option value="Manual">Manual</option>
+                                        {aggregatorDraft && !aggregators.includes(aggregatorDraft) && (
+                                          <option value={aggregatorDraft}>{aggregatorDraft} (data lama)</option>
+                                        )}
+                                        {aggregators.map((name) => <option key={name} value={name}>{name}</option>)}
                                     </select>
                                 </label>
                                 <label className="block">

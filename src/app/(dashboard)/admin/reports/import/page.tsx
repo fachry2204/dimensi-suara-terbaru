@@ -15,8 +15,8 @@ import {
   Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAggregators } from "@/hooks/useAggregators";
 
-const AGGREGATORS = ["SoundOn", "Believe", "The Orchard", "FUGA", "EVEARA", "Loka", "Lainnya"];
 const MONTHS = [
   ["01", "Januari"],
   ["02", "Februari"],
@@ -42,10 +42,11 @@ function fileSize(value: number) {
 
 export default function AdminImportReportPage() {
   const router = useRouter();
+  const { aggregators, isLoadingAggregators } = useAggregators();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const now = new Date();
   const [form, setForm] = useState({
-    aggregatorName: "SoundOn",
+    aggregatorName: "",
     reportMonth: String(now.getMonth() + 1).padStart(2, "0"),
     reportYear: String(now.getFullYear()),
     file: null as File | null,
@@ -83,6 +84,10 @@ export default function AdminImportReportPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!form.aggregatorName) {
+      setMessage("Pilih nama aggregator terlebih dahulu.");
+      return;
+    }
     if (!form.file) {
       setMessage("Pilih file report terlebih dahulu.");
       return;
@@ -152,9 +157,12 @@ export default function AdminImportReportPage() {
               <select
                 value={form.aggregatorName}
                 onChange={(event) => setForm((previous) => ({ ...previous, aggregatorName: event.target.value }))}
+                disabled={isLoadingAggregators}
+                required
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-50"
               >
-                {AGGREGATORS.map((name) => <option key={name}>{name}</option>)}
+                <option value="">Pilih aggregator</option>
+                {aggregators.map((name) => <option key={name} value={name}>{name}</option>)}
               </select>
             </label>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Eye, RefreshCw, Trash2, Upload } from "lucide-react";
+import { useAggregators } from "@/hooks/useAggregators";
 
 const STATUSES: Record<string, string> = {
   UPLOADING: "Mengupload",
@@ -13,8 +14,6 @@ const STATUSES: Record<string, string> = {
   FAILED: "Gagal",
   CANCELLED: "Dibatalkan",
 };
-
-const AGGREGATORS = ["SoundOn", "Believe", "The Orchard", "FUGA", "EVEARA", "Loka", "Lainnya"];
 
 function formatDate(value: string | null) {
   if (!value) return "-";
@@ -28,6 +27,7 @@ function pageNumbers(current: number, totalPages: number) {
 }
 
 export default function AdminReportsPage() {
+  const { aggregators } = useAggregators();
   const [batches, setBatches] = useState<any[]>([]);
   const [meta, setMeta] = useState({ page: 1, limit: 20, total: 0 });
   const [activeTab, setActiveTab] = useState<"batches" | "data">("batches");
@@ -101,7 +101,7 @@ export default function AdminReportsPage() {
           </select>
           <select value={filters.aggregator} onChange={(e) => setFilters((p) => ({ ...p, aggregator: e.target.value }))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <option value="">Semua Aggregator</option>
-            {AGGREGATORS.map((name) => <option key={name}>{name}</option>)}
+            {aggregators.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
           <button onClick={() => loadBatches(1)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white">Filter</button>
         </div>

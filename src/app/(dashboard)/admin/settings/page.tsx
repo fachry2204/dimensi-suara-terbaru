@@ -7,14 +7,18 @@ import {
   CheckCircle2,
   Database,
   FileSignature,
+  GitBranch,
   HardDrive,
   Loader2,
+  Plus,
   Save,
   Settings,
   Shield,
   Upload,
+  X,
 } from "lucide-react";
 import { assetUrl } from "@/utils/url";
+import { useAggregators } from "@/hooks/useAggregators";
 
 const settingGroups = [
   ["Role & Akses", ["Setting Role"], Shield],
@@ -28,6 +32,10 @@ function tabKey(value: string) {
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("branding");
+  const { aggregators, setAggregators, isLoadingAggregators } = useAggregators();
+  const [newAggregator, setNewAggregator] = useState("");
+  const [isSavingAggregators, setIsSavingAggregators] = useState(false);
+  const [aggregatorMessage, setAggregatorMessage] = useState("");
 
   // Branding State
   const [systemName, setSystemName] = useState("");
@@ -68,6 +76,7 @@ export default function AdminSettingsPage() {
 
   const settingTabs = [
     { key: "branding", label: "Branding", Icon: Settings },
+    { key: "aggregator", label: "Setting Aggregator", Icon: GitBranch },
     { key: "kontrak", label: "Format Kontrak", Icon: FileSignature },
     ...settingGroups.map(([title, , Icon]: any) => ({
       key: tabKey(String(title)),
@@ -136,6 +145,43 @@ export default function AdminSettingsPage() {
       setBrandingMessage(error.message || "Gagal menyimpan branding.");
     } finally {
       setIsSavingBranding(false);
+    }
+  }
+
+  function addAggregator() {
+    const name = newAggregator.trim().replace(/\s+/g, " ");
+    if (!name) return;
+    if (aggregators.some((item) => item.toLowerCase() === name.toLowerCase())) {
+      setAggregatorMessage("Nama aggregator sudah ada.");
+      return;
+    }
+    setAggregators((previous) => [...previous, name]);
+    setNewAggregator("");
+    setAggregatorMessage("");
+  }
+
+  async function saveAggregators() {
+    if (!aggregators.length) {
+      setAggregatorMessage("Minimal harus ada satu aggregator.");
+      return;
+    }
+    setIsSavingAggregators(true);
+    setAggregatorMessage("");
+    try {
+      const response = await fetch("/api/settings/aggregators", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ aggregators }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || data.message || "Gagal menyimpan aggregator.");
+      setAggregators(data.aggregators || aggregators);
+      setAggregatorMessage("Setting aggregator berhasil disimpan dan terhubung ke rilis serta laporan.");
+    } catch (error: any) {
+      setAggregatorMessage(error.message || "Gagal menyimpan aggregator.");
+    } finally {
+      setIsSavingAggregators(false);
     }
   }
 
@@ -282,6 +328,84 @@ export default function AdminSettingsPage() {
         {brandingMessage && (
           <p className={`mt-3 text-xs font-bold ${brandingMessage.includes("berhasil") ? "text-emerald-600" : "text-red-600"}`}>
             {brandingMessage}
+          </p>
+        )}
+      </section>
+
+      {/* AGGREGATOR */}
+      <section className={`mt-6 rounded-lg bg-white p-5 text-slate-900 ${activeTab !== "aggregator" ? "hidden" : ""}`}>
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-black">
+            <GitBranch size={18} className="text-fuchsia-500" /> Setting Aggregator
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Daftar ini digunakan bersama oleh pengisian aggregator rilisan, import report, dan filter laporan.
+          </p>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              value={newAggregator}
+              onChange={(event) => setNewAggregator(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addAggregator();
+                }
+              }}
+              disabled={isLoadingAggregators || isSavingAggregators}
+              className="h-11 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-50"
+              placeholder="Masukkan nama aggregator baru"
+            />
+            <button
+              type="button"
+              onClick={addAggregator}
+              disabled={!newAggregator.trim() || isLoadingAggregators || isSavingAggregators}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+            >
+              <Plus size={16} /> Tambah Aggregator
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {isLoadingAggregators ? (
+              <div className="col-span-full flex items-center justify-center gap-2 py-8 text-sm font-semibold text-slate-500">
+                <Loader2 size={16} className="animate-spin" /> Memuat aggregator...
+              </div>
+            ) : aggregators.map((name, index) => (
+              <div key={`${name}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Aggregator {index + 1}</span>
+                  <p className="truncate text-sm font-bold text-slate-800">{name}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAggregators((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}
+                  disabled={aggregators.length <= 1 || isSavingAggregators}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                  aria-label={`Hapus ${name}`}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={saveAggregators}
+          disabled={isLoadingAggregators || isSavingAggregators || !aggregators.length}
+          className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-fuchsia-600 px-6 text-sm font-bold text-white shadow-lg shadow-fuchsia-100 hover:bg-fuchsia-700 disabled:opacity-50"
+        >
+          {isSavingAggregators ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          Simpan Setting Aggregator
+        </button>
+
+        {aggregatorMessage && (
+          <p className={`mt-3 text-xs font-bold ${aggregatorMessage.includes("berhasil") ? "text-emerald-600" : "text-red-600"}`}>
+            {aggregatorMessage}
           </p>
         )}
       </section>
