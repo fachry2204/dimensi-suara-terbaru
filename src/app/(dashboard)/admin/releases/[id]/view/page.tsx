@@ -24,14 +24,9 @@ export default function ReleaseDetailsPage() {
     type: 'error'
   });
 
-  const [userRole, setUserRole] = useState('Admin');
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('cms_role') || 'Admin';
-      setUserRole(role.trim().toLowerCase() === 'admin' ? 'Admin' : role);
-    }
-  }, []);
+  // Halaman ini hanya tersedia pada route admin. Jangan bergantung pada
+  // localStorage karena nilai lama/berbeda dapat menyembunyikan workflow admin.
+  const userRole = 'Admin';
   const token = ''; // Handled implicitly by Next.js rewrites/cookies
   const [aggregators, setAggregators] = useState<string[]>([]);
 
