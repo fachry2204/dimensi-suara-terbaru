@@ -6,6 +6,8 @@ import { Calendar, Trash2, Plus, Music } from 'lucide-react';
 import { useGenres, useSubGenres } from '@/hooks/useGenres';
 import { ChunkUploader } from '../../components/ChunkUploader';
 import { api } from '@/utils/api';
+import { SpotifyIcon } from '../../components/SpotifyIcon';
+import { getSpotifyArtistUrl } from '@/utils/spotify';
 
 const CONTRIBUTOR_ROLES = [
   "Accordion", "Acoustic Guitar", "Alto Saxophone", "Background Vocals", "Banjo", "Bass Guitar", 
@@ -279,20 +281,48 @@ export const Step1ReleaseInfo: React.FC<Props> = ({ data, updateData, releaseTyp
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Primary Artists */}
-          <div>
+          <div id="primary-artists-section">
             <label className="block text-sm font-bold text-slate-700 mb-2">Artis Utama <span className="text-red-500">*</span></label>
-            {(data.primaryArtists || []).map((artist: any, i: number) => (
-              <div key={i} className="flex gap-2 mb-2 items-center">
-                <input 
-                  className="flex-1 border border-gray-300 rounded p-2 text-sm" 
-                  placeholder="Nama Artis" 
-                  value={typeof artist === 'string' ? artist : artist.name || ''} 
-                  onChange={(e) => handleArrayChange('primaryArtists', i, 'name', e.target.value)}
-                />
-                {i > 0 && <button type="button" onClick={() => removeArrayItem('primaryArtists', i)} className="text-red-500 p-2"><Trash2 size={16}/></button>}
-              </div>
-            ))}
-            <button type="button" onClick={() => addArrayItem('primaryArtists', {name: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
+            {(data.primaryArtists || []).map((artist: any, i: number) => {
+              const artistName = typeof artist === 'string' ? artist : artist.name || '';
+              const spotifyLink = typeof artist === 'string' ? '' : artist.spotifyLink || '';
+              const spotifyLinkInvalid = spotifyLink.trim().length > 0 && !getSpotifyArtistUrl(spotifyLink);
+
+              return (
+                <div key={i} className="mb-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="flex-1 rounded-lg border border-gray-300 bg-white p-2 text-sm"
+                      placeholder="Nama Artis"
+                      value={artistName}
+                      onChange={(e) => handleArrayChange('primaryArtists', i, 'name', e.target.value)}
+                    />
+                    {i > 0 && <button type="button" onClick={() => removeArrayItem('primaryArtists', i)} className="text-red-500 p-2" title="Hapus artis"><Trash2 size={16}/></button>}
+                  </div>
+                  <div className="relative mt-2">
+                    <SpotifyIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1DB954]" />
+                    <input
+                      type="url"
+                      inputMode="url"
+                      className={`w-full rounded-lg border bg-white py-2 pl-10 pr-3 text-sm ${spotifyLinkInvalid ? 'border-red-400 focus:border-red-500' : 'border-gray-300 focus:border-[#1DB954]'}`}
+                      placeholder="https://open.spotify.com/artist/..."
+                      value={spotifyLink}
+                      onChange={(e) => handleArrayChange('primaryArtists', i, 'spotifyLink', e.target.value)}
+                    />
+                  </div>
+                  {spotifyLinkInvalid ? (
+                    <p className="mt-1 text-[10px] font-semibold text-red-600">
+                      Gunakan link profil artis Spotify yang valid.
+                    </p>
+                  ) : (
+                    <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-semibold leading-4 text-emerald-800">
+                      <span className="font-extrabold">Opsional.</span> Jika tidak mencantumkan link Spotify, kami akan membuat profil artis Spotify baru untuk artis ini.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <button type="button" onClick={() => addArrayItem('primaryArtists', {name: '', spotifyLink: ''})} className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-all duration-150 shadow-sm w-fit">
               <Plus size={14} className="mr-0.5"/> Tambah Artis Utama
             </button>
           </div>

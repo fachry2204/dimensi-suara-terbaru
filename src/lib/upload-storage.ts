@@ -68,6 +68,8 @@ export async function findStoredUploadFile(storedPath: string) {
 }
 
 export const UPLOAD_MIME_TYPES: Record<string, string> = {
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ".gif": "image/gif",
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",

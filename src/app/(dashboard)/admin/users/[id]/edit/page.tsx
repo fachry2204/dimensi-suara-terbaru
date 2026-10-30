@@ -115,10 +115,9 @@ const DOC_FIELDS: Array<{ name: keyof UserForm; label: string }> = [
   { name: "contract_doc_path", label: "Kontrak" },
 ];
 
-function getDocUrl(path: string) {
-  if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return path.startsWith("/") ? path : `/${path}`;
+function getDocUrl(userId: string, field: keyof UserForm, download = false) {
+  const base = `/api/users/${encodeURIComponent(userId)}/documents/${field}`;
+  return download ? `${base}?download=1` : base;
 }
 
 export default function AdminEditUserPage({ params }: { params: Promise<{ id: string }> }) {
@@ -278,7 +277,8 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
             {DOC_FIELDS.map((doc) => {
               const pathVal = form[doc.name];
               const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(pathVal);
-              const docUrl = getDocUrl(pathVal);
+              const docUrl = getDocUrl(id, doc.name);
+              const downloadUrl = getDocUrl(id, doc.name, true);
               const isUploadingThis = uploadingDoc === doc.name;
 
               return (
@@ -360,7 +360,7 @@ export default function AdminEditUserPage({ params }: { params: Promise<{ id: st
 
                       {pathVal && (
                         <a
-                          href={docUrl}
+                          href={downloadUrl}
                           download
                           target="_blank"
                           rel="noopener noreferrer"

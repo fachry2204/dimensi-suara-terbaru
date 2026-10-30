@@ -6,6 +6,8 @@ import { formatDMY } from '@/utils/date';
 import { assetUrl, releaseFilePreviewUrl } from '@/utils/url';
 import { api, API_BASE_URL } from '@/utils/api';
 import { AlertModal } from './AlertModal';
+import { SpotifyIcon } from './SpotifyIcon';
+import { getSpotifyArtistUrl } from '@/utils/spotify';
 
 interface Props {
   release: ReleaseData;
@@ -35,6 +37,9 @@ const audioPreviewUrl = (filePath: string) => {
 };
 
 export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, onUpdate, availableAggregators, mode = 'edit', onEdit, onDelete, userRole, isUpdatingCoverArt, token, onCoverArtUpdated, hideDistributionTab = false }) => {
+  const normalizedUserRole = String(userRole || '').trim().toLowerCase();
+  const isAdmin = normalizedUserRole === 'admin';
+  const isStaff = isAdmin || normalizedUserRole === 'operator';
   const [activeTab, setActiveTab] = useState<'INFO' | 'DISTRIBUTION'>('INFO');
   
   const renderList = (arr: any[], nameKey = 'name', roleKey?: string) =>
@@ -511,7 +516,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         <ArrowLeft size={20} />
                         Kembali ke Daftar
                     </button>
-                    {(userRole === 'Admin' || userRole === 'Operator') && !hideDistributionTab && (
+                    {isStaff && !hideDistributionTab && (
                         <div className="flex gap-2">
                             <button onClick={onClose} className="px-4 py-2 text-slate-500 font-bold text-sm hover:bg-slate-100 rounded-lg transition-colors">
                                 Batal
@@ -624,7 +629,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                     {status === 'Rejected' && <AlertTriangle size={10} />}
                                     {(status === 'Live' || status === 'Released') ? 'Rilis' : status === 'Processing' ? 'Diproses' : status === 'Rejected' ? 'Ditolak' : status === 'Request Edit' ? 'Minta Revisi' : 'Menunggu'}
                                 </span>
-                                {(userRole === 'Admin' || userRole === 'Operator') && release.aggregator && (
+                            {isStaff && release.aggregator && (
                                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1">
                                         <Globe size={10} className="text-purple-600" /> {release.aggregator}
                                     </span>
@@ -634,14 +639,34 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                 </span>
                             </div>
                             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1">{release.title}</h1>
-                            <p className="text-slate-600 font-medium text-lg mb-3">
-                                {release.primaryArtists.map(a => typeof a === 'string' ? a : a.name).join(", ")}
-                            </p>
+                            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                                {release.primaryArtists.map((artist, index) => {
+                                    const name = typeof artist === 'string' ? artist : artist.name;
+                                    const spotifyUrl = typeof artist === 'string' ? null : getSpotifyArtistUrl(artist.spotifyLink);
+                                    return (
+                                        <span key={`${name}-${index}`} className="inline-flex items-center gap-1.5 text-lg font-medium text-slate-600">
+                                            {name}
+                                            {spotifyUrl && (
+                                                <a
+                                                    href={spotifyUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex text-[#1DB954] transition hover:scale-110 hover:text-[#169c46]"
+                                                    title={`Buka akun Spotify ${name}`}
+                                                    aria-label={`Buka akun Spotify ${name}`}
+                                                >
+                                                    <SpotifyIcon size={19} />
+                                                </a>
+                                            )}
+                                        </span>
+                                    );
+                                })}
+                            </div>
                         </div>
                         
                         {/* Edit and Delete Buttons */}
                         <div className="flex items-center gap-2">
-                            {userRole === 'Admin' && onEdit && (
+                            {isAdmin && onEdit && (
                                 <button
                                     onClick={() => onEdit(release)}
                                     disabled={!!isUpdatingCoverArt}
@@ -652,7 +677,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                     Edit Rilis
                                 </button>
                             )}
-                            {userRole === 'Admin' && onDelete && (
+                            {isAdmin && onDelete && (
                                 <button
                                     onClick={() => onDelete(release)}
                                     className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
@@ -687,6 +712,14 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                         </p>
                                     </div>
                                 )}
+                                {!isStaff && (
+                                    <div className="mt-4 rounded-lg border border-red-200 bg-red-100/60 p-3">
+                                        <p className="text-xs font-extrabold text-red-900">Yang perlu Anda lakukan</p>
+                                        <p className="mt-1 text-xs leading-5 text-red-800">
+                                            Perbaiki data atau materi sesuai alasan di atas, lalu ajukan kembali rilis untuk diperiksa oleh admin.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -699,7 +732,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                 <div className="flex flex-col gap-1">
                                     {(release.primaryArtists || []).map((a, idx) => {
                                         const name = typeof a === 'string' ? a : a.name;
-                                        const link = typeof a === 'object' && (a as any).spotifyLink ? (a as any).spotifyLink : null;
+                                        const link = typeof a === 'object' ? getSpotifyArtistUrl((a as any).spotifyLink) : null;
                                         const roleVal = typeof a === 'object' && (a as any).role ? (a as any).role : 'MainArtist';
                                         const isFeat = roleVal.toLowerCase() === 'featured' || roleVal.toLowerCase() === 'featuredartist' || roleVal.toLowerCase() === 'featured artist';
                                         return (
@@ -721,7 +754,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                                                         title="Link Spotify Artis"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
-                                                        <Globe size={12} />
+                                                        <SpotifyIcon size={15} />
                                                     </a>
                                                 )}
                                             </div>
@@ -797,7 +830,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                     >
                         <FileText size={16} /> Metadata & Track
                     </button>
-                    {(userRole === 'Admin' || userRole === 'Operator') && (
+                    {isStaff && (
                         <button 
                             onClick={() => setActiveTab('DISTRIBUTION')}
                             className={`pb-4 px-4 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'DISTRIBUTION' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
@@ -1139,7 +1172,7 @@ export const ReleaseDetailModal: React.FC<Props> = ({ release, isOpen, onClose, 
                         </div>
                     </div>
                 )}
-                {userRole === 'Admin' && activeTab === 'DISTRIBUTION' && (
+                {isAdmin && activeTab === 'DISTRIBUTION' && (
                     <div className="w-full max-w-none">
                         <div className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm mb-8 animate-fade-in-up">
                             <h3 className="font-bold text-xl text-slate-800 mb-2">Manajemen Workflow</h3>

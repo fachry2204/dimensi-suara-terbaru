@@ -30,6 +30,14 @@ export async function POST(
     if (!ALLOWED_STATUSES.has(normalizedStatus)) {
       return NextResponse.json({ error: "Status rilis tidak valid" }, { status: 422 });
     }
+    const normalizedRejectionReason = typeof rejectionReason === "string" ? rejectionReason.trim() : "";
+    const normalizedRejectionDescription = typeof rejectionDescription === "string" ? rejectionDescription.trim() : "";
+    if (normalizedStatus === "Rejected" && !normalizedRejectionReason) {
+      return NextResponse.json(
+        { error: "Alasan penolakan wajib diisi sebelum rilis ditolak" },
+        { status: 422 },
+      );
+    }
 
     const [releaseCols]: any = await db.query("SHOW COLUMNS FROM releases");
     const releaseColNames = Array.isArray(releaseCols)
@@ -55,12 +63,12 @@ export async function POST(
 
     if (releaseColNames.includes("rejection_reason")) {
       setParts.push("rejection_reason = ?");
-      values.push(rejectionReason || null);
+      values.push(normalizedStatus === "Rejected" ? normalizedRejectionReason : null);
     }
 
     if (releaseColNames.includes("rejection_description")) {
       setParts.push("rejection_description = ?");
-      values.push(rejectionDescription || null);
+      values.push(normalizedStatus === "Rejected" ? normalizedRejectionDescription || null : null);
     }
 
     if (releaseColNames.includes("updated_at")) {
@@ -95,8 +103,8 @@ export async function POST(
       newStatus: normalizedStatus,
       aggregator,
       upc,
-      rejectionReason,
-      rejectionDescription,
+      rejectionReason: normalizedRejectionReason,
+      rejectionDescription: normalizedRejectionDescription,
     }).catch((err) => console.error("[Workflow Route] Error sending notification:", err));
 
     return NextResponse.json({

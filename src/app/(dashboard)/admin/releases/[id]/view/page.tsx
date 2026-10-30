@@ -24,12 +24,12 @@ export default function ReleaseDetailsPage() {
     type: 'error'
   });
 
-  const [userRole, setUserRole] = useState('User');
+  const [userRole, setUserRole] = useState('Admin');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('cms_role') || 'User';
-      setUserRole(role);
+      const role = localStorage.getItem('cms_role') || 'Admin';
+      setUserRole(role.trim().toLowerCase() === 'admin' ? 'Admin' : role);
     }
   }, []);
   const token = ''; // Handled implicitly by Next.js rewrites/cookies
@@ -166,7 +166,15 @@ export default function ReleaseDetailsPage() {
         onUpdate={async (r) => {
           try {
             await api.updateReleaseWorkflow(token, r);
-            router.push(`${routePrefix}/releases`);
+            setRelease(r);
+            setAlertState({
+                isOpen: true,
+                title: 'Status Berhasil Diperbarui',
+                message: r.status === 'Rejected'
+                  ? 'Rilis ditolak dan alasan penolakan sudah disimpan untuk ditampilkan kepada user.'
+                  : 'Status rilis berhasil diperbarui.',
+                type: 'success'
+            });
           } catch (e: any) {
             setAlertState({
                 isOpen: true,
@@ -178,7 +186,7 @@ export default function ReleaseDetailsPage() {
         }}
         availableAggregators={aggregators}
         mode="view"
-        hideDistributionTab={true}
+        hideDistributionTab={false}
         onEdit={(r) => {
           router.push(`${routePrefix}/releases/${r.id}/edit`);
         }}

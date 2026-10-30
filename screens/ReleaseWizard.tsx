@@ -8,6 +8,7 @@ import { Step3ReleaseDetail } from './wizard/Step3ReleaseDetail';
 import { Step4Review } from './wizard/Step4Review';
 import { ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, Check, Search, X, Loader2, Plus } from 'lucide-react';
 import { api } from '@/utils/api';
+import { getSpotifyArtistUrl } from '@/utils/spotify';
 
 type MissingFieldItem = {
     label: string;
@@ -46,7 +47,7 @@ const INITIAL_DATA: ReleaseData = {
     upc: "",
     title: "",
     language: "",
-    primaryArtists: [""],
+    primaryArtists: [{ name: "", spotifyLink: "" }],
     label: "",
     genre: "",
     pLine: "",
@@ -259,6 +260,16 @@ export const ReleaseWizard: React.FC<Props> = ({ type, onBack, onSave, initialDa
     const handleNext = () => {
         if (isAdmin && !data.userId) {
             setMissingFields([{ label: 'Pemilik Rilis', targetId: 'release-owner-selector' }]);
+            setShowMissingWarning(true);
+            return;
+        }
+
+        const invalidSpotifyArtist = (data.primaryArtists || []).find((artist: any) => {
+            const spotifyLink = typeof artist === 'string' ? '' : String(artist?.spotifyLink || '').trim();
+            return spotifyLink && !getSpotifyArtistUrl(spotifyLink);
+        });
+        if (invalidSpotifyArtist) {
+            setMissingFields([{ label: 'Link Spotify artis tidak valid', targetId: 'primary-artists-section' }]);
             setShowMissingWarning(true);
             return;
         }

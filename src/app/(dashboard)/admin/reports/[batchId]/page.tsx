@@ -227,7 +227,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
         </div>
       </div>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-4">
+      <section className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => {
           const Icon = card.icon;
           const active = activeSummaryCard === card.id;
@@ -237,7 +237,7 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
               type="button"
               onClick={() => activateSummaryCard(card)}
               aria-pressed={active}
-              className={`group relative overflow-hidden rounded-2xl border p-5 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg ${card.surface} ${active ? "border-slate-400 ring-4 ring-slate-200/70" : "border-white"}`}
+              className={`report-summary-card group relative flex min-h-[190px] flex-col overflow-hidden !rounded-2xl border border-white p-5 text-left transition-all duration-200 ${card.surface} ${active ? "-translate-y-1 shadow-xl ring-2 ring-slate-300 ring-offset-2" : "shadow-sm hover:-translate-y-1 hover:shadow-lg"}`}
             >
               <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${card.tone}`} />
               <div className="flex items-start justify-between gap-4">
@@ -250,9 +250,11 @@ export default function AdminReportDetailPage({ params }: { params: Promise<{ ba
                 </span>
               </div>
               <p className="mt-4 text-xs font-medium leading-5 text-slate-500">{card.description}</p>
-              <p className={`mt-3 text-[11px] font-black uppercase tracking-wide ${card.text}`}>
-                {active ? "Sedang ditampilkan" : "Klik untuk lihat data"}
-              </p>
+              <div className="mt-auto pt-4">
+                <span className={`inline-flex !rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide ${active ? `bg-white shadow-sm ${card.text}` : card.text}`}>
+                  {active ? "Sedang ditampilkan" : "Klik untuk lihat data"}
+                </span>
+              </div>
             </button>
           );
         })}

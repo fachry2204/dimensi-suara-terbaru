@@ -1,10 +1,12 @@
 import { createReadStream } from "fs";
+import { stat } from "fs/promises";
 import path from "path";
 import { Readable } from "stream";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth";
 import { db, type RowDataPacket } from "@/lib/db";
+import { resolvePrivatePath } from "@/lib/contracts/contract-paths";
 import { findStoredUploadFile, UPLOAD_MIME_TYPES } from "@/lib/upload-storage";
 
 export const runtime = "nodejs";
@@ -54,7 +56,20 @@ export async function GET(
       return NextResponse.json({ error: "Dokumen belum diupload" }, { status: 404 });
     }
 
-    const found = await findStoredUploadFile(storedPath);
+    let found = await findStoredUploadFile(storedPath);
+
+    // Kontrak hasil generate disimpan di storage privat dan hanya boleh
+    // dikirim melalui endpoint terautentikasi ini, bukan lewat URL langsung.
+    const normalizedStoredPath = storedPath.replace(/\\/g, "/");
+    if (!found && field === "contract_doc_path" && normalizedStoredPath.startsWith("storage/private/contracts/")) {
+      try {
+        const filePath = resolvePrivatePath(normalizedStoredPath);
+        const fileStat = await stat(filePath);
+        if (fileStat.isFile()) found = { filePath, fileStat };
+      } catch {
+        // Ditangani sebagai file tidak ditemukan di bawah.
+      }
+    }
     if (!found) {
       console.warn("Document file missing:", { userId: id, field, storedPath });
       return NextResponse.json(

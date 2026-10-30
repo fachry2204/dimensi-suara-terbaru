@@ -40,6 +40,7 @@ export default function ReleasesPage() {
   const [statusDraft, setStatusDraft] = useState('Pending');
   const [upcDraft, setUpcDraft] = useState('');
   const [isrcDraft, setIsrcDraft] = useState('');
+  const [rejectionReasonDraft, setRejectionReasonDraft] = useState('');
   const [trackIsrcDrafts, setTrackIsrcDrafts] = useState<Record<string | number, string>>({});
   const [isSavingWorkflow, setIsSavingWorkflow] = useState(false);
   const [workflowMessage, setWorkflowMessage] = useState('');
@@ -67,6 +68,7 @@ export default function ReleasesPage() {
     setAggregatorDraft(selectedRelease.aggregator || '');
     setStatusDraft(selectedRelease.status || 'Pending');
     setUpcDraft(selectedRelease.upc || '');
+    setRejectionReasonDraft(selectedRelease.rejectionReason || selectedRelease.rejection_reason || '');
     setIsrcDraft(tracks[0]?.isrc || '');
     setTrackIsrcDrafts(
       tracks.reduce((acc: Record<string | number, string>, track: any, index: number) => {
@@ -190,10 +192,22 @@ export default function ReleasesPage() {
   // 3. Pagination Logic
   const totalItems = sortedReleases.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const lastAvailablePage = Math.max(1, totalPages);
+  const activePage = Math.min(currentPage, lastAvailablePage);
+
+  useEffect(() => {
+    if (!isViewAll && currentPage !== activePage) {
+      setCurrentPage(activePage);
+    }
+  }, [activePage, currentPage, isViewAll]);
   
   const displayedReleases = isViewAll 
     ? sortedReleases 
-    : sortedReleases.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    : sortedReleases.slice((activePage - 1) * ITEMS_PER_PAGE, activePage * ITEMS_PER_PAGE);
+  const displayedRangeStart = totalItems === 0 ? 0 : (isViewAll ? 1 : (activePage - 1) * ITEMS_PER_PAGE + 1);
+  const displayedRangeEnd = totalItems === 0
+    ? 0
+    : (isViewAll ? totalItems : Math.min(activePage * ITEMS_PER_PAGE, totalItems));
   const displayedReleaseIds = displayedReleases
     .map((release) => String(release.id || ''))
     .filter(Boolean);
@@ -227,6 +241,10 @@ export default function ReleasesPage() {
       setWorkflowMessage('ID rilis tidak ditemukan. Tutup panel lalu buka kembali rilis ini.');
       return;
     }
+    if (statusDraft === 'Rejected' && !rejectionReasonDraft.trim()) {
+      setWorkflowMessage('Alasan penolakan wajib diisi sebelum rilis ditolak.');
+      return;
+    }
 
     setIsSavingWorkflow(true);
     setWorkflowMessage('');
@@ -245,6 +263,7 @@ export default function ReleasesPage() {
           status: statusDraft,
           aggregator: aggregatorDraft,
           upc: upcDraft,
+          rejectionReason: statusDraft === 'Rejected' ? rejectionReasonDraft.trim() : null,
           tracks: tracksPayload,
         }),
       });
@@ -260,6 +279,7 @@ export default function ReleasesPage() {
         status: statusDraft,
         aggregator: aggregatorDraft,
         upc: upcDraft,
+        rejectionReason: statusDraft === 'Rejected' ? rejectionReasonDraft.trim() : '',
         tracks: Array.isArray(data.tracks) && data.tracks.length > 0
           ? data.tracks
           : selectedTracks.map((track: any, index: number) => ({
@@ -765,7 +785,7 @@ export default function ReleasesPage() {
             {/* Pagination Footer */}
             <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
                 <div className="text-[13px] text-slate-500 font-medium">
-                    Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1} sampai {Math.min((currentPage - 1) * ITEMS_PER_PAGE + ITEMS_PER_PAGE, sortedReleases.length)} dari {sortedReleases.length} data
+                    Menampilkan {displayedRangeStart} sampai {displayedRangeEnd} dari {totalItems} data
                 </div>
                 <div className="flex gap-2">
                      <button onClick={() => setIsViewAll(!isViewAll)} className="px-3 py-1.5 text-[14px] font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
@@ -775,7 +795,7 @@ export default function ReleasesPage() {
                      <div className="flex items-center gap-1">
                          <button
                              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                             disabled={currentPage === 1}
+                             disabled={activePage === 1}
                              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
                          >
                              <ChevronLeft size={16} />
@@ -783,7 +803,7 @@ export default function ReleasesPage() {
                          
                          {Array.from({ length: totalPages }, (_, i) => i + 1)
                              .filter(page => {
-                                 const distance = Math.abs(page - currentPage);
+                                 const distance = Math.abs(page - activePage);
                                  return distance < 2 || page === 1 || page === totalPages;
                              })
                              .map((page, index, array) => {
@@ -797,7 +817,7 @@ export default function ReleasesPage() {
                                          key={page}
                                          onClick={() => setCurrentPage(page)}
                                          className={`w-8 h-8 flex items-center justify-center rounded-lg text-[13px] font-bold transition-all ${
-                                             currentPage === page
+                                             activePage === page
                                                  ? 'bg-green-500 text-white shadow-md shadow-green-200'
                                                  : 'bg-blue-100 text-blue-600 hover:bg-blue-200 shadow-sm'
                                          }`}
@@ -809,7 +829,7 @@ export default function ReleasesPage() {
 
                          <button
                              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                             disabled={currentPage === totalPages}
+                             disabled={activePage === totalPages}
                              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
                          >
                              <ChevronRight size={16} />
@@ -916,6 +936,20 @@ export default function ReleasesPage() {
                                         <option value="Rejected">Ditolak</option>
                                     </select>
                                 </label>
+                                {statusDraft === 'Rejected' && (
+                                    <label className="block rounded-xl border border-red-200 bg-red-50 p-3">
+                                        <span className="text-[10px] font-black uppercase text-red-700">Alasan Penolakan *</span>
+                                        <textarea
+                                            value={rejectionReasonDraft}
+                                            onChange={(event) => setRejectionReasonDraft(event.target.value)}
+                                            rows={4}
+                                            required
+                                            className="mt-2 w-full resize-none rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 focus:border-red-500 focus:outline-none"
+                                            placeholder="Jelaskan alasan penolakan agar user mengetahui bagian yang harus diperbaiki."
+                                        />
+                                        <p className="mt-1 text-[10px] font-semibold text-red-600">Alasan ini akan ditampilkan pada halaman detail rilis user.</p>
+                                    </label>
+                                )}
                                 <label className="block">
                                     <span className="text-[10px] font-black uppercase text-slate-500">UPC</span>
                                     <input
